@@ -26,9 +26,7 @@ hs_err_pid*
 # Gradle files
 .gradle/
 build/
-gradle/
-gradlew
-gradlew.bat
+!gradle/wrapper/gradle-wrapper.jar
 
 # Local configuration file (sdk path, etc)
 local.properties
