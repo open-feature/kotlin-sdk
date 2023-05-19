@@ -17,35 +17,40 @@ class AlwaysBrokenProvider(override var hooks: List<Hook<*>> = listOf(), overrid
 
     override fun getBooleanEvaluation(
         key: String,
-        defaultValue: Boolean
+        defaultValue: Boolean,
+        context: EvaluationContext?
     ): ProviderEvaluation<Boolean> {
         throw FlagNotFoundError(key)
     }
 
     override fun getStringEvaluation(
         key: String,
-        defaultValue: String
+        defaultValue: String,
+        context: EvaluationContext?
     ): ProviderEvaluation<String> {
         throw FlagNotFoundError(key)
     }
 
     override fun getIntegerEvaluation(
         key: String,
-        defaultValue: Int
+        defaultValue: Int,
+        context: EvaluationContext?
     ): ProviderEvaluation<Int> {
         throw FlagNotFoundError(key)
     }
 
     override fun getDoubleEvaluation(
         key: String,
-        defaultValue: Double
+        defaultValue: Double,
+        context: EvaluationContext?
     ): ProviderEvaluation<Double> {
         throw FlagNotFoundError(key)
     }
 
     override fun getObjectEvaluation(
         key: String,
-        defaultValue: Value
+        defaultValue: Value,
+        context: EvaluationContext?
     ): ProviderEvaluation<Value> {
         throw FlagNotFoundError(key)
     }

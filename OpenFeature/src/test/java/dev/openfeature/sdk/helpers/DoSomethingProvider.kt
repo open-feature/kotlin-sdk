@@ -16,35 +16,40 @@ class DoSomethingProvider(override val hooks: List<Hook<*>> = listOf(), override
 
     override fun getBooleanEvaluation(
         key: String,
-        defaultValue: Boolean
+        defaultValue: Boolean,
+        context: EvaluationContext?
     ): ProviderEvaluation<Boolean> {
         return ProviderEvaluation(!defaultValue)
     }
 
     override fun getStringEvaluation(
         key: String,
-        defaultValue: String
+        defaultValue: String,
+        context: EvaluationContext?
     ): ProviderEvaluation<String> {
         return ProviderEvaluation(defaultValue.reversed())
     }
 
     override fun getIntegerEvaluation(
         key: String,
-        defaultValue: Int
+        defaultValue: Int,
+        context: EvaluationContext?
     ): ProviderEvaluation<Int> {
         return ProviderEvaluation(defaultValue * 100)
     }
 
     override fun getDoubleEvaluation(
         key: String,
-        defaultValue: Double
+        defaultValue: Double,
+        context: EvaluationContext?
     ): ProviderEvaluation<Double> {
         return ProviderEvaluation(defaultValue * 100)
     }
 
     override fun getObjectEvaluation(
         key: String,
-        defaultValue: Value
+        defaultValue: Value,
+        context: EvaluationContext?
     ): ProviderEvaluation<Value> {
         return ProviderEvaluation(Value.Null)
     }

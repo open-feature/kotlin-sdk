@@ -165,13 +165,14 @@ class OpenFeatureClient(
         var details = FlagEvaluationDetails(key, defaultValue)
         val provider = openFeatureAPI.getProvider() ?: NoOpProvider()
         val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
-        val context = openFeatureAPI.getEvaluationContext() ?: MutableContext()
+        val context = openFeatureAPI.getEvaluationContext()
         val hookCtx: HookContext<T> = HookContext(key, flagValueType, defaultValue, context, this.metadata, provider.metadata)
         try {
             hookSupport.beforeHooks(flagValueType, hookCtx, mergedHooks, hints)
             val providerEval = createProviderEvaluation(
                 flagValueType,
                 key,
+                context,
                 defaultValue,
                 provider
             )
@@ -197,33 +198,34 @@ class OpenFeatureClient(
     private fun <V> createProviderEvaluation(
         flagValueType: FlagValueType,
         key: String,
+        context: EvaluationContext?,
         defaultValue: V,
         provider: FeatureProvider
     ): ProviderEvaluation<V> {
         return when(flagValueType) {
             BOOLEAN -> {
                 val defaultBoolean = defaultValue as? Boolean ?: throw typeMatchingException
-                val eval: ProviderEvaluation<Boolean> = provider.getBooleanEvaluation(key, defaultBoolean)
+                val eval: ProviderEvaluation<Boolean> = provider.getBooleanEvaluation(key, defaultBoolean, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
             STRING -> {
                 val defaultString = defaultValue as? String ?: throw typeMatchingException
-                val eval: ProviderEvaluation<String> = provider.getStringEvaluation(key, defaultString)
+                val eval: ProviderEvaluation<String> = provider.getStringEvaluation(key, defaultString, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
             INTEGER -> {
                 val defaultInteger = defaultValue as? Int ?: throw typeMatchingException
-                val eval: ProviderEvaluation<Int> = provider.getIntegerEvaluation(key, defaultInteger)
+                val eval: ProviderEvaluation<Int> = provider.getIntegerEvaluation(key, defaultInteger, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
             DOUBLE -> {
                 val defaultDouble = defaultValue as? Double ?: throw typeMatchingException
-                val eval: ProviderEvaluation<Double> = provider.getDoubleEvaluation(key, defaultDouble)
+                val eval: ProviderEvaluation<Double> = provider.getDoubleEvaluation(key, defaultDouble, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
             OBJECT -> {
                 val defaultObject = defaultValue as? Value ?: throw typeMatchingException
-                val eval: ProviderEvaluation<Value> = provider.getObjectEvaluation(key, defaultObject)
+                val eval: ProviderEvaluation<Value> = provider.getObjectEvaluation(key, defaultObject, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
         }

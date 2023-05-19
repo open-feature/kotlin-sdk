@@ -16,35 +16,40 @@ class NoOpProvider : FeatureProvider {
     override var hooks: List<Hook<*>> = listOf()
     override fun getBooleanEvaluation(
         key: String,
-        defaultValue: Boolean
+        defaultValue: Boolean,
+        context: EvaluationContext?
     ): ProviderEvaluation<Boolean> {
         return ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
     }
 
     override fun getStringEvaluation(
         key: String,
-        defaultValue: String
+        defaultValue: String,
+        context: EvaluationContext?
     ): ProviderEvaluation<String> {
         return ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
     }
 
     override fun getIntegerEvaluation(
         key: String,
-        defaultValue: Int
+        defaultValue: Int,
+        context: EvaluationContext?
     ): ProviderEvaluation<Int> {
         return ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
     }
 
     override fun getDoubleEvaluation(
         key: String,
-        defaultValue: Double
+        defaultValue: Double,
+        context: EvaluationContext?
     ): ProviderEvaluation<Double> {
         return ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
     }
 
     override fun getObjectEvaluation(
         key: String,
-        defaultValue: Value
+        defaultValue: Value,
+        context: EvaluationContext?
     ): ProviderEvaluation<Value> {
         return ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
     }
