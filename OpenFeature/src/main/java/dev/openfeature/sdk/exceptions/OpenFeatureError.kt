@@ -17,7 +17,7 @@ sealed class OpenFeatureError : Exception() {
     }
 
     class InvalidContextError(
-        override val message: String = "Invalid context"): OpenFeatureError() {
+        override val message: String = "Invalid or missing context"): OpenFeatureError() {
         override fun errorCode(): ErrorCode {
             return ErrorCode.INVALID_CONTEXT
         }
