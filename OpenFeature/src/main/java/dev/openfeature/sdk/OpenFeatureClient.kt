@@ -170,7 +170,14 @@ class OpenFeatureClient(
         val provider = openFeatureAPI.getProvider() ?: NoOpProvider()
         val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
         val context = openFeatureAPI.getEvaluationContext()
-        val hookCtx: HookContext<T> = HookContext(key, flagValueType, defaultValue, context, this.metadata, provider.metadata)
+        val hookCtx: HookContext<T> = HookContext(
+            key,
+            flagValueType,
+            defaultValue,
+            context,
+            this.metadata,
+            provider.metadata
+        )
         try {
             hookSupport.beforeHooks(flagValueType, hookCtx, mergedHooks, hints)
             val providerEval = createProviderEvaluation(
