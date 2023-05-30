@@ -1,6 +1,6 @@
 package dev.openfeature.sdk
 
-interface Client: Features {
+interface Client : Features {
     val metadata: Metadata
     val hooks: List<Hook<*>>
 

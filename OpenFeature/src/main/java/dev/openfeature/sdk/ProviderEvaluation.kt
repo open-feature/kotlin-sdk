@@ -8,4 +8,4 @@ data class ProviderEvaluation<T>(
     var reason: String? = null,
     var errorCode: ErrorCode? = null,
     var errorMessage: String? = null
- )
+)

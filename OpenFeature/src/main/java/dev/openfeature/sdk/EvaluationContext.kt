@@ -1,6 +1,6 @@
 package dev.openfeature.sdk
 
-interface EvaluationContext: Structure {
+interface EvaluationContext : Structure {
     fun getTargetingKey(): String
     fun setTargetingKey(targetingKey: String)
 

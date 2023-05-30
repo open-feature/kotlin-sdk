@@ -27,7 +27,6 @@ class GenericSpyHookMock(private var prefix: String = "", var addEval: (String) 
         addEval("$prefix after")
     }
 
-
     override fun error(
         ctx: HookContext<Any>,
         error: Exception,
