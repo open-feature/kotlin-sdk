@@ -2,7 +2,12 @@ package dev.openfeature.sdk
 
 @Suppress("UNCHECKED_CAST") // TODO can we do better here?
 class HookSupport {
-    fun <T> beforeHooks(flagValueType: FlagValueType, hookCtx: HookContext<T>, hooks: List<Hook<*>>, hints: Map<String, Any>) {
+    fun <T> beforeHooks(
+        flagValueType: FlagValueType,
+        hookCtx: HookContext<T>,
+        hooks: List<Hook<*>>,
+        hints: Map<String, Any>
+    ) {
         hooks
             .reversed()
             .filter { hook -> hook.supportsFlagValueType(flagValueType) }
@@ -37,7 +42,13 @@ class HookSupport {
             }
     }
 
-    fun <T> afterHooks(flagValueType: FlagValueType, hookCtx: HookContext<T>, details: FlagEvaluationDetails<T>, hooks: List<Hook<*>>, hints: Map<String, Any>) {
+    fun <T> afterHooks(
+        flagValueType: FlagValueType,
+        hookCtx: HookContext<T>,
+        details: FlagEvaluationDetails<T>,
+        hooks: List<Hook<*>>,
+        hints: Map<String, Any>
+    ) {
         hooks
             .filter { hook -> hook.supportsFlagValueType(flagValueType) }
             .forEach { hook ->
@@ -93,7 +104,12 @@ class HookSupport {
             }
     }
 
-    fun <T> afterAllHooks(flagValueType: FlagValueType, hookCtx: HookContext<T>, hooks: List<Hook<*>>, hints: Map<String, Any>) {
+    fun <T> afterAllHooks(
+        flagValueType: FlagValueType,
+        hookCtx: HookContext<T>,
+        hooks: List<Hook<*>>,
+        hints: Map<String, Any>
+    ) {
         hooks
             .filter { hook -> hook.supportsFlagValueType(flagValueType) }
             .forEach { hook ->
@@ -144,7 +160,13 @@ class HookSupport {
             }
     }
 
-    fun <T> errorHooks(flagValueType: FlagValueType, hookCtx: HookContext<T>, error: Exception, hooks: List<Hook<*>>, hints: Map<String, Any>) {
+    fun <T> errorHooks(
+        flagValueType: FlagValueType,
+        hookCtx: HookContext<T>,
+        error: Exception,
+        hooks: List<Hook<*>>,
+        hints: Map<String, Any>
+    ) {
         hooks
             .filter { hook -> hook.supportsFlagValueType(flagValueType) }
             .forEach { hook ->
@@ -199,7 +221,12 @@ class HookSupport {
         return if (p1 != null && p2 != null) block(p1, p2) else null
     }
 
-    private inline fun <T1 : Any, T2 : Any, T3 : Any, R : Any> safeLet(p1: T1?, p2: T2?, p3: T3?, block: (T1, T2, T3) -> R?): R? {
+    private inline fun <T1 : Any, T2 : Any, T3 : Any, R : Any> safeLet(
+        p1: T1?,
+        p2: T2?,
+        p3: T3?,
+        block: (T1, T2, T3) -> R?
+    ): R? {
         return if (p1 != null && p2 != null && p3 != null) block(p1, p2, p3) else null
     }
 }

@@ -13,7 +13,10 @@ data class FlagEvaluationDetails<T>(
     companion object
 }
 
-fun <T> FlagEvaluationDetails.Companion.from(providerEval: ProviderEvaluation<T>, flagKey: String): FlagEvaluationDetails<T> {
+fun <T> FlagEvaluationDetails.Companion.from(
+    providerEval: ProviderEvaluation<T>,
+    flagKey: String
+): FlagEvaluationDetails<T> {
     return FlagEvaluationDetails(
         flagKey,
         providerEval.value,

@@ -30,13 +30,15 @@ sealed class OpenFeatureError : Exception() {
         }
     }
 
-    class TargetingKeyMissingError(override val message: String = "Targeting key missing in evaluation context") : OpenFeatureError() {
+    class TargetingKeyMissingError(override val message: String = "Targeting key missing in evaluation context") :
+        OpenFeatureError() {
         override fun errorCode(): ErrorCode {
             return ErrorCode.TARGETING_KEY_MISSING
         }
     }
 
-    class ProviderNotReadyError(override val message: String = "The value was resolved before the provider was ready") : OpenFeatureError() {
+    class ProviderNotReadyError(override val message: String = "The value was resolved before the provider was ready") :
+        OpenFeatureError() {
         override fun errorCode(): ErrorCode {
             return ErrorCode.PROVIDER_NOT_READY
         }
