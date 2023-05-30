@@ -29,13 +29,20 @@ class EvalContextTests {
         ctx.add("instant", Value.Instant(now))
         Assert.assertEquals(now, ctx.getValue("instant")?.asInstant())
     }
+
     @Test
     fun testContextStoresLists() {
         val ctx = MutableContext()
 
-        ctx.add("list", Value.List(listOf(
-            Value.Integer(3),
-            Value.String("4"))))
+        ctx.add(
+            "list",
+            Value.List(
+                listOf(
+                    Value.Integer(3),
+                    Value.String("4")
+                )
+            )
+        )
         Assert.assertEquals(3, ctx.getValue("list")?.asList()?.get(0)?.asInteger())
         Assert.assertEquals("4", ctx.getValue("list")?.asList()?.get(1)?.asString())
     }
@@ -44,9 +51,15 @@ class EvalContextTests {
     fun testContextStoresStructures() {
         val ctx = MutableContext()
 
-        ctx.add("struct", Value.Structure(mapOf(
-            "string" to Value.String("test"),
-            "int" to Value.Integer(3))))
+        ctx.add(
+            "struct",
+            Value.Structure(
+                mapOf(
+                    "string" to Value.String("test"),
+                    "int" to Value.Integer(3)
+                )
+            )
+        )
         Assert.assertEquals("test", ctx.getValue("struct")?.asStructure()?.get("string")?.asString())
         Assert.assertEquals(3, ctx.getValue("struct")?.asStructure()?.get("int")?.asInteger())
     }
@@ -96,7 +109,7 @@ class EvalContextTests {
 
         val result =
             ctx.add("key1", Value.String("val1"))
-            ctx.add("key2", Value.String("val2"))
+        ctx.add("key2", Value.String("val2"))
         Assert.assertEquals("val1", result.getValue("key1")?.asString())
         Assert.assertEquals("val2", result.getValue("key2")?.asString())
     }
@@ -122,7 +135,8 @@ class EvalContextTests {
         ctx.add("date", Value.Instant(now))
         ctx.add("null", Value.Null)
         ctx.add("list", Value.List(listOf(Value.String("item1"), Value.Boolean(true))))
-        ctx.add("structure",
+        ctx.add(
+            "structure",
             Value.Structure(
                 mapOf(
                     "field1" to Value.Integer(3),
@@ -139,18 +153,18 @@ class EvalContextTests {
             "date" to now,
             "null" to null,
             "list" to listOf("item1", true),
-            "structure" to mapOf("field1" to 3, "field2" to 3.14),
+            "structure" to mapOf("field1" to 3, "field2" to 3.14)
         )
         Assert.assertEquals(expected, ctx.asObjectMap())
     }
 
     @Test
     fun compareContexts() {
-            val map: MutableMap<String, Value> = mutableMapOf("key" to Value.String("test"))
-            val map2: MutableMap<String, Value> = mutableMapOf("key" to Value.String("test"))
-            val ctx1 = MutableContext("user1", map)
-            val ctx2 = MutableContext("user1", map2)
+        val map: MutableMap<String, Value> = mutableMapOf("key" to Value.String("test"))
+        val map2: MutableMap<String, Value> = mutableMapOf("key" to Value.String("test"))
+        val ctx1 = MutableContext("user1", map)
+        val ctx2 = MutableContext("user1", map2)
 
-            Assert.assertEquals(ctx1, ctx2)
+        Assert.assertEquals(ctx1, ctx2)
     }
 }

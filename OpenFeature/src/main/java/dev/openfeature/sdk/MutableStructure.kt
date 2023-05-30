@@ -23,7 +23,7 @@ class MutableStructure(private var attributes: MutableMap<String, Value> = mutab
     }
 
     private fun convertValue(value: Value): Any? {
-        return when(value) {
+        return when (value) {
             is Value.List -> value.list.map { t -> convertValue(t) }
             is Value.Structure -> value.structure.mapValues { t -> convertValue(t.value) }
             is Value.Null -> return null

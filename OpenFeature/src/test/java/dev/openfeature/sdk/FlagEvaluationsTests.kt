@@ -59,8 +59,8 @@ class FlagEvaluationsTests {
         Assert.assertEquals(400, client.getIntegerValue(key, 4))
         Assert.assertEquals(400, client.getIntegerValue(key, 4, FlagEvaluationOptions()))
 
-        Assert.assertEquals(40.0, client.getDoubleValue(key, 0.4),0.0)
-        Assert.assertEquals(40.0, client.getDoubleValue(key, 0.4, FlagEvaluationOptions()),0.0)
+        Assert.assertEquals(40.0, client.getDoubleValue(key, 0.4), 0.0)
+        Assert.assertEquals(40.0, client.getDoubleValue(key, 0.4, FlagEvaluationOptions()), 0.0)
 
         Assert.assertEquals(Value.Null, client.getObjectValue(key, Value.Structure(mapOf())))
         Assert.assertEquals(Value.Null, client.getObjectValue(key, Value.Structure(mapOf()), FlagEvaluationOptions()))

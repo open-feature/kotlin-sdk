@@ -6,6 +6,7 @@ interface FeatureProvider {
 
     // Called by OpenFeatureAPI whenever the new Provider is registered
     suspend fun initialize(initialContext: EvaluationContext?)
+
     // Called by OpenFeatureAPI whenever a new EvaluationContext is set by the application
     suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext)
     fun getBooleanEvaluation(key: String, defaultValue: Boolean, context: EvaluationContext?): ProviderEvaluation<Boolean>

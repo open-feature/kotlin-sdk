@@ -1,6 +1,10 @@
 package dev.openfeature.sdk
 
-import dev.openfeature.sdk.FlagValueType.*
+import dev.openfeature.sdk.FlagValueType.BOOLEAN
+import dev.openfeature.sdk.FlagValueType.DOUBLE
+import dev.openfeature.sdk.FlagValueType.INTEGER
+import dev.openfeature.sdk.FlagValueType.OBJECT
+import dev.openfeature.sdk.FlagValueType.STRING
 import dev.openfeature.sdk.exceptions.ErrorCode
 import dev.openfeature.sdk.exceptions.OpenFeatureError
 import dev.openfeature.sdk.exceptions.OpenFeatureError.GeneralError
@@ -60,7 +64,7 @@ class OpenFeatureClient(
 
     override fun getStringDetails(
         key: String,
-        defaultValue: String,
+        defaultValue: String
     ): FlagEvaluationDetails<String> {
         return getStringDetails(key, defaultValue, FlagEvaluationOptions())
     }
@@ -141,7 +145,7 @@ class OpenFeatureClient(
 
     override fun getObjectDetails(
         key: String,
-        defaultValue: Value,
+        defaultValue: Value
     ): FlagEvaluationDetails<Value> {
         return getObjectDetails(key, defaultValue, FlagEvaluationOptions())
     }
@@ -202,7 +206,7 @@ class OpenFeatureClient(
         defaultValue: V,
         provider: FeatureProvider
     ): ProviderEvaluation<V> {
-        return when(flagValueType) {
+        return when (flagValueType) {
             BOOLEAN -> {
                 val defaultBoolean = defaultValue as? Boolean ?: throw typeMatchingException
                 val eval: ProviderEvaluation<Boolean> = provider.getBooleanEvaluation(key, defaultBoolean, context)

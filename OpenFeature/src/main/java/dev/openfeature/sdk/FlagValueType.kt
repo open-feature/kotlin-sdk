@@ -6,4 +6,3 @@ enum class FlagValueType {
     DOUBLE,
     OBJECT;
 }
-

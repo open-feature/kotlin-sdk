@@ -41,7 +41,7 @@ class HookSpecTests {
     fun testHookEvaluationOrder() = runTest {
         val provider = NoOpProvider()
         val evalOrder: MutableList<String> = mutableListOf()
-        val addEval: (String) -> Unit = { eval: String -> evalOrder += eval}
+        val addEval: (String) -> Unit = { eval: String -> evalOrder += eval }
 
         provider.hooks = listOf(GenericSpyHookMock("provider", addEval))
         OpenFeatureAPI.setProvider(provider)
@@ -52,19 +52,22 @@ class HookSpecTests {
 
         client.getBooleanValue("key", false, flagOptions)
 
-        Assert.assertEquals(listOf(
-            "api before",
-            "client before",
-            "invocation before",
-            "provider before",
-            "provider after",
-            "invocation after",
-            "client after",
-            "api after",
-            "provider finallyAfter",
-            "invocation finallyAfter",
-            "client finallyAfter",
-            "api finallyAfter"
-        ), evalOrder)
+        Assert.assertEquals(
+            listOf(
+                "api before",
+                "client before",
+                "invocation before",
+                "provider before",
+                "provider after",
+                "invocation after",
+                "client after",
+                "api after",
+                "provider finallyAfter",
+                "invocation finallyAfter",
+                "client finallyAfter",
+                "api finallyAfter"
+            ),
+            evalOrder
+        )
     }
 }

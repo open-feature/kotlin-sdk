@@ -83,42 +83,42 @@ class ValueTests {
     fun testJsonDecode() {
         val stringInstant = "2023-03-01T14:01:46Z"
         val json = "{" +
-                "  \"structure\": {" +
-                "    \"null\": {}," +
-                "    \"text\": {" +
-                "      \"string\": \"test\"" +
-                "    }," +
-                "    \"bool\": {" +
-                "      \"boolean\": true" +
-                "    }," +
-                "    \"int\": {" +
-                "      \"integer\": 3" +
-                "    }," +
-                "    \"double\": {" +
-                "      \"double\": 4.5" +
-                "    }," +
-                "    \"date\": {" +
-                "      \"instant\": \"$stringInstant\"" +
-                "    }," +
-                "    \"list\": {" +
-                "      \"list\": [" +
-                "        {" +
-                "          \"boolean\": false" +
-                "        }," +
-                "        {" +
-                "          \"integer\": 4" +
-                "        }" +
-                "      ]" +
-                "    }," +
-                "    \"structure\": {" +
-                "      \"structure\": {" +
-                "        \"int\": {" +
-                "          \"integer\": 5" +
-                "        }" +
-                "      }" +
-                "    }" +
-                "  }" +
-                "}"
+            "  \"structure\": {" +
+            "    \"null\": {}," +
+            "    \"text\": {" +
+            "      \"string\": \"test\"" +
+            "    }," +
+            "    \"bool\": {" +
+            "      \"boolean\": true" +
+            "    }," +
+            "    \"int\": {" +
+            "      \"integer\": 3" +
+            "    }," +
+            "    \"double\": {" +
+            "      \"double\": 4.5" +
+            "    }," +
+            "    \"date\": {" +
+            "      \"instant\": \"$stringInstant\"" +
+            "    }," +
+            "    \"list\": {" +
+            "      \"list\": [" +
+            "        {" +
+            "          \"boolean\": false" +
+            "        }," +
+            "        {" +
+            "          \"integer\": 4" +
+            "        }" +
+            "      ]" +
+            "    }," +
+            "    \"structure\": {" +
+            "      \"structure\": {" +
+            "        \"int\": {" +
+            "          \"integer\": 5" +
+            "        }" +
+            "      }" +
+            "    }" +
+            "  }" +
+            "}"
 
         val expectedValue = Value.Structure(
             mapOf(

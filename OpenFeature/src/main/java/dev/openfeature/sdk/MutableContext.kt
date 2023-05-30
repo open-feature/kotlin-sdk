@@ -1,7 +1,7 @@
 package dev.openfeature.sdk
 
 class MutableContext
-    (private var targetingKey: String = "", attributes: MutableMap<String, Value> = mutableMapOf()) : EvaluationContext {
+(private var targetingKey: String = "", attributes: MutableMap<String, Value> = mutableMapOf()) : EvaluationContext {
     private var structure: MutableStructure = MutableStructure(attributes)
     override fun getTargetingKey(): String {
         return targetingKey
