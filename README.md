@@ -9,9 +9,9 @@ This repo uses [ktlint](https://github.com/JLLeitschuh/ktlint-gradle) for format
 Please consider adding a pre-commit hook for formatting using 
 
 ```
-./gradlew :addKtlintCheckGitPreCommitHook
+./gradlew addKtlintCheckGitPreCommitHook
 ```
 Manual formatting is done by invoking
 ```
-./gradlew :ktlintFormat
+./gradlew ktlintFormat
 ```
