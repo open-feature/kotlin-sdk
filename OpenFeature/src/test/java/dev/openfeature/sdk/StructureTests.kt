@@ -2,7 +2,7 @@ package dev.openfeature.sdk
 
 import org.junit.Assert
 import org.junit.Test
-import java.time.Instant
+import java.util.Date
 
 class StructureTests {
 
@@ -23,7 +23,7 @@ class StructureTests {
 
     @Test
     fun testAddAndGetReturnValues() {
-        val now = Instant.now()
+        val now = Date()
         val structure = MutableStructure()
         structure.add("bool", Value.Boolean(true))
         structure.add("string", Value.String("val"))

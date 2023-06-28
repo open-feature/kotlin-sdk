@@ -6,6 +6,7 @@ import kotlinx.serialization.json.encodeToJsonElement
 import org.junit.Assert
 import org.junit.Test
 import java.time.Instant
+import java.util.Date
 
 class ValueTests {
 
@@ -59,7 +60,7 @@ class ValueTests {
 
     @Test
     fun testEncodeDecode() {
-        val date = Instant.parse("2023-03-01T14:01:46Z")
+        val date = Date.from(Instant.parse("2023-03-01T14:01:46Z"))
         val value = Value.Structure(
             mapOf(
                 "null" to Value.Null,
@@ -127,7 +128,7 @@ class ValueTests {
                 "bool" to Value.Boolean(true),
                 "int" to Value.Integer(3),
                 "double" to Value.Double(4.5),
-                "date" to Value.Instant(Instant.parse(stringInstant)),
+                "date" to Value.Instant(Date.from(Instant.parse(stringInstant))),
                 "list" to Value.List(listOf(Value.Boolean(false), Value.Integer(4))),
                 "structure" to Value.Structure(mapOf("int" to Value.Integer(5)))
             )

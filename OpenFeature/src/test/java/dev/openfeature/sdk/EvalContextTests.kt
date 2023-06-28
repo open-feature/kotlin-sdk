@@ -2,7 +2,7 @@ package dev.openfeature.sdk
 
 import org.junit.Assert
 import org.junit.Test
-import java.time.Instant
+import java.util.Date
 
 class EvalContextTests {
 
@@ -16,7 +16,7 @@ class EvalContextTests {
     @Test
     fun testContextStoresPrimitiveValues() {
         val ctx = MutableContext()
-        val now = Instant.now()
+        val now = Date()
 
         ctx.add("string", Value.String("value"))
         Assert.assertEquals("value", ctx.getValue("string")?.asString())
@@ -67,7 +67,7 @@ class EvalContextTests {
     @Test
     fun testContextCanConvertToMap() {
         val ctx = MutableContext()
-        val now = Instant.now()
+        val now = Date()
         ctx.add("str1", Value.String("test1"))
         ctx.add("str2", Value.String("test2"))
         ctx.add("bool1", Value.Boolean(true))
@@ -126,7 +126,7 @@ class EvalContextTests {
     @Test
     fun testContextConvertsToObjectMap() {
         val key = "key1"
-        val now = Instant.now()
+        val now = Date()
         val ctx = MutableContext(key)
         ctx.add("string", Value.String("value"))
         ctx.add("bool", Value.Boolean(false))
