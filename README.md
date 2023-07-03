@@ -12,7 +12,7 @@ This Kotlin implementation of an OpenFeature SDK has been developed at Spotify, 
 
 ## Requirements
 
-- The Android minSdk version supported is: `26`.
+- The Android minSdk version supported is: `21`.
 
 Note that this library is intended to be used in a mobile context, and has not been evaluated for use in other type of applications (e.g. server applications).
 
