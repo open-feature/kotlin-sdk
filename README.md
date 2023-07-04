@@ -29,8 +29,10 @@ Clone this repository and run the following to install the library locally:
 The Android project must include `mavenLocal()` in `settings.gradle`.
 
 You can now add the OpenFeature SDK dependency:
-```
-implementation(""dev.openfeature:kotlin-sdk:0.0.1-SNAPSHOT")
+```kotlin
+dependencies {
+	implementation("dev.openfeature:kotlin-sdk:0.0.1-SNAPSHOT")
+}
 ```
 
 ### Resolving a flag
