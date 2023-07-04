@@ -29,7 +29,7 @@ class StructureTests {
         structure.add("string", Value.String("val"))
         structure.add("int", Value.Integer(13))
         structure.add("double", Value.Double(0.5))
-        structure.add("date", Value.Instant(now))
+        structure.add("date", Value.Date(now))
         structure.add("list", Value.List(listOf()))
         structure.add("structure", Value.Structure(mapOf()))
 
@@ -37,7 +37,7 @@ class StructureTests {
         Assert.assertEquals("val", structure.getValue("string")?.asString())
         Assert.assertEquals(13, structure.getValue("int")?.asInteger())
         Assert.assertEquals(0.5, structure.getValue("double")?.asDouble())
-        Assert.assertEquals(now, structure.getValue("date")?.asInstant())
+        Assert.assertEquals(now, structure.getValue("date")?.asDate())
         Assert.assertEquals(listOf<Value>(), structure.getValue("list")?.asList())
         Assert.assertEquals(mapOf<String, Value>(), structure.getValue("structure")?.asStructure())
     }

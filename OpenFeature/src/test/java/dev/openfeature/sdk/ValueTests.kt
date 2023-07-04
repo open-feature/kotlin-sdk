@@ -72,7 +72,7 @@ class ValueTests {
                 "bool" to Value.Boolean(true),
                 "int" to Value.Integer(3),
                 "double" to Value.Double(4.5),
-                "date" to Value.Instant(date),
+                "date" to Value.Date(date),
                 "list" to Value.List(listOf(Value.Boolean(false), Value.Integer(4))),
                 "structure" to Value.Structure(mapOf("int" to Value.Integer(5)))
             )
@@ -86,7 +86,7 @@ class ValueTests {
 
     @Test
     fun testJsonDecode() {
-        val stringInstant = "2023-03-01T14:01:46.321Z"
+        val stringDateTime = "2023-03-01T14:01:46Z"
         val json = "{" +
             "  \"structure\": {" +
             "    \"null\": {}," +
@@ -103,7 +103,7 @@ class ValueTests {
             "      \"double\": 4.5" +
             "    }," +
             "    \"date\": {" +
-            "      \"instant\": \"$stringInstant\"" +
+            "      \"date\": \"$stringDateTime\"" +
             "    }," +
             "    \"list\": {" +
             "      \"list\": [" +
@@ -132,7 +132,7 @@ class ValueTests {
                 "bool" to Value.Boolean(true),
                 "int" to Value.Integer(3),
                 "double" to Value.Double(4.5),
-                "date" to Value.Instant(Date.from(Instant.parse(stringInstant))),
+                "date" to Value.Date(Date.from(Instant.parse(stringDateTime))),
                 "list" to Value.List(listOf(Value.Boolean(false), Value.Integer(4))),
                 "structure" to Value.Structure(mapOf("int" to Value.Integer(5)))
             )
