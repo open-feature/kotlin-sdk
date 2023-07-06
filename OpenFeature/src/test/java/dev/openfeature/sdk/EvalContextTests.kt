@@ -26,8 +26,8 @@ class EvalContextTests {
         Assert.assertEquals(3, ctx.getValue("int")?.asInteger())
         ctx.add("double", Value.Double(3.14))
         Assert.assertEquals(3.14, ctx.getValue("double")?.asDouble())
-        ctx.add("instant", Value.Instant(now))
-        Assert.assertEquals(now, ctx.getValue("instant")?.asInstant())
+        ctx.add("date", Value.Date(now))
+        Assert.assertEquals(now, ctx.getValue("date")?.asDate())
     }
 
     @Test
@@ -74,7 +74,7 @@ class EvalContextTests {
         ctx.add("bool2", Value.Boolean(false))
         ctx.add("int1", Value.Integer(4))
         ctx.add("int2", Value.Integer(2))
-        ctx.add("dt", Value.Instant(now))
+        ctx.add("dt", Value.Date(now))
         ctx.add("obj", Value.Structure(mapOf("val1" to Value.Integer(1), "val2" to Value.String("2"))))
 
         val map = ctx.asMap()
@@ -85,7 +85,7 @@ class EvalContextTests {
         Assert.assertEquals(false, map["bool2"]?.asBoolean())
         Assert.assertEquals(4, map["int1"]?.asInteger())
         Assert.assertEquals(2, map["int2"]?.asInteger())
-        Assert.assertEquals(now, map["dt"]?.asInstant())
+        Assert.assertEquals(now, map["dt"]?.asDate())
         Assert.assertEquals(1, structure?.get("val1")?.asInteger())
         Assert.assertEquals("2", structure?.get("val2")?.asString())
     }
@@ -132,7 +132,7 @@ class EvalContextTests {
         ctx.add("bool", Value.Boolean(false))
         ctx.add("integer", Value.Integer(1))
         ctx.add("double", Value.Double(1.2))
-        ctx.add("date", Value.Instant(now))
+        ctx.add("date", Value.Date(now))
         ctx.add("null", Value.Null)
         ctx.add("list", Value.List(listOf(Value.String("item1"), Value.Boolean(true))))
         ctx.add(

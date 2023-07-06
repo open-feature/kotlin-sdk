@@ -30,7 +30,7 @@ class MutableStructure(private var attributes: MutableMap<String, Value> = mutab
             is Value.String -> value.asString()
             is Value.Boolean -> value.asBoolean()
             is Value.Integer -> value.asInteger()
-            is Value.Instant -> value.asInstant()
+            is Value.Date -> value.asDate()
             is Value.Double -> value.asDouble()
         }
     }

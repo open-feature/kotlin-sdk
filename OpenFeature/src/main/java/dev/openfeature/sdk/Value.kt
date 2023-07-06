@@ -22,7 +22,7 @@ sealed interface Value {
     fun asBoolean(): kotlin.Boolean? = if (this is Boolean) boolean else null
     fun asInteger(): Int? = if (this is Integer) integer else null
     fun asDouble(): kotlin.Double? = if (this is Double) double else null
-    fun asInstant(): Date? = if (this is Instant) instant else null
+    fun asDate(): java.util.Date? = if (this is Date) date else null
     fun asList(): kotlin.collections.List<Value>? = if (this is List) list else null
     fun asStructure(): Map<kotlin.String, Value>? = if (this is Structure) structure else null
     fun isNull(): kotlin.Boolean = this is Null
@@ -40,7 +40,7 @@ sealed interface Value {
     data class Double(val double: kotlin.Double) : Value
 
     @Serializable
-    data class Instant(@Serializable(DateSerializer::class) val instant: Date) : Value
+    data class Date(@Serializable(DateSerializer::class) val date: java.util.Date) : Value
 
     @Serializable
     data class Structure(val structure: Map<kotlin.String, Value>) : Value
@@ -67,7 +67,7 @@ object ValueSerializer : JsonContentPolymorphicSerializer<Value>(Value::class) {
         setOf("boolean") -> Value.Boolean.serializer()
         setOf("integer") -> Value.Integer.serializer()
         setOf("double") -> Value.Double.serializer()
-        setOf("instant") -> Value.Instant.serializer()
+        setOf("date") -> Value.Date.serializer()
         setOf("list") -> Value.List.serializer()
         setOf("structure") -> Value.Structure.serializer()
         else -> throw OpenFeatureError.ParseError("couldn't find deserialization key for Value")
