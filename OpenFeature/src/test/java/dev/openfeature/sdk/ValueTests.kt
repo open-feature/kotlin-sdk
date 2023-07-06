@@ -48,8 +48,12 @@ class ValueTests {
 
     @Test
     fun testStructShouldConvertToStruct() {
-        val value = Value.Structure(mapOf("field1" to Value.Integer(3), "field2" to Value.String("test")))
-        Assert.assertEquals(value.asStructure(), mapOf("field1" to Value.Integer(3), "field2" to Value.String("test")))
+        val value =
+            Value.Structure(mapOf("field1" to Value.Integer(3), "field2" to Value.String("test")))
+        Assert.assertEquals(
+            value.asStructure(),
+            mapOf("field1" to Value.Integer(3), "field2" to Value.String("test"))
+        )
     }
 
     @Test
@@ -82,7 +86,7 @@ class ValueTests {
 
     @Test
     fun testJsonDecode() {
-        val stringInstant = "2023-03-01T14:01:46Z"
+        val stringInstant = "2023-03-01T14:01:46.321Z"
         val json = "{" +
             "  \"structure\": {" +
             "    \"null\": {}," +

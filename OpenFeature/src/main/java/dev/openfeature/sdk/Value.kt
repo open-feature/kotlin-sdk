@@ -53,6 +53,7 @@ sealed interface Value {
         override fun equals(other: Any?): kotlin.Boolean {
             return other is Null
         }
+
         override fun hashCode(): Int {
             return javaClass.hashCode()
         }
@@ -73,14 +74,21 @@ object ValueSerializer : JsonContentPolymorphicSerializer<Value>(Value::class) {
     }
 }
 
+@SuppressLint("SimpleDateFormat")
 object DateSerializer : KSerializer<Date> {
-    @SuppressLint("SimpleDateFormat")
-    private val df = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").apply { timeZone = TimeZone.getTimeZone("UTC") }
+    private val dateFormatter =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").apply { timeZone = TimeZone.getTimeZone("UTC") }
+    private val fallbackDateFormatter =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").apply { timeZone = TimeZone.getTimeZone("UTC") }
     override val descriptor = PrimitiveSerialDescriptor("Instant", PrimitiveKind.STRING)
-    override fun serialize(encoder: Encoder, value: Date) = encoder.encodeString(df.format(value))
-    override fun deserialize(decoder: Decoder): Date = try {
-        df.parse(decoder.decodeString()) ?: throw IllegalArgumentException("unable to parse ${decoder.decodeString()}")
-    } catch (e: Exception) {
-        throw IllegalArgumentException(e)
+    override fun serialize(encoder: Encoder, value: Date) = encoder.encodeString(dateFormatter.format(value))
+    override fun deserialize(decoder: Decoder): Date = with(decoder.decodeString()) {
+        try {
+            dateFormatter.parse(this)
+                ?: throw IllegalArgumentException("unable to parse $this")
+        } catch (e: Exception) {
+            fallbackDateFormatter.parse(this)
+                ?: throw IllegalArgumentException("unable to parse $this")
+        }
     }
 }
