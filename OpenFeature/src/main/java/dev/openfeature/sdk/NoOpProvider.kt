@@ -1,7 +1,7 @@
 package dev.openfeature.sdk
 
 class NoOpProvider : FeatureProvider {
-    override var metadata: Metadata = NoOpMetadata("No-op provider")
+    override var metadata: ProviderMetadata = NoOpProviderMetadata("No-op provider")
     override suspend fun initialize(initialContext: EvaluationContext?) {
         // no-op
     }
@@ -54,5 +54,5 @@ class NoOpProvider : FeatureProvider {
         return ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
     }
 
-    data class NoOpMetadata(override var name: String?) : Metadata
+    data class NoOpProviderMetadata(override var name: String?) : ProviderMetadata
 }

@@ -1,5 +1,5 @@
 package dev.openfeature.sdk
 
-interface Metadata {
+interface ProviderMetadata {
     val name: String?
 }

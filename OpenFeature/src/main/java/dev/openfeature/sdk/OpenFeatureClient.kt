@@ -17,7 +17,7 @@ class OpenFeatureClient(
     version: String? = null,
     override val hooks: MutableList<Hook<*>> = mutableListOf()
 ) : Client {
-    override val metadata: Metadata = ClientMetadata(name)
+    override val metadata: ClientMetadata = Metadata(name)
     private var hookSupport = HookSupport()
     override fun addHooks(hooks: List<Hook<*>>) {
         this.hooks += hooks
@@ -242,5 +242,5 @@ class OpenFeatureClient(
         }
     }
 
-    data class ClientMetadata(override var name: String?) : Metadata
+    data class Metadata(override var name: String?) : ClientMetadata
 }
