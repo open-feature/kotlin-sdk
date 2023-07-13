@@ -1,3 +1,5 @@
+[![](https://jitpack.io/v/spotify/openfeature-kotlin-sdk.svg)](https://jitpack.io/#spotify/openfeature-kotlin-sdk)
+
 # OpenFeature Kotlin SDK
 
 ![Status](https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg)
@@ -16,24 +18,24 @@ This Kotlin implementation of an OpenFeature SDK has been developed at Spotify, 
 
 Note that this library is intended to be used in a mobile context, and has not been evaluated for use in other type of applications (e.g. server applications).
 
-
 ## Usage
 
-### Adding the library dependency (WORK IN PROGRESS ⚠️)
+### Adding the library dependency
 
-This library is not published to central repositories yet.
-Clone this repository and run the following to install the library locally:
-```
-./gradlew publishToMavenLocal
-```
-The Android project must include `mavenLocal()` in `settings.gradle`.
+The Android project must include `maven("https://jitpack.io")` in `settings.gradle`.
 
 You can now add the OpenFeature SDK dependency:
 ```kotlin
 dependencies {
-	implementation("dev.openfeature:kotlin-sdk:0.0.1-SNAPSHOT")
+    api("com.github.spotify:openfeature-kotlin-sdk:<Latest>")
 }
 ```
+Please note that the `<Latest>` can be any `Commit SHA` or a version based off a branch as following:
+```
+api("com.github.spotify:openfeature-kotlin-sdk:[ANY_BRANCH]-SNAPSHOT")
+```
+
+This will get a build from the head of the mentioned branch. 
 
 ### Resolving a flag
 ```kotlin
