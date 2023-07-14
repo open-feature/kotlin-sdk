@@ -1,6 +1,6 @@
 package dev.openfeature.sdk
 
-class MutableStructure(private var attributes: MutableMap<String, Value> = mutableMapOf()) : Structure {
+class ImmutableStructure(private var attributes: Map<String, Value> = mapOf()) : Structure {
     override fun keySet(): Set<String> {
         return attributes.keys
     }
@@ -9,17 +9,12 @@ class MutableStructure(private var attributes: MutableMap<String, Value> = mutab
         return attributes[key]
     }
 
-    override fun asMap(): MutableMap<String, Value> {
+    override fun asMap(): Map<String, Value> {
         return attributes
     }
 
     override fun asObjectMap(): Map<String, Any?> {
         return attributes.mapValues { convertValue(it.value) }
-    }
-
-    fun add(key: String, value: Value): MutableStructure {
-        attributes[key] = value
-        return this
     }
 
     private fun convertValue(value: Value): Any? {
@@ -43,7 +38,7 @@ class MutableStructure(private var attributes: MutableMap<String, Value> = mutab
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as MutableStructure
+        other as ImmutableStructure
 
         if (attributes != other.attributes) return false
 

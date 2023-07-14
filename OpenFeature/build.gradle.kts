@@ -1,3 +1,4 @@
+// ktlint-disable max-line-length
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -27,17 +28,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8.toString()
-    }
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
-        }
+        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 }
 
@@ -48,16 +43,31 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.1")
 }
 
-publishing {
-    publications {
-        register<MavenPublication>("release") {
-            groupId = "dev.openfeature"
-            artifactId = "kotlin-sdk"
-            version = "0.0.1-SNAPSHOT"
+afterEvaluate {
+    publishing {
+        publications {
+            register<MavenPublication>("release") {
+                groupId = "dev.openfeature"
+                artifactId = "kotlin-sdk"
+                version = "0.0.1-SNAPSHOT"
 
-            afterEvaluate {
                 from(components["release"])
+                artifact(androidSourcesJar.get())
+
+                pom {
+                    name.set("OpenfeatureSDK")
+                }
             }
         }
     }
+}
+
+val androidSourcesJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("sources")
+    from(android.sourceSets.getByName("main").java.srcDirs)
+}
+
+// Assembling should be performed before publishing package
+tasks.named("publish") {
+    dependsOn("assemble")
 }

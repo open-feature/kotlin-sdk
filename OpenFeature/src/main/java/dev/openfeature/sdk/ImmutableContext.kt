@@ -1,8 +1,8 @@
 package dev.openfeature.sdk
 
-class MutableContext
-(private var targetingKey: String = "", attributes: MutableMap<String, Value> = mutableMapOf()) : EvaluationContext {
-    private var structure: MutableStructure = MutableStructure(attributes)
+class ImmutableContext
+(private var targetingKey: String = "", attributes: Map<String, Value> = mapOf()) : EvaluationContext {
+    private var structure: ImmutableStructure = ImmutableStructure(attributes)
     override fun getTargetingKey(): String {
         return targetingKey
     }
@@ -19,17 +19,12 @@ class MutableContext
         return structure.getValue(key)
     }
 
-    override fun asMap(): MutableMap<String, Value> {
+    override fun asMap(): Map<String, Value> {
         return structure.asMap()
     }
 
     override fun asObjectMap(): Map<String, Any?> {
         return structure.asObjectMap()
-    }
-
-    fun add(key: String, value: Value): MutableContext {
-        structure.add(key, value)
-        return this
     }
 
     override fun hashCode(): Int {
@@ -42,7 +37,7 @@ class MutableContext
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as MutableContext
+        other as ImmutableContext
 
         if (targetingKey != other.targetingKey) return false
         if (structure != other.structure) return false
