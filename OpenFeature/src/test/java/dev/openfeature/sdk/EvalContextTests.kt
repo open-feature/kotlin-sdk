@@ -8,39 +8,42 @@ class EvalContextTests {
 
     @Test
     fun testContextStoresTargetingKey() {
-        val ctx = MutableContext()
+        val ctx = ImmutableContext()
         ctx.setTargetingKey("test")
         Assert.assertEquals("test", ctx.getTargetingKey())
     }
 
     @Test
     fun testContextStoresPrimitiveValues() {
-        val ctx = MutableContext()
         val now = Date()
+        val ctx = ImmutableContext(
+            attributes = mapOf(
+                "string" to Value.String("value"),
+                "bool" to Value.Boolean(true),
+                "int" to Value.Integer(3),
+                "double" to Value.Double(3.14),
+                "date" to Value.Date(now)
+            )
+        )
 
-        ctx.add("string", Value.String("value"))
         Assert.assertEquals("value", ctx.getValue("string")?.asString())
-        ctx.add("bool", Value.Boolean(true))
         Assert.assertEquals(true, ctx.getValue("bool")?.asBoolean())
-        ctx.add("int", Value.Integer(3))
         Assert.assertEquals(3, ctx.getValue("int")?.asInteger())
-        ctx.add("double", Value.Double(3.14))
         Assert.assertEquals(3.14, ctx.getValue("double")?.asDouble())
-        ctx.add("date", Value.Date(now))
         Assert.assertEquals(now, ctx.getValue("date")?.asDate())
     }
 
     @Test
     fun testContextStoresLists() {
-        val ctx = MutableContext()
-
-        ctx.add(
-            "list",
-            Value.List(
-                listOf(
-                    Value.Integer(3),
-                    Value.String("4")
-                )
+        val ctx = ImmutableContext(
+            attributes = mapOf(
+                "list" to
+                    Value.List(
+                        listOf(
+                            Value.Integer(3),
+                            Value.String("4")
+                        )
+                    )
             )
         )
         Assert.assertEquals(3, ctx.getValue("list")?.asList()?.get(0)?.asInteger())
@@ -49,15 +52,15 @@ class EvalContextTests {
 
     @Test
     fun testContextStoresStructures() {
-        val ctx = MutableContext()
-
-        ctx.add(
-            "struct",
-            Value.Structure(
-                mapOf(
-                    "string" to Value.String("test"),
-                    "int" to Value.Integer(3)
-                )
+        val ctx = ImmutableContext(
+            attributes = mapOf(
+                "struct" to
+                    Value.Structure(
+                        mapOf(
+                            "string" to Value.String("test"),
+                            "int" to Value.Integer(3)
+                        )
+                    )
             )
         )
         Assert.assertEquals("test", ctx.getValue("struct")?.asStructure()?.get("string")?.asString())
@@ -66,16 +69,20 @@ class EvalContextTests {
 
     @Test
     fun testContextCanConvertToMap() {
-        val ctx = MutableContext()
         val now = Date()
-        ctx.add("str1", Value.String("test1"))
-        ctx.add("str2", Value.String("test2"))
-        ctx.add("bool1", Value.Boolean(true))
-        ctx.add("bool2", Value.Boolean(false))
-        ctx.add("int1", Value.Integer(4))
-        ctx.add("int2", Value.Integer(2))
-        ctx.add("dt", Value.Date(now))
-        ctx.add("obj", Value.Structure(mapOf("val1" to Value.Integer(1), "val2" to Value.String("2"))))
+        val ctx = ImmutableContext(
+            attributes = mapOf(
+                "str1" to Value.String("test1"),
+                "str2" to Value.String("test2"),
+                "bool1" to Value.Boolean(true),
+                "bool2" to Value.Boolean(false),
+                "int1" to Value.Integer(4),
+                "int2" to Value.Integer(2),
+                "double" to Value.Double(3.14),
+                "dt" to Value.Date(now),
+                "obj" to Value.Structure(mapOf("val1" to Value.Integer(1), "val2" to Value.String("2")))
+            )
+        )
 
         val map = ctx.asMap()
         val structure = map["obj"]?.asStructure()
@@ -92,33 +99,23 @@ class EvalContextTests {
 
     @Test
     fun testContextHasUniqueKeyAcrossTypes() {
-        val ctx = MutableContext()
-
-        ctx.add("key", Value.String("val1"))
-        ctx.add("key", Value.String("val2"))
-        Assert.assertEquals("val2", ctx.getValue("key")?.asString())
-
-        ctx.add("key", Value.Integer(3))
+        val ctx = ImmutableContext(
+            attributes = mapOf(
+                "key" to Value.String("val1"),
+                "key" to Value.Integer(3)
+            )
+        )
         Assert.assertNull(ctx.getValue("key")?.asString())
         Assert.assertEquals(3, ctx.getValue("key")?.asInteger())
     }
 
     @Test
-    fun testContextCanChainAttributeAddition() {
-        val ctx = MutableContext()
-
-        val result =
-            ctx.add("key1", Value.String("val1"))
-        ctx.add("key2", Value.String("val2"))
-        Assert.assertEquals("val1", result.getValue("key1")?.asString())
-        Assert.assertEquals("val2", result.getValue("key2")?.asString())
-    }
-
-    @Test
-    fun testContextCanAddNull() {
-        val ctx = MutableContext()
-
-        ctx.add("null", Value.Null)
+    fun testContextStoresNull() {
+        val ctx = ImmutableContext(
+            attributes = mapOf(
+                "null" to Value.Null
+            )
+        )
         Assert.assertEquals(true, ctx.getValue("null")?.isNull())
         Assert.assertNull(ctx.getValue("null")?.asString())
     }
@@ -127,20 +124,21 @@ class EvalContextTests {
     fun testContextConvertsToObjectMap() {
         val key = "key1"
         val now = Date()
-        val ctx = MutableContext(key)
-        ctx.add("string", Value.String("value"))
-        ctx.add("bool", Value.Boolean(false))
-        ctx.add("integer", Value.Integer(1))
-        ctx.add("double", Value.Double(1.2))
-        ctx.add("date", Value.Date(now))
-        ctx.add("null", Value.Null)
-        ctx.add("list", Value.List(listOf(Value.String("item1"), Value.Boolean(true))))
-        ctx.add(
-            "structure",
-            Value.Structure(
-                mapOf(
-                    "field1" to Value.Integer(3),
-                    "field2" to Value.Double(3.14)
+        val ctx = ImmutableContext(
+            key,
+            mapOf(
+                "string" to Value.String("value"),
+                "bool" to Value.Boolean(false),
+                "integer" to Value.Integer(1),
+                "double" to Value.Double(1.2),
+                "date" to Value.Date(now),
+                "null" to Value.Null,
+                "list" to Value.List(listOf(Value.String("item1"), Value.Boolean(true))),
+                "structure" to Value.Structure(
+                    mapOf(
+                        "field1" to Value.Integer(3),
+                        "field2" to Value.Double(3.14)
+                    )
                 )
             )
         )
@@ -162,8 +160,8 @@ class EvalContextTests {
     fun compareContexts() {
         val map: MutableMap<String, Value> = mutableMapOf("key" to Value.String("test"))
         val map2: MutableMap<String, Value> = mutableMapOf("key" to Value.String("test"))
-        val ctx1 = MutableContext("user1", map)
-        val ctx2 = MutableContext("user1", map2)
+        val ctx1 = ImmutableContext("user1", map)
+        val ctx2 = ImmutableContext("user1", map2)
 
         Assert.assertEquals(ctx1, ctx2)
     }

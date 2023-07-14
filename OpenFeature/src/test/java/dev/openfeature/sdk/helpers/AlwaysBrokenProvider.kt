@@ -3,12 +3,12 @@ package dev.openfeature.sdk.helpers
 import dev.openfeature.sdk.EvaluationContext
 import dev.openfeature.sdk.FeatureProvider
 import dev.openfeature.sdk.Hook
-import dev.openfeature.sdk.Metadata
 import dev.openfeature.sdk.ProviderEvaluation
+import dev.openfeature.sdk.ProviderMetadata
 import dev.openfeature.sdk.Value
 import dev.openfeature.sdk.exceptions.OpenFeatureError.FlagNotFoundError
 
-class AlwaysBrokenProvider(override var hooks: List<Hook<*>> = listOf(), override var metadata: Metadata = AlwaysBrokenMetadata()) :
+class AlwaysBrokenProvider(override var hooks: List<Hook<*>> = listOf(), override var metadata: ProviderMetadata = AlwaysBrokenProviderMetadata()) :
     FeatureProvider {
     override suspend fun initialize(initialContext: EvaluationContext?) {
         // no-op
@@ -61,5 +61,5 @@ class AlwaysBrokenProvider(override var hooks: List<Hook<*>> = listOf(), overrid
         throw FlagNotFoundError(key)
     }
 
-    class AlwaysBrokenMetadata(override var name: String? = "test") : Metadata
+    class AlwaysBrokenProviderMetadata(override var name: String? = "test") : ProviderMetadata
 }

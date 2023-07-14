@@ -3,11 +3,11 @@ package dev.openfeature.sdk.helpers
 import dev.openfeature.sdk.EvaluationContext
 import dev.openfeature.sdk.FeatureProvider
 import dev.openfeature.sdk.Hook
-import dev.openfeature.sdk.Metadata
 import dev.openfeature.sdk.ProviderEvaluation
+import dev.openfeature.sdk.ProviderMetadata
 import dev.openfeature.sdk.Value
 
-class DoSomethingProvider(override val hooks: List<Hook<*>> = listOf(), override val metadata: Metadata = DoSomethingMetadata()) : FeatureProvider {
+class DoSomethingProvider(override val hooks: List<Hook<*>> = listOf(), override val metadata: ProviderMetadata = DoSomethingProviderMetadata()) : FeatureProvider {
     override suspend fun initialize(initialContext: EvaluationContext?) {
         // no-op
     }
@@ -58,5 +58,5 @@ class DoSomethingProvider(override val hooks: List<Hook<*>> = listOf(), override
     ): ProviderEvaluation<Value> {
         return ProviderEvaluation(Value.Null)
     }
-    class DoSomethingMetadata(override var name: String? = "something") : Metadata
+    class DoSomethingProviderMetadata(override var name: String? = "something") : ProviderMetadata
 }

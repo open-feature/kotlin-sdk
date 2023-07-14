@@ -5,6 +5,6 @@ data class HookContext<T>(
     val type: FlagValueType,
     var defaultValue: T,
     var ctx: EvaluationContext?,
-    var clientMetadata: Metadata?,
-    var providerMetadata: Metadata
+    var clientMetadata: ClientMetadata?,
+    var providerMetadata: ProviderMetadata
 )

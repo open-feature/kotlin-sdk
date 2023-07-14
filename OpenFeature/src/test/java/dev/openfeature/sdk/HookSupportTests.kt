@@ -14,7 +14,7 @@ class HookSupportTests {
             "flagKey",
             FlagValueType.BOOLEAN,
             false,
-            MutableContext(),
+            ImmutableContext(),
             metadata,
             NoOpProvider().metadata
         )

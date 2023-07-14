@@ -42,7 +42,7 @@ This will get a build from the head of the mentioned branch.
 import dev.openfeature.sdk.*
 
 // Change NoOpProvider with your actual provider
-OpenFeatureAPI.setProvider(NoOpProvider(), MutableContext())
+OpenFeatureAPI.setProvider(NoOpProvider(), ImmutableContext())
 val flagValue = OpenFeatureAPI.getClient().getBooleanValue("boolFlag", false)
 ```
 Setting a new provider or setting a new evaluation context are asynchronous operations. The provider might execute I/O operations as part of these method calls (e.g. fetching flag evaluations from the backend and store them in a local cache). It's advised to not interact with the OpenFeature client until the `setProvider()` or `setEvaluationContext()` functions have returned successfully.
