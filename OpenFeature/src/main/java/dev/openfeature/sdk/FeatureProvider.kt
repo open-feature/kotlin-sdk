@@ -2,7 +2,7 @@ package dev.openfeature.sdk
 
 interface FeatureProvider {
     val hooks: List<Hook<*>>
-    val metadata: Metadata
+    val metadata: ProviderMetadata
 
     // Called by OpenFeatureAPI whenever the new Provider is registered
     suspend fun initialize(initialContext: EvaluationContext?)

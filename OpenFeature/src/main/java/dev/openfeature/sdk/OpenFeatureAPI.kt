@@ -35,7 +35,7 @@ object OpenFeatureAPI {
         return context
     }
 
-    fun getProviderMetadata(): Metadata? {
+    fun getProviderMetadata(): ProviderMetadata? {
         return provider?.metadata
     }
 
