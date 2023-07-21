@@ -1,5 +1,6 @@
 package dev.openfeature.sdk.events
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -24,10 +25,10 @@ interface EventsPublisher {
 
 inline fun <reified T : OpenFeatureEvents> EventObserver.observe() = observe(T::class)
 
-class EventHandler : EventObserver, EventsPublisher, ProviderStatus {
+class EventHandler(dispatcher: CoroutineDispatcher) : EventObserver, EventsPublisher, ProviderStatus {
     private val sharedFlow: MutableSharedFlow<OpenFeatureEvents> = MutableSharedFlow()
     private val isProviderReady = MutableStateFlow(false)
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+    private val coroutineScope = CoroutineScope(dispatcher)
 
     init {
         coroutineScope.launch {
@@ -52,26 +53,29 @@ class EventHandler : EventObserver, EventsPublisher, ProviderStatus {
         }
     }
 
+    override fun <T : OpenFeatureEvents> observe(kClass: KClass<T>): Flow<T> = sharedFlow
+        .filterIsInstance(kClass)
+
     override fun isProviderReady(): Boolean {
         return isProviderReady.value
     }
-
-    override fun <T : OpenFeatureEvents> observe(kClass: KClass<T>): Flow<T> = sharedFlow
-        .filterIsInstance(kClass)
 
     companion object {
         @Volatile
         private var instance: EventHandler? = null
 
-        private fun getInstance() =
+        private fun getInstance(dispatcher: CoroutineDispatcher) =
             instance ?: synchronized(this) {
-                instance ?: create().also { instance = it }
+                instance ?: create(dispatcher).also { instance = it }
             }
 
-        fun eventsObserver(): EventObserver = getInstance()
-        fun providerStatus(): ProviderStatus = getInstance()
-        fun eventsPublisher(): EventsPublisher = getInstance()
+        fun eventsObserver(dispatcher: CoroutineDispatcher = Dispatchers.IO): EventObserver =
+            getInstance(dispatcher)
+        fun providerStatus(dispatcher: CoroutineDispatcher = Dispatchers.IO): ProviderStatus =
+            getInstance(dispatcher)
+        fun eventsPublisher(dispatcher: CoroutineDispatcher = Dispatchers.IO): EventsPublisher =
+            getInstance(dispatcher)
 
-        private fun create() = EventHandler()
+        private fun create(dispatcher: CoroutineDispatcher) = EventHandler(dispatcher)
     }
 }

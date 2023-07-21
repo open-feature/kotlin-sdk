@@ -10,12 +10,10 @@ fun OpenFeatureClient.toAsync(): AsyncClient {
     return AsyncClientImpl(this)
 }
 
-fun observeProviderReady() = observeProviderEvents()
+fun observeProviderReady() = EventHandler.eventsObserver()
     .observe<OpenFeatureEvents.ProviderReady>()
     .onStart {
         if (EventHandler.providerStatus().isProviderReady()) {
             this.emit(OpenFeatureEvents.ProviderReady)
         }
     }
-
-fun observeProviderEvents() = EventHandler.eventsObserver()
