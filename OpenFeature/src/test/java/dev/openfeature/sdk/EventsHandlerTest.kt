@@ -101,7 +101,8 @@ class EventsHandlerTest {
 
         // observing the provider status after the provider ready event is published
         val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-            observeProviderReady()
+            EventHandler.eventsObserver()
+                .observe<OpenFeatureEvents.ProviderReady>()
                 .take(1)
                 .collect {
                     isProviderReady = true
@@ -119,7 +120,8 @@ class EventsHandlerTest {
 
         // observing the provider status after the provider ready event is published
         val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-            observeProviderReady()
+            EventHandler.eventsObserver()
+                .observe<OpenFeatureEvents.ProviderReady>()
                 .timeout(10L.milliseconds)
                 .collect {
                     isProviderReady = true
