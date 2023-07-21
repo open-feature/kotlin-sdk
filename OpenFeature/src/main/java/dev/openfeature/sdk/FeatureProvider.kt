@@ -5,10 +5,14 @@ interface FeatureProvider {
     val metadata: ProviderMetadata
 
     // Called by OpenFeatureAPI whenever the new Provider is registered
-    suspend fun initialize(initialContext: EvaluationContext?)
+    fun initialize(initialContext: EvaluationContext?)
+
+    // called when the lifecycle of the OpenFeatureClient is over
+    // to release resources/threads.
+    fun shutdown()
 
     // Called by OpenFeatureAPI whenever a new EvaluationContext is set by the application
-    suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext)
+    fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext)
     fun getBooleanEvaluation(
         key: String,
         defaultValue: Boolean,

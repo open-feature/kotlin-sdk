@@ -8,11 +8,15 @@ import dev.openfeature.sdk.ProviderMetadata
 import dev.openfeature.sdk.Value
 
 class DoSomethingProvider(override val hooks: List<Hook<*>> = listOf(), override val metadata: ProviderMetadata = DoSomethingProviderMetadata()) : FeatureProvider {
-    override suspend fun initialize(initialContext: EvaluationContext?) {
+    override fun initialize(initialContext: EvaluationContext?) {
         // no-op
     }
 
-    override suspend fun onContextSet(
+    override fun shutdown() {
+        // no-op
+    }
+
+    override fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
