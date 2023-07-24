@@ -3,7 +3,8 @@ package dev.openfeature.sdk.events
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +29,8 @@ inline fun <reified T : OpenFeatureEvents> EventObserver.observe() = observe(T::
 class EventHandler(dispatcher: CoroutineDispatcher) : EventObserver, EventsPublisher, ProviderStatus {
     private val sharedFlow: MutableSharedFlow<OpenFeatureEvents> = MutableSharedFlow()
     private val isProviderReady = MutableStateFlow(false)
-    private val coroutineScope = CoroutineScope(dispatcher)
+    private val job = Job()
+    private val coroutineScope = CoroutineScope(job + dispatcher)
 
     init {
         coroutineScope.launch {
@@ -37,7 +39,7 @@ class EventHandler(dispatcher: CoroutineDispatcher) : EventObserver, EventsPubli
                     is OpenFeatureEvents.ProviderReady -> isProviderReady.value = true
                     is OpenFeatureEvents.ProviderShutDown -> {
                         isProviderReady.value = false
-                        coroutineScope.cancel()
+                        job.cancelChildren()
                     }
                     else -> {
                         // do nothing
