@@ -1,26 +1,33 @@
-[![](https://jitpack.io/v/spotify/openfeature-kotlin-sdk.svg)](https://jitpack.io/#spotify/openfeature-kotlin-sdk)
+<!-- markdownlint-disable MD033 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/white/openfeature-horizontal-white.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/black/openfeature-horizontal-black.svg">
+    <img align="center" alt="OpenFeature Logo">
+  </picture>
+</p>
 
-# OpenFeature Kotlin SDK
+<h2 align="center">OpenFeature Kotlin SDKs</h2>
 
 ![Status](https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg)
 
-What is OpenFeature?
+## 👋 Hey there! Thanks for checking out the OpenFeature Kotlin SDK
+
+### What is OpenFeature?
+
 [OpenFeature][openfeature-website] is an open standard that provides a vendor-agnostic, community-driven API for feature flagging that works with your favorite feature flag management tool.
 
-Why standardize feature flags?
+### Why standardize feature flags?
+
 Standardizing feature flags unifies tools and vendors behind a common interface which avoids vendor lock-in at the code level. Additionally, it offers a framework for building extensions and integrations and allows providers to focus on their unique value proposition.
 
-This Kotlin implementation of an OpenFeature SDK has been developed at Spotify, and currently made available and maintained within the Spotify Open Source Software organization. Part of our roadmap is for the OpenFeature community to evaluate this implementation and potentially include it in the existing ecosystem of [OpenFeature SDKs][openfeature-sdks].
-
-## Requirements
+## 🔍 Requirements
 
 - The Android minSdk version supported is: `21`.
 
 Note that this library is intended to be used in a mobile context, and has not been evaluated for use in other type of applications (e.g. server applications).
 
-## Usage
-
-### Adding the library dependency
+## 📦 Installation
 
 The Android project must include `maven("https://jitpack.io")` in `settings.gradle`.
 
@@ -37,22 +44,147 @@ api("com.github.spotify:openfeature-kotlin-sdk:[ANY_BRANCH]-SNAPSHOT")
 
 This will get a build from the head of the mentioned branch. 
 
-### Resolving a flag
+## 🌟 Features
+
+- support for various backend [providers](https://openfeature.dev/docs/reference/concepts/provider)
+- easy integration and extension via [hooks](https://openfeature.dev/docs/reference/concepts/hooks)
+- bool, string, numeric, and object flag types
+- [context-aware](https://openfeature.dev/docs/reference/concepts/evaluation-context) evaluation
+
+## 🚀 Usage
+
 ```kotlin
-import dev.openfeature.sdk.*
+    // configure a provider and get client
+    OpenFeatureAPI.setProvider(
+        CustomProvider.initialise()
+    )
+    val client = OpenFeatureAPI.getClient()
 
-// Change NoOpProvider with your actual provider
-OpenFeatureAPI.setProvider(NoOpProvider(), ImmutableContext())
-val flagValue = OpenFeatureAPI.getClient().getBooleanValue("boolFlag", false)
+    // get a bool flag value
+    client.getBooleanValue("boolFlag", default = false)
+    
+    // get a bool flag value async
+    openFeatureClient
+        .toAsync()
+        .observeBooleanValue(key, default)
+        .collect {
+            // do something with boolean
+        }
+    
+    // get bool flag with compose
+    val myBoolProperty = openFeatureClient
+        .toAsync()
+        .observeBooleanValue(key, default)
+        .collectAsState()
 ```
-Setting a new provider or setting a new evaluation context are asynchronous operations. The provider might execute I/O operations as part of these method calls (e.g. fetching flag evaluations from the backend and store them in a local cache). It's advised to not interact with the OpenFeature client until the `setProvider()` or `setEvaluationContext()` functions have returned successfully.
 
-Please refer to our [documentation on static-context APIs](https://github.com/open-feature/spec/pull/171) for further information on how these APIs are structured for the use-case of mobile clients.
+### Context-aware evaluation
+
+Sometimes the value of a flag must take into account some dynamic criteria about the application or user, such as the user location, IP, email address, or the location of the server.
+In OpenFeature, we refer to this as [`targeting`](https://openfeature.dev/specification/glossary#targeting).
+If the flag system you're using supports targeting, you can provide the input data using the `EvaluationContext`.
+
+<!-- TODO: code examples using context and different levels -->
+
+### Events
+
+Events allow you to react to state changes in the provider or underlying flag management system, such as flag definition changes, provider readiness, or error conditions.
+Initialization events (`PROVIDER_READY` on success, `PROVIDER_ERROR` on failure) are dispatched for every provider.
+Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGED`.
+Please refer to the documentation of the provider you're using to see what events are supported.
+
+```kotlin
+    // to listen to PROVIDER_READY event
+    CoroutineScope(Dispatchers.IO).launch {
+        awaitProviderReady()
+        // now provider is ready, read the properties
+    }
+```
+
+### Providers:
+
+To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
+This can be a new repository or included in [the existing contrib repository](https://github.com/open-feature/java-sdk-contrib) available under the OpenFeature organization.
+Finally, you’ll then need to write the provider itself.
+This can be accomplished by implementing the `Provider` interface exported by the OpenFeature SDK.
+
+```kotlin
+class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Metadata) : FeatureProvider {
+    override fun getBooleanEvaluation(
+        key: String,
+        defaultValue: Boolean,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Boolean> {
+        // resolve a boolean flag value
+    }
+
+    override fun getDoubleEvaluation(
+        key: String,
+        defaultValue: Double,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Double> {
+        // resolve a double flag value
+    }
+
+    override fun getIntegerEvaluation(
+        key: String,
+        defaultValue: Int,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Int> {
+        // resolve an integer flag value
+    }
+
+    override fun getObjectEvaluation(
+        key: String,
+        defaultValue: Value,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Value> {
+        // resolve an object flag value
+    }
+
+    override fun getStringEvaluation(
+        key: String,
+        defaultValue: String,
+        context: EvaluationContext?
+    ): ProviderEvaluation<String> {
+        // resolve a string flag value
+    }
+
+    override suspend fun initialize(initialContext: EvaluationContext?) {
+        // add context-aware provider initialisation
+    }
+
+    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+        // add necessary changes on context change
+    }
+
+}
+```
 
 
-### Providers
+## ⭐️ Support the project
 
-To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency. You’ll then need to write the provider itself. This can be accomplished by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
+- Give this repo a ⭐️!
+- Follow us on social media:
+    - Twitter: [@openfeature](https://twitter.com/openfeature)
+    - LinkedIn: [OpenFeature](https://www.linkedin.com/company/openfeature/)
+- Join us on [Slack](https://cloud-native.slack.com/archives/C0344AANLA1)
+- For more check out our [community page](https://openfeature.dev/community/)
+
+## 🤝 Contributing
+
+Interested in contributing? Great, we'd love your help! To get started, take a look at the [CONTRIBUTING](CONTRIBUTING.md) guide.
+
+### Thanks to everyone that has already contributed
+
+<a href="https://github.com/open-feature/kotlin-sdk/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=open-feature/kotlin-sdk" alt="Pictures of the folks who have contributed to the project" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
+
+## 📜 License
+
+[Apache License 2.0](LICENSE)
 
 [openfeature-website]: https://openfeature.dev
-[openfeature-sdks]: https://openfeature.dev/docs/reference/technologies/
