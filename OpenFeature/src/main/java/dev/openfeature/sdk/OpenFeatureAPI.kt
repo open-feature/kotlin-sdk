@@ -1,14 +1,12 @@
 package dev.openfeature.sdk
 
-import kotlinx.coroutines.coroutineScope
-
 object OpenFeatureAPI {
     private var provider: FeatureProvider? = null
     private var context: EvaluationContext? = null
     var hooks: List<Hook<*>> = listOf()
         private set
 
-    suspend fun setProvider(provider: FeatureProvider, initialContext: EvaluationContext? = null) = coroutineScope {
+    fun setProvider(provider: FeatureProvider, initialContext: EvaluationContext? = null) {
         this@OpenFeatureAPI.provider = provider
         if (initialContext != null) context = initialContext
         provider.initialize(context)
@@ -22,7 +20,7 @@ object OpenFeatureAPI {
         provider = null
     }
 
-    suspend fun setEvaluationContext(evaluationContext: EvaluationContext) {
+    fun setEvaluationContext(evaluationContext: EvaluationContext) {
         context = evaluationContext
         getProvider()?.onContextSet(context, evaluationContext)
     }
@@ -45,5 +43,9 @@ object OpenFeatureAPI {
 
     fun clearHooks() {
         this.hooks = listOf()
+    }
+
+    fun shutdown() {
+        provider?.shutdown()
     }
 }

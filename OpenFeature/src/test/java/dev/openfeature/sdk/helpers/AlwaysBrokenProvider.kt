@@ -10,11 +10,15 @@ import dev.openfeature.sdk.exceptions.OpenFeatureError.FlagNotFoundError
 
 class AlwaysBrokenProvider(override var hooks: List<Hook<*>> = listOf(), override var metadata: ProviderMetadata = AlwaysBrokenProviderMetadata()) :
     FeatureProvider {
-    override suspend fun initialize(initialContext: EvaluationContext?) {
+    override fun initialize(initialContext: EvaluationContext?) {
         // no-op
     }
 
-    override suspend fun onContextSet(
+    override fun shutdown() {
+        // no-op
+    }
+
+    override fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
