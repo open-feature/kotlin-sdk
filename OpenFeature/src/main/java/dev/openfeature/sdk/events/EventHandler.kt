@@ -73,7 +73,7 @@ class EventHandler(dispatcher: CoroutineDispatcher) : EventObserver, EventsPubli
 
         fun eventsObserver(dispatcher: CoroutineDispatcher = Dispatchers.IO): EventObserver =
             getInstance(dispatcher)
-        fun providerStatus(dispatcher: CoroutineDispatcher = Dispatchers.IO): ProviderStatus =
+        internal fun providerStatus(dispatcher: CoroutineDispatcher = Dispatchers.IO): ProviderStatus =
             getInstance(dispatcher)
         fun eventsPublisher(dispatcher: CoroutineDispatcher = Dispatchers.IO): EventsPublisher =
             getInstance(dispatcher)
