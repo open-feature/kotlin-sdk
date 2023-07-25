@@ -2,11 +2,15 @@ package dev.openfeature.sdk
 
 class NoOpProvider : FeatureProvider {
     override var metadata: ProviderMetadata = NoOpProviderMetadata("No-op provider")
-    override suspend fun initialize(initialContext: EvaluationContext?) {
+    override fun initialize(initialContext: EvaluationContext?) {
         // no-op
     }
 
-    override suspend fun onContextSet(
+    override fun shutdown() {
+        // no-op
+    }
+
+    override fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
