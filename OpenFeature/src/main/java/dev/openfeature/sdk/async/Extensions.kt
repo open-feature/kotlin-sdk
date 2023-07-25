@@ -1,11 +1,9 @@
 package dev.openfeature.sdk.async
 
-import dev.openfeature.sdk.OpenFeatureAPI
 import dev.openfeature.sdk.OpenFeatureClient
 import dev.openfeature.sdk.events.EventHandler
 import dev.openfeature.sdk.events.OpenFeatureEvents
 import dev.openfeature.sdk.events.observe
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel

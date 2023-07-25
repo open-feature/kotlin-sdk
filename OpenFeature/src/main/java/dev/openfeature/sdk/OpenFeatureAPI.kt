@@ -23,9 +23,9 @@ object OpenFeatureAPI {
         return provider
     }
 
-    inline fun <reified T: OpenFeatureEvents> observeEvents(dispatcher: CoroutineDispatcher) =
+    inline fun <reified T : OpenFeatureEvents> observeEvents(dispatcher: CoroutineDispatcher) =
         EventHandler.eventsObserver(dispatcher)
-        .observe<T>()
+            .observe<T>()
 
     fun clearProvider() {
         provider = null
