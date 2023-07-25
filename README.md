@@ -29,6 +29,8 @@ Note that this library is intended to be used in a mobile context, and has not b
 
 ## 📦 Installation
 
+### Jitpack
+
 The Android project must include `maven("https://jitpack.io")` in `settings.gradle`.
 
 You can now add the OpenFeature SDK dependency:
@@ -44,6 +46,10 @@ api("com.github.spotify:openfeature-kotlin-sdk:[ANY_BRANCH]-SNAPSHOT")
 
 This will get a build from the head of the mentioned branch. 
 
+### Maven
+
+Installation via Maven Central is currently WIP
+
 ## 🌟 Features
 
 - support for various backend [providers](https://openfeature.dev/docs/reference/concepts/provider)
@@ -55,36 +61,20 @@ This will get a build from the head of the mentioned branch.
 
 ```kotlin
     // configure a provider and get client
-    OpenFeatureAPI.setProvider(
-        CustomProvider.initialise()
-    )
+    OpenFeatureAPI.setProvider(customProvider)
     val client = OpenFeatureAPI.getClient()
 
     // get a bool flag value
     client.getBooleanValue("boolFlag", default = false)
     
     // get a bool flag value async
-    openFeatureClient
-        .toAsync()
-        .observeBooleanValue(key, default)
-        .collect {
-            // do something with boolean
+    coroutineScope.launch {
+        WithContext(Dispatchers.IO) {
+            client.awaitProviderReady()
         }
-    
-    // get bool flag with compose
-    val myBoolProperty = openFeatureClient
-        .toAsync()
-        .observeBooleanValue(key, default)
-        .collectAsState()
+        client.getBooleanValue("boolFlag", default = false)
+    }
 ```
-
-### Context-aware evaluation
-
-Sometimes the value of a flag must take into account some dynamic criteria about the application or user, such as the user location, IP, email address, or the location of the server.
-In OpenFeature, we refer to this as [`targeting`](https://openfeature.dev/specification/glossary#targeting).
-If the flag system you're using supports targeting, you can provide the input data using the `EvaluationContext`.
-
-<!-- TODO: code examples using context and different levels -->
 
 ### Events
 
@@ -94,11 +84,11 @@ Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGE
 Please refer to the documentation of the provider you're using to see what events are supported.
 
 ```kotlin
-    // to listen to PROVIDER_READY event
-    CoroutineScope(Dispatchers.IO).launch {
-        awaitProviderReady()
-        // now provider is ready, read the properties
-    }
+    OpenFeatureAPI.eventsObserver()
+        .observe<OpenFeatureEvents.ProviderReady>()
+        .collect {
+            // do something once the provider is ready
+        }
 ```
 
 ### Providers:
@@ -150,11 +140,11 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
         // resolve a string flag value
     }
 
-    override suspend fun initialize(initialContext: EvaluationContext?) {
+    override fun initialize(initialContext: EvaluationContext?) {
         // add context-aware provider initialisation
     }
 
-    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+    override fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
         // add necessary changes on context change
     }
 
