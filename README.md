@@ -9,7 +9,7 @@
 
 <h2 align="center">OpenFeature Kotlin SDKs</h2>
 
-![Status](https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg)
+![Status](https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg) [![](https://jitpack.io/v/spotify/openfeature-kotlin-sdk.svg)](https://jitpack.io/#spotify/openfeature-kotlin-sdk)
 
 ## 👋 Hey there! Thanks for checking out the OpenFeature Kotlin SDK
 
@@ -94,7 +94,7 @@ Please refer to the documentation of the provider you're using to see what event
 ### Providers:
 
 To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
-This can be a new repository or included in [the existing contrib repository](https://github.com/open-feature/java-sdk-contrib) available under the OpenFeature organization.
+This can be a new repository or included in the existing contrib repository available under the OpenFeature organization.
 Finally, you’ll then need to write the provider itself.
 This can be accomplished by implementing the `Provider` interface exported by the OpenFeature SDK.
 
