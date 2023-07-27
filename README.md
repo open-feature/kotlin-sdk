@@ -91,7 +91,7 @@ Please refer to the documentation of the provider you're using to see what event
         }
 ```
 
-### Providers:
+### Providers
 
 To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
 This can be a new repository or included in the existing contrib repository available under the OpenFeature organization.
