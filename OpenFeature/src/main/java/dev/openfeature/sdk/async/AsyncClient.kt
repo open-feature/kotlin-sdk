@@ -2,6 +2,7 @@ package dev.openfeature.sdk.async
 
 import dev.openfeature.sdk.OpenFeatureClient
 import dev.openfeature.sdk.Value
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -15,9 +16,10 @@ interface AsyncClient {
 }
 
 internal class AsyncClientImpl(
-    private val client: OpenFeatureClient
+    private val client: OpenFeatureClient,
+    private val dispatcher: CoroutineDispatcher
 ) : AsyncClient {
-    private fun <T> observeEvents(callback: () -> T) = observeProviderReady()
+    private fun <T> observeEvents(callback: () -> T) = observeProviderReady(dispatcher)
         .map { callback() }
         .distinctUntilChanged()
 
