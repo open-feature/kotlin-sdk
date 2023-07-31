@@ -5,12 +5,10 @@ import dev.openfeature.sdk.async.toAsync
 import dev.openfeature.sdk.events.EventHandler
 import dev.openfeature.sdk.events.OpenFeatureEvents
 import dev.openfeature.sdk.events.observe
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.timeout
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
@@ -149,6 +147,27 @@ class EventsHandlerTest {
 
         job.join()
         Assert.assertTrue(isProviderReady)
+    }
+
+    @Test
+    fun the_provider_becomes_stale() = runTest {
+        val eventPublisher = EventHandler.eventsPublisher()
+        var isProviderStale = false
+
+        val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            EventHandler.eventsObserver()
+                .observe<OpenFeatureEvents.ProviderStale>()
+                .take(1)
+                .collect {
+                    isProviderStale = true
+                }
+        }
+
+        eventPublisher.publish(OpenFeatureEvents.ProviderReady)
+        eventPublisher.publish(OpenFeatureEvents.ProviderStale)
+        job.join()
+
+        Assert.assertTrue(isProviderStale)
     }
 
     @Test

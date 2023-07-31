@@ -37,6 +37,7 @@ class EventHandler(dispatcher: CoroutineDispatcher) : EventObserver, EventsPubli
             sharedFlow.collect {
                 when (it) {
                     is OpenFeatureEvents.ProviderReady -> isProviderReady.value = true
+                    is OpenFeatureEvents.ProviderStale -> isProviderReady.value = false
                     is OpenFeatureEvents.ProviderShutDown -> {
                         isProviderReady.value = false
                         job.cancelChildren()
