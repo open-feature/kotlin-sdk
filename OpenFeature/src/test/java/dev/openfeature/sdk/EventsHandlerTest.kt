@@ -152,6 +152,27 @@ class EventsHandlerTest {
     }
 
     @Test
+    fun the_provider_becomes_stale() = runTest {
+        val eventPublisher = EventHandler.eventsPublisher()
+        var isProviderStale = false
+
+        val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            EventHandler.eventsObserver()
+                .observe<OpenFeatureEvents.ProviderStale>()
+                .take(1)
+                .collect {
+                    isProviderStale = true
+                }
+        }
+
+        eventPublisher.publish(OpenFeatureEvents.ProviderReady)
+        eventPublisher.publish(OpenFeatureEvents.ProviderStale)
+        job.join()
+
+        Assert.assertTrue(isProviderStale)
+    }
+
+    @Test
     fun observe_string_value_from_client_works() = runTest {
         val testDispatcher = UnconfinedTestDispatcher(testScheduler)
         val eventPublisher = EventHandler.eventsPublisher(testDispatcher)
