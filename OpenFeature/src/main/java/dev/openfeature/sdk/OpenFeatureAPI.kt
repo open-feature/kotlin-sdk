@@ -32,8 +32,9 @@ object OpenFeatureAPI {
     }
 
     fun setEvaluationContext(evaluationContext: EvaluationContext) {
+        val oldContext = context
         context = evaluationContext
-        getProvider()?.onContextSet(context, evaluationContext)
+        getProvider()?.onContextSet(oldContext, evaluationContext)
     }
 
     fun getEvaluationContext(): EvaluationContext? {
