@@ -1,0 +1,7 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: openfeature-kotlin-sdk
+spec:
+  type: library
+  owner: hawkeye
