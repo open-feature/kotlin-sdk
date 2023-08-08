@@ -205,7 +205,7 @@ class OpenFeatureClient(
         return details
     }
 
-    @Suppress("UNCHECKED_CAST") // TODO can we do better here?
+    @Suppress("UNCHECKED_CAST")
     private fun <V> createProviderEvaluation(
         flagValueType: FlagValueType,
         key: String,
