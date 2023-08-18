@@ -7,13 +7,15 @@ plugins {
     kotlin("plugin.serialization") version "1.8.10"
 }
 
+val releaseVersion = System.getenv("OF_KOTLIN_RELEASE_VERSION") ?: "0.0.1-SNAPSHOT"
+
 android {
     namespace = "dev.openfeature.sdk"
     compileSdk = 33
 
     defaultConfig {
         minSdk = 21
-        version = "0.0.1"
+        version = releaseVersion
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -50,7 +52,7 @@ afterEvaluate {
             register<MavenPublication>("release") {
                 groupId = "dev.openfeature"
                 artifactId = "kotlin-sdk"
-                version = "0.0.1-SNAPSHOT"
+                version = releaseVersion
 
                 from(components["release"])
                 artifact(androidSourcesJar.get())

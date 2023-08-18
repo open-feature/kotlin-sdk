@@ -1,0 +1,71 @@
+on:
+  push:
+    branches:
+      - main
+
+name: Run Release Please
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+
+    # Release-please creates a PR that tracks all changes
+    steps:
+      - uses: google-github-actions/release-please-action@ca6063f4ed81b55db15b8c42d1b6f7925866342d # v3
+        id: release
+        with:
+          command: manifest
+          token: ${{secrets.GITHUB_TOKEN}}
+          default-branch: main
+
+      # The logic below handles the github release:
+      - name: Cache Gradle and wrapper
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - uses: actions/checkout@v1
+        if: ${{ steps.release.outputs.releases_created }}
+
+      - name: Set up JDK 11
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Grant Permission for Gradlew to Execute
+        if: ${{ steps.release.outputs.releases_created }}
+        run: chmod +x gradlew
+
+      - name: Build AAR ⚙️🛠
+        if: ${{ steps.release.outputs.releases_created }}
+        env:
+          OF_KOTLIN_RELEASE_VERSION: ${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}.${{ steps.release.outputs.patch }}
+        run: bash ./gradlew :openfeature:assemble
+
+      - name: Create Release ✅
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          OF_KOTLIN_RELEASE_VERSION: ${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}.${{ steps.release.outputs.patch }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ env.OF_KOTLIN_RELEASE_VERSION }}
+          release_name: ${{ env.OF_KOTLIN_RELEASE_VERSION }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Openfeature SDK AAR 🗳
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: OpenFeature/build/outputs/aar/OpenFeature-release.aar
+          asset_name: openfeature-sdk.aar
+          asset_content_type: application/aar
