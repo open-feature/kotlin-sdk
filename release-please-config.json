@@ -1,0 +1,11 @@
+{
+  "bootstrap-sha": "c9eca676d0fd091a6146de2246435f9d52ab3cae",
+  "packages": {
+    "OpenFeature": {
+      "release-type": "java",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "versioning": "default"
+    }
+  }
+}
