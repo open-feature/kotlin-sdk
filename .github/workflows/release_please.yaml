@@ -48,17 +48,6 @@ jobs:
           OF_KOTLIN_RELEASE_VERSION: ${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}.${{ steps.release.outputs.patch }}
         run: bash ./gradlew :openfeature:assemble
 
-      - name: Create Release ✅
-        if: ${{ steps.release.outputs.releases_created }}
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          OF_KOTLIN_RELEASE_VERSION: ${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}.${{ steps.release.outputs.patch }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ env.OF_KOTLIN_RELEASE_VERSION }}
-          release_name: ${{ env.OF_KOTLIN_RELEASE_VERSION }}
-          draft: false
-          prerelease: false
 
       - name: Upload Openfeature SDK AAR 🗳
         if: ${{ steps.release.outputs.releases_created }}
@@ -66,7 +55,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: OpenFeature/build/outputs/aar/OpenFeature-release.aar
           asset_name: openfeature-sdk.aar
           asset_content_type: application/aar
