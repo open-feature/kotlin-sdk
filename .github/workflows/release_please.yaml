@@ -49,6 +49,7 @@ jobs:
         run: bash ./gradlew :openfeature:assemble
 
       - name: Create Release ✅
+        if: ${{ steps.release.outputs.releases_created }}
         id: create_release
         uses: actions/create-release@v1
         env:
