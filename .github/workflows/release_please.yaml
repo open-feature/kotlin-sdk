@@ -13,13 +13,31 @@ jobs:
       - uses: google-github-actions/release-please-action@v3
         id: release
         with:
+          release-type: simple
           command: manifest
           token: ${{secrets.GITHUB_TOKEN}}
           default-branch: main
 
+      - name: Dump Release Please Output
+        env:
+          RELEASE_PLEASE_OUTPUT: ${{ toJson(steps.release.outputs) }}
+        run: |
+          echo "$RELEASE_PLEASE_OUTPUT"
+
+    # Outputs are namespaced by package when using a manifest in Release Please
+    outputs:
+      release_created: ${{ steps.release.outputs['OpenFeature--release_created'] }}
+      # Version doesn't include `v` as a prefix. This is undocumented
+      version: ${{ steps.release.outputs['OpenFeature--version'] }}
+      upload_url: ${{ steps.release.outputs['OpenFeature--upload_url'] }}
+
+  kotlin-release:
+    needs: release-please
+    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.release_created }}
+    steps:
       # The logic below handles the github release:
       - name: Cache Gradle and wrapper
-        if: ${{ steps.release.outputs.releases_created }}
         uses: actions/cache@v2
         with:
           path: |
@@ -30,31 +48,26 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - uses: actions/checkout@v1
-        if: ${{ steps.release.outputs.releases_created }}
 
       - name: Set up JDK 11
-        if: ${{ steps.release.outputs.releases_created }}
         uses: actions/setup-java@v1
         with:
           java-version: 11
 
       - name: Grant Permission for Gradlew to Execute
-        if: ${{ steps.release.outputs.releases_created }}
         run: chmod +x gradlew
 
       - name: Build AAR ⚙️🛠
-        if: ${{ steps.release.outputs.releases_created }}
         env:
-          OF_KOTLIN_RELEASE_VERSION: ${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}.${{ steps.release.outputs.patch }}
+          OF_KOTLIN_RELEASE_VERSION: ${{ needs.release-please.outputs.version }}
         run: bash ./gradlew :openfeature:assemble
 
       - name: Upload Openfeature SDK AAR 🗳
-        if: ${{ steps.release.outputs.releases_created }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.release.outputs.upload_url }}
+          upload_url: ${{ needs.release-please.outputs.upload_url }}
           asset_path: OpenFeature/build/outputs/aar/OpenFeature-release.aar
           asset_name: openfeature-sdk.aar
           asset_content_type: application/aar
