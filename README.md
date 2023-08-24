@@ -9,7 +9,7 @@
 
 <h2 align="center">OpenFeature Kotlin SDKs</h2>
 
-![Status](https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg) [![](https://jitpack.io/v/spotify/openfeature-kotlin-sdk.svg)](https://jitpack.io/#spotify/openfeature-kotlin-sdk)
+![Status](https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg) [![](https://jitpack.io/v/open-feature/kotlin-sdk.svg)](https://jitpack.io/#open-feature/kotlin-sdk)
 
 ## 👋 Hey there! Thanks for checking out the OpenFeature Kotlin SDK
 
