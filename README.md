@@ -1,4 +1,5 @@
 <!-- markdownlint-disable MD033 -->
+<!-- x-hide-in-docs-start -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/white/openfeature-horizontal-white.svg">
@@ -9,27 +10,41 @@
 
 <h2 align="center">OpenFeature Kotlin SDKs</h2>
 
-![Status](https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg) [![](https://jitpack.io/v/open-feature/kotlin-sdk.svg)](https://jitpack.io/#open-feature/kotlin-sdk)
+<!-- x-hide-in-docs-end -->
+<!-- The 'github-badges' class is used in the docs -->
+<p align="center" class="github-badges">
+  <a href="https://github.com/open-feature/spec/tree/v0.6.0">
+    <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.6.0&color=yellow&style=for-the-badge" />
+  </a>
+  <!-- x-release-please-start-version -->
 
-## 👋 Hey there! Thanks for checking out the OpenFeature Kotlin SDK
+  <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.0.2">
+    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.0.2&color=blue&style=for-the-badge" />
+  </a>
 
-### What is OpenFeature?
+  <!-- x-release-please-end -->
+  <br/>
+  <img alt="Status" src="https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg" />
+  <a href="https://jitpack.io/#open-feature/kotlin-sdk">
+    <img alt="JitPack" src="https://jitpack.io/v/open-feature/kotlin-sdk.svg" />
+  </a>
+</p>
+<!-- x-hide-in-docs-start -->
 
-[OpenFeature][openfeature-website] is an open standard that provides a vendor-agnostic, community-driven API for feature flagging that works with your favorite feature flag management tool.
+[OpenFeature](https://openfeature.dev) is an open standard that provides a vendor-agnostic, community-driven API for feature flagging that works with your favorite feature flag management tool.
 
-### Why standardize feature flags?
+<!-- x-hide-in-docs-end -->
+## 🚀 Quick start
 
-Standardizing feature flags unifies tools and vendors behind a common interface which avoids vendor lock-in at the code level. Additionally, it offers a framework for building extensions and integrations and allows providers to focus on their unique value proposition.
-
-## 🔍 Requirements
+### Requirements
 
 - The Android minSdk version supported is: `21`.
 
 Note that this library is intended to be used in a mobile context, and has not been evaluated for use in other type of applications (e.g. server applications).
 
-## 📦 Installation
+### Install
 
-### Jitpack
+#### Jitpack
 
 The Android project must include `maven("https://jitpack.io")` in `settings.gradle`.
 
@@ -46,57 +61,117 @@ api("com.github.open-feature:kotlin-sdk:[ANY_BRANCH]-SNAPSHOT")
 
 This will get a build from the head of the mentioned branch. 
 
-### Maven
+#### Maven
 
 Installation via Maven Central is currently [WIP](https://github.com/open-feature/kotlin-sdk/issues/37)
 
-## 🌟 Features
-
-- support for various backend [providers](https://openfeature.dev/docs/reference/concepts/provider)
-- easy integration and extension via [hooks](https://openfeature.dev/docs/reference/concepts/hooks)
-- bool, string, numeric, and object flag types
-- [context-aware](https://openfeature.dev/docs/reference/concepts/evaluation-context) evaluation
-
-## 🚀 Usage
+### Usage
 
 ```kotlin
-    // configure a provider and get client
-    OpenFeatureAPI.setProvider(customProvider)
-    val client = OpenFeatureAPI.getClient()
+// configure a provider and get client
+OpenFeatureAPI.setProvider(customProvider)
+val client = OpenFeatureAPI.getClient()
 
-    // get a bool flag value
-    client.getBooleanValue("boolFlag", default = false)
-    
-    // get a bool flag value async
-    coroutineScope.launch {
-        WithContext(Dispatchers.IO) {
-            client.awaitProviderReady()
-        }
-        client.getBooleanValue("boolFlag", default = false)
+// get a bool flag value
+client.getBooleanValue("boolFlag", default = false)
+
+// get a bool flag after "ready" signal from provider
+coroutineScope.launch {
+    WithContext(Dispatchers.IO) {
+        client.awaitProviderReady()
     }
+    client.getBooleanValue("boolFlag", default = false)
+}
 ```
 
-### Events
+## 🌟 Features
+
+<!-- TODO: update table to indicate implemented features (see legend below) -->
+
+| Status | Features                        | Description                                                                                                                        |
+| ------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| ✅      | [Providers](#providers)         | Integrate with a commercial, open source, or in-house feature management tool.                                                     |
+| ✅      | [Targeting](#targeting)         | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
+| ✅      | [Hooks](#hooks)                 | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
+| ❌      | Logging                         | Integrate with popular logging packages.                                                                                           |
+| ❌      | Named clients                   | Utilize multiple providers in a single application.                                                                                |
+| ⚠️      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
+| ✅      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
+| ❌      | Extending                       | Extend OpenFeature with custom providers and hooks.                                                                                |
+
+<sub>Implemented: ✅ | In-progress: ⚠️ | Not implemented yet: ❌</sub>
+
+### Providers
+
+[Providers](https://openfeature.dev/docs/reference/concepts/provider) are an abstraction between a flag management system and the OpenFeature SDK.
+Look [here](https://openfeature.dev/ecosystem?instant_search%5BrefinementList%5D%5Btype%5D%5B0%5D=Provider&instant_search%5BrefinementList%5D%5Btechnology%5D%5B0%5D=kotlin) for a complete list of available providers.
+If the provider you're looking for hasn't been created yet, see the [develop a provider](#develop-a-provider) section to learn how to build it yourself.
+
+Once you've added a provider as a dependency, it can be registered with OpenFeature like this:
+
+```kotlin
+OpenFeatureAPI.setProvider(MyProvider())
+OpenFeatureAPI.getClient()
+```
+
+
+### Targeting
+
+Sometimes, the value of a flag must consider some dynamic criteria about the application or user, such as the user's location, IP, email address, or the server's location.
+In OpenFeature, we refer to this as [targeting](https://openfeature.dev/specification/glossary#targeting).
+If the flag management system you're using supports targeting, you can provide the input data using the [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context).
+
+```kotlin
+// set a value to the global context
+val evaluationContext = ImmutableContext(
+    targetingKey = session.getId,
+    attributes = mutableMapOf("region" to Value.String("us-east-1")))
+OpenFeatureAPI.setEvaluationContext(evaluationContext)
+```
+
+### Hooks
+
+[Hooks](https://openfeature.dev/docs/reference/concepts/hooks) allow for custom logic to be added at well-defined points of the flag evaluation life-cycle.
+Look [here](https://openfeature.dev/ecosystem/?instant_search%5BrefinementList%5D%5Btype%5D%5B0%5D=Hook&instant_search%5BrefinementList%5D%5Btechnology%5D%5B0%5D=kotlin) for a complete list of available hooks.
+If the hook you're looking for hasn't been created yet, see the [develop a hook](#develop-a-hook) section to learn how to build it yourself.
+
+Once you've added a hook as a dependency, it can be registered at the global, client, or flag invocation level.
+
+
+<!-- TODO: code example of setting hooks at all levels -->
+
+### Eventing
 
 Events allow you to react to state changes in the provider or underlying flag management system, such as flag definition changes, provider readiness, or error conditions.
 Initialization events (`PROVIDER_READY` on success, `PROVIDER_ERROR` on failure) are dispatched for every provider.
 Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGED`.
+
+⚠️ _The Eventing APIs are still a work in progress for this SDK, and subsjected to backwards-incompatible changes. Most of the remaining work revolves around consolidating event semantics that fit the mobile use-case._
+
 Please refer to the documentation of the provider you're using to see what events are supported.
 
 ```kotlin
-    OpenFeatureAPI.eventsObserver()
-        .observe<OpenFeatureEvents.ProviderReady>()
-        .collect {
-            // do something once the provider is ready
-        }
+OpenFeatureAPI.eventsObserver()
+    .observe<OpenFeatureEvents.ProviderReady>()
+    .collect {
+        // do something once the provider is ready
+    }
 ```
 
-### Providers
+### Shutdown
+
+The OpenFeature API provides a close function to perform a cleanup of all registered providers.
+This should only be called when your application is in the process of shutting down.
+
+```kotlin
+OpenFeatureAPI.shutdown()
+```
+
+
+### Develop a provider
 
 To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
-This can be a new repository or included in the existing contrib repository available under the OpenFeature organization.
-Finally, you’ll then need to write the provider itself.
-This can be accomplished by implementing the `Provider` interface exported by the OpenFeature SDK.
+You’ll then need to write the provider by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
 
 ```kotlin
 class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Metadata) : FeatureProvider {
@@ -151,15 +226,17 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
 }
 ```
 
+> Built a new provider? [Let us know](https://github.com/open-feature/openfeature.dev/issues/new?assignees=&labels=provider&projects=&template=document-provider.yaml&title=%5BProvider%5D%3A+) so we can add it to the docs!
 
+<!-- x-hide-in-docs-start -->
 ## ⭐️ Support the project
 
 - Give this repo a ⭐️!
 - Follow us on social media:
-    - Twitter: [@openfeature](https://twitter.com/openfeature)
-    - LinkedIn: [OpenFeature](https://www.linkedin.com/company/openfeature/)
+  - Twitter: [@openfeature](https://twitter.com/openfeature)
+  - LinkedIn: [OpenFeature](https://www.linkedin.com/company/openfeature/)
 - Join us on [Slack](https://cloud-native.slack.com/archives/C0344AANLA1)
-- For more check out our [community page](https://openfeature.dev/community/)
+- For more, check out our [community page](https://openfeature.dev/community/)
 
 ## 🤝 Contributing
 
@@ -172,9 +249,4 @@ Interested in contributing? Great, we'd love your help! To get started, take a l
 </a>
 
 Made with [contrib.rocks](https://contrib.rocks).
-
-## 📜 License
-
-[Apache License 2.0](LICENSE)
-
-[openfeature-website]: https://openfeature.dev
+<!-- x-hide-in-docs-end -->
