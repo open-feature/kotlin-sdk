@@ -160,7 +160,7 @@ OpenFeatureAPI.eventsObserver()
 
 ### Shutdown
 
-The OpenFeature API provides a close function to perform a cleanup of all registered providers.
+The OpenFeature API provides a close function to perform a cleanup of the registered provider.
 This should only be called when your application is in the process of shutting down.
 
 ```kotlin
