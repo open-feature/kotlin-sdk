@@ -8,7 +8,7 @@
   </picture>
 </p>
 
-<h2 align="center">OpenFeature Kotlin SDKs</h2>
+<h2 align="center">OpenFeature Kotlin SDK</h2>
 
 <!-- x-hide-in-docs-end -->
 <!-- The 'github-badges' class is used in the docs -->
@@ -16,13 +16,11 @@
   <a href="https://github.com/open-feature/spec/tree/v0.6.0">
     <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.6.0&color=yellow&style=for-the-badge" />
   </a>
-  <!-- x-release-please-start-version -->
 
   <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.0.2">
     <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.0.2&color=blue&style=for-the-badge" />
   </a>
 
-  <!-- x-release-please-end -->
   <br/>
   <img alt="Status" src="https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg" />
   <a href="https://jitpack.io/#open-feature/kotlin-sdk">
@@ -86,8 +84,6 @@ coroutineScope.launch {
 
 ## 🌟 Features
 
-<!-- TODO: update table to indicate implemented features (see legend below) -->
-
 | Status | Features                        | Description                                                                                                                        |
 | ------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | ✅      | [Providers](#providers)         | Integrate with a commercial, open source, or in-house feature management tool.                                                     |
@@ -97,7 +93,7 @@ coroutineScope.launch {
 | ❌      | Named clients                   | Utilize multiple providers in a single application.                                                                                |
 | ⚠️      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
 | ✅      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
-| ❌      | Extending                       | Extend OpenFeature with custom providers and hooks.                                                                                |
+| ⚠️      | Extending                       | Extend OpenFeature with custom providers and hooks.                                                                                |
 
 <sub>Implemented: ✅ | In-progress: ⚠️ | Not implemented yet: ❌</sub>
 
@@ -111,7 +107,6 @@ Once you've added a provider as a dependency, it can be registered with OpenFeat
 
 ```kotlin
 OpenFeatureAPI.setProvider(MyProvider())
-OpenFeatureAPI.getClient()
 ```
 
 
@@ -138,15 +133,24 @@ If the hook you're looking for hasn't been created yet, see the [develop a hook]
 Once you've added a hook as a dependency, it can be registered at the global, client, or flag invocation level.
 
 
-<!-- TODO: code example of setting hooks at all levels -->
+```kotlin
+// add a hook globally, to run on all evaluations
+OpenFeatureAPI.addHooks(listOf(ExampleHook()))
+
+// add a hook on this client, to run on all evaluations made by this client
+val client = OpenFeatureAPI.getClient()
+client.addHooks(listOf(ExampleHook()))
+
+// add a hook for this evaluation only
+val retval = client.getBooleanValue(flagKey, false,
+    FlagEvaluationOptions(listOf(ExampleHook())))
+```
 
 ### Eventing
 
 Events allow you to react to state changes in the provider or underlying flag management system, such as flag definition changes, provider readiness, or error conditions.
 Initialization events (`PROVIDER_READY` on success, `PROVIDER_ERROR` on failure) are dispatched for every provider.
 Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGED`.
-
-⚠️ _The Eventing APIs are still a work in progress for this SDK, and subsjected to backwards-incompatible changes. Most of the remaining work revolves around consolidating event semantics that fit the mobile use-case._
 
 Please refer to the documentation of the provider you're using to see what events are supported.
 
