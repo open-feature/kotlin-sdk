@@ -93,7 +93,7 @@ coroutineScope.launch {
 | ❌      | Named clients                   | Utilize multiple providers in a single application.                                                                                |
 | ⚠️      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
 | ✅      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
-| ⚠️      | Extending                       | Extend OpenFeature with custom providers and hooks.                                                                                |
+| ⚠️      | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                |
 
 <sub>Implemented: ✅ | In-progress: ⚠️ | Not implemented yet: ❌</sub>
 
