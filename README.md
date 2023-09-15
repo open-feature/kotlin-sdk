@@ -171,6 +171,7 @@ This should only be called when your application is in the process of shutting d
 OpenFeatureAPI.shutdown()
 ```
 
+## Extending
 
 ### Develop a provider
 
