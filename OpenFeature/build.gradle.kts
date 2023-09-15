@@ -4,7 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("maven-publish")
     id("org.jlleitschuh.gradle.ktlint")
-    kotlin("plugin.serialization") version "1.8.10"
+    kotlin("plugin.serialization") version "1.9.10"
 }
 
 val releaseVersion = System.getenv("OF_KOTLIN_RELEASE_VERSION") ?: "0.0.1-SNAPSHOT"
@@ -40,7 +40,7 @@ android {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
