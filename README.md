@@ -2,9 +2,8 @@
 <!-- x-hide-in-docs-start -->
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/white/openfeature-horizontal-white.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/black/openfeature-horizontal-black.svg">
-    <img align="center" alt="OpenFeature Logo">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/white/openfeature-horizontal-white.svg" />
+    <img align="center" alt="OpenFeature Logo" src="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/black/openfeature-horizontal-black.svg" />
   </picture>
 </p>
 
@@ -38,7 +37,7 @@
 
 - The Android minSdk version supported is: `21`.
 
-Note that this library is intended to be used in a mobile context, and has not been evaluated for use in other type of applications (e.g. server applications).
+Note that this library is intended to be used in a mobile context, and has not been evaluated for use in other types of applications (e.g. server applications).
 
 ### Install
 
@@ -221,7 +220,7 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
     }
 
     override fun initialize(initialContext: EvaluationContext?) {
-        // add context-aware provider initialisation
+        // add context-aware provider initialization
     }
 
     override fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
@@ -232,6 +231,15 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
 ```
 
 > Built a new provider? [Let us know](https://github.com/open-feature/openfeature.dev/issues/new?assignees=&labels=provider&projects=&template=document-provider.yaml&title=%5BProvider%5D%3A+) so we can add it to the docs!
+
+### Develop a hook
+
+To develop a hook, you need to create a new project and include the OpenFeature SDK as a dependency.
+Implement your own hook by conforming to the `Hook` interface exported by the OpenFeature SDK.
+
+<!-- TODO: code example of hook implementation -->
+
+> Built a new hook? [Let us know](https://github.com/open-feature/openfeature.dev/issues/new?assignees=&labels=hook&projects=&template=document-hook.yaml&title=%5BHook%5D%3A+) so we can add it to the docs!
 
 <!-- x-hide-in-docs-start -->
 ## ⭐️ Support the project
@@ -247,7 +255,7 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
 
 Interested in contributing? Great, we'd love your help! To get started, take a look at the [CONTRIBUTING](CONTRIBUTING.md) guide.
 
-### Thanks to everyone that has already contributed
+### Thanks to everyone who has already contributed
 
 <a href="https://github.com/open-feature/kotlin-sdk/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=open-feature/kotlin-sdk" alt="Pictures of the folks who have contributed to the project" />
