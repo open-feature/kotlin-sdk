@@ -52,13 +52,11 @@ dependencies {
     api("com.github.open-feature:kotlin-sdk:0.0.2")
 }
 ```
-<!-- x-release-please-end -->
 
 #### Jitpack
 
 The Android project must include `maven("https://jitpack.io")` in `settings.gradle`.
 
-<!-- x-release-please-start-version -->
 You can now add the OpenFeature SDK dependency:
 ```kotlin
 dependencies {
