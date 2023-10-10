@@ -7,7 +7,9 @@ plugins {
     kotlin("plugin.serialization") version "1.9.10"
 }
 
-val releaseVersion = System.getenv("OF_KOTLIN_RELEASE_VERSION") ?: "0.0.1-SNAPSHOT"
+// x-release-please-start-version
+val releaseVersion = "0.0.2"
+// x-release-please-end
 
 android {
     namespace = "dev.openfeature.sdk"

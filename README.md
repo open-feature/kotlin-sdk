@@ -41,6 +41,18 @@ Note that this library is intended to be used in a mobile context, and has not b
 
 ### Install
 
+#### Maven Central
+
+Installation via Maven Central is currently [WIP](https://github.com/open-feature/kotlin-sdk/issues/37)
+
+<!-- x-release-please-start-version -->
+You can add the OpenFeature SDK dependency:
+```kotlin
+dependencies {
+    api("com.github.open-feature:kotlin-sdk:0.0.2")
+}
+```
+
 #### Jitpack
 
 The Android project must include `maven("https://jitpack.io")` in `settings.gradle`.
@@ -48,19 +60,16 @@ The Android project must include `maven("https://jitpack.io")` in `settings.grad
 You can now add the OpenFeature SDK dependency:
 ```kotlin
 dependencies {
-    api("com.github.open-feature:kotlin-sdk:<Latest>")
+    api("com.github.open-feature:kotlin-sdk:0.0.2")
 }
 ```
-Please note that the `<Latest>` can be any `Commit SHA` or a version based on a branch as follows:
+<!-- x-release-please-end -->
+Please note that the `version` can be any `Commit SHA` or a version based on a branch as follows:
 ```
 api("com.github.open-feature:kotlin-sdk:[ANY_BRANCH]-SNAPSHOT")
 ```
 
 This will get a build from the head of the mentioned branch. 
-
-#### Maven
-
-Installation via Maven Central is currently [WIP](https://github.com/open-feature/kotlin-sdk/issues/37)
 
 ### Usage
 

@@ -58,8 +58,6 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build AAR ⚙️🛠
-        env:
-          OF_KOTLIN_RELEASE_VERSION: ${{ needs.release-please.outputs.version }}
         run: bash ./gradlew :openfeature:assemble
 
       - name: Upload Openfeature SDK AAR 🗳

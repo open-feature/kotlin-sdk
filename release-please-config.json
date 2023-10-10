@@ -5,7 +5,11 @@
             "release-type": "simple",
             "bump-minor-pre-major": true,
             "bump-patch-for-minor-pre-major": true,
-            "versioning": "default"
+            "versioning": "default",
+            "extra-files": [
+                "README.md",
+                "OpenFeature/build.gradle.kts"
+            ]
         }
     },
     "changelog-sections": [
