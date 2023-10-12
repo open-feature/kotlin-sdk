@@ -49,7 +49,7 @@ Installation via Maven Central is currently [WIP](https://github.com/open-featur
 You can add the OpenFeature SDK dependency:
 ```kotlin
 dependencies {
-    api("com.github.open-feature:kotlin-sdk:0.0.2")
+    api("com.github.open-feature:kotlin-sdk:0.0.3")
 }
 ```
 
@@ -60,7 +60,7 @@ The Android project must include `maven("https://jitpack.io")` in `settings.grad
 You can now add the OpenFeature SDK dependency:
 ```kotlin
 dependencies {
-    api("com.github.open-feature:kotlin-sdk:0.0.2")
+    api("com.github.open-feature:kotlin-sdk:0.0.3")
 }
 ```
 <!-- x-release-please-end -->
