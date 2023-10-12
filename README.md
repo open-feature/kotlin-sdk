@@ -65,7 +65,7 @@ dependencies {
 ```
 <!-- x-release-please-end -->
 Please note that the `version` can be any `Commit SHA` or a version based on a branch as follows:
-```
+```sh
 api("com.github.open-feature:kotlin-sdk:[ANY_BRANCH]-SNAPSHOT")
 ```
 
