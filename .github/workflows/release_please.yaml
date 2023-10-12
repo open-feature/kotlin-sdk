@@ -24,12 +24,8 @@ jobs:
         run: |
           echo "$RELEASE_PLEASE_OUTPUT"
 
-    # Outputs are namespaced by package when using a manifest in Release Please
     outputs:
-      release_created: ${{ steps.release.outputs['OpenFeature--release_created'] }}
-      # Version doesn't include `v` as a prefix. This is undocumented
-      version: ${{ steps.release.outputs['OpenFeature--version'] }}
-      upload_url: ${{ steps.release.outputs['OpenFeature--upload_url'] }}
+      release_created: ${{ steps.release.outputs.release_created }}
 
   kotlin-release:
     needs: release-please
@@ -49,23 +45,37 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Configure GPG Key
+        run: |
+          echo -n "$GPG_SIGNING_KEY" | gpg --import
+          gpg --pinentry-mode=loopback --export-secret-key 08C5EC5C > ~/.gnupg/secring.gpg
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+
+      - name: Add signing secrets to gradle.properties
+        run: |
+          mkdir -p ~/.gradle/
+          echo "signing.keyId=08C5EC5C" >> ~/.gradle/gradle.properties
+          echo "signing.secretKeyRingFile=/home/runner/.gnupg/secring.gpg" >> ~/.gradle/gradle.properties
+          echo "signing.password=$GPG_SIGNING_KEY_PASSWORD" >> ~/.gradle/gradle.properties
+        env:
+          GPG_SIGNING_KEY_ID: ${{ secrets.GPG_SIGNING_KEY_ID }}
+          GPG_SIGNING_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_KEY_PASSWORD }}
+
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
           java-version: 11
+          distribution: 'zulu'
 
       - name: Grant Permission for Gradlew to Execute
         run: chmod +x gradlew
 
-      - name: Build AAR ⚙️🛠
-        run: bash ./gradlew :openfeature:assemble
-
-      - name: Upload Openfeature SDK AAR 🗳
-        uses: actions/upload-release-asset@v1
+      - name: Publish to Sonatype
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.release-please.outputs.upload_url }}
-          asset_path: OpenFeature/build/outputs/aar/OpenFeature-release.aar
-          asset_name: openfeature-sdk.aar
-          asset_content_type: application/aar
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+        run: ./gradlew publishToSonatype closeSonatypeStagingRepository --no-daemon --stacktrace
+
+      - name: Clean up signing secrets
+        run: rm ~/.gradle/gradle.properties
