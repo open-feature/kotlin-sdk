@@ -9,7 +9,7 @@ plugins {
 }
 
 // x-release-please-start-version
-val releaseVersion = "0.0.2"
+val releaseVersion = "0.0.3"
 // x-release-please-end
 
 android {
