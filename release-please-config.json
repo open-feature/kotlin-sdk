@@ -8,6 +8,7 @@
             "versioning": "default",
             "extra-files": [
                 "README.md",
+                "build.gradle.kts",
                 "OpenFeature/build.gradle.kts"
             ]
         }

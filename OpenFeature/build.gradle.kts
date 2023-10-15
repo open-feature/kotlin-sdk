@@ -8,9 +8,7 @@ plugins {
     kotlin("plugin.serialization") version "1.9.10"
 }
 
-// x-release-please-start-version
-val releaseVersion = "0.0.3"
-// x-release-please-end
+val releaseVersion = project.extra["version"].toString()
 
 android {
     namespace = "dev.openfeature.sdk"
@@ -51,7 +49,7 @@ android {
 publishing {
     publications {
         register<MavenPublication>("release") {
-            groupId = "dev.openfeature"
+            groupId = project.extra["groupId"].toString()
             artifactId = "kotlin-sdk"
             version = releaseVersion
 
