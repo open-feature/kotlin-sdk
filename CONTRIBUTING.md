@@ -26,4 +26,4 @@ If you'd like to add custom content to a release, you can do this by editing the
 
 ### Configuration
 
-The `release-please-config.json` defines the release please configuration. See schema [here](https://github.com/googleapis/release-please/blob/main/schemas/config.json) to understand all the options. We use the "simple" release strategy and annotate the build.gradle.kts file(s) with an element to help release please find the correct line to update version. Release Please stores it's understanding of the current version in the `version.txt` file.
+The `release-please-config.json` defines the release please configuration. See schema [here](https://github.com/googleapis/release-please/blob/main/schemas/config.json) to understand all the options. We use the "simple" release strategy and annotate the `build.gradle.kts` file(s) with an element to help release please find the correct line to update version. Release Please stores it's understanding of the current version in the `version.txt` file.
