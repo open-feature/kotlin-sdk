@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4](https://github.com/open-feature/kotlin-sdk/compare/v0.0.3...v0.0.4) (2023-10-16)
+
+
+### 📚 Documentation
+
+* add release instructions ([#57](https://github.com/open-feature/kotlin-sdk/issues/57)) ([8d87712](https://github.com/open-feature/kotlin-sdk/commit/8d877122449b3f298a71f336b84033fc43c879bd))
+
 ## [0.0.3](https://github.com/open-feature/kotlin-sdk/compare/v0.0.2...v0.0.3) (2023-10-12)
 
 
