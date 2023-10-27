@@ -15,11 +15,11 @@
   <a href="https://github.com/open-feature/spec/tree/v0.6.0">
     <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.6.0&color=yellow&style=for-the-badge" />
   </a>
-
-  <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.0.2">
-    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.0.2&color=blue&style=for-the-badge" />
+  <!-- x-release-please-start-version -->
+  <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.0.4">
+    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.0.4&color=blue&style=for-the-badge" />
   </a>
-
+  <!-- x-release-please-end -->
   <br/>
   <img alt="Status" src="https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg" />
   <a href="https://jitpack.io/#open-feature/kotlin-sdk">
