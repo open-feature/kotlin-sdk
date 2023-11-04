@@ -44,7 +44,7 @@ sealed class OpenFeatureError : Exception() {
         }
     }
 
-    class TypeMismatchError(override val message: String = "The value has not the expected type") :
+    class TypeMismatchError(override val message: String = "The value doesn't match the expected type") :
         OpenFeatureError() {
         override fun errorCode(): ErrorCode {
             return ErrorCode.TYPE_MISMATCH
