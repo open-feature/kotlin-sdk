@@ -26,5 +26,8 @@ enum class Reason {
     STALE,
 
     // / The resolved value was the result of an error.
-    ERROR
+    ERROR,
+
+    // / The resolved value had the wrong type.
+    TYPE_MISMATCH
 }
