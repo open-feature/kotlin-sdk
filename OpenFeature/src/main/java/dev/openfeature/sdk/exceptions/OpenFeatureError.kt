@@ -43,4 +43,11 @@ sealed class OpenFeatureError : Exception() {
             return ErrorCode.PROVIDER_NOT_READY
         }
     }
+
+    class TypeMismatchError(override val message: String = "The value doesn't match the expected type") :
+        OpenFeatureError() {
+        override fun errorCode(): ErrorCode {
+            return ErrorCode.TYPE_MISMATCH
+        }
+    }
 }
