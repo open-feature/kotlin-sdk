@@ -9,7 +9,8 @@ import dev.openfeature.sdk.exceptions.ErrorCode
 import dev.openfeature.sdk.exceptions.OpenFeatureError
 import dev.openfeature.sdk.exceptions.OpenFeatureError.GeneralError
 
-private val typeMatchingException = GeneralError("Unable to match default value type with flag value type")
+private val typeMatchingException =
+    GeneralError("Unable to match default value type with flag value type")
 
 class OpenFeatureClient(
     private val openFeatureAPI: OpenFeatureAPI,
@@ -18,7 +19,7 @@ class OpenFeatureClient(
     override val hooks: MutableList<Hook<*>> = mutableListOf()
 ) : Client {
     override val metadata: ClientMetadata = Metadata(name)
-    private var hookSupport = HookSupport()
+    private val hookSupport = HookSupport()
     override fun addHooks(hooks: List<Hook<*>>) {
         this.hooks += hooks
     }
@@ -168,7 +169,8 @@ class OpenFeatureClient(
         val hints = options.hookHints
         var details = FlagEvaluationDetails(key, defaultValue)
         val provider = openFeatureAPI.getProvider() ?: NoOpProvider()
-        val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
+        val mergedHooks: List<Hook<*>> =
+            provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
         val context = openFeatureAPI.getEvaluationContext()
         val hookCtx: HookContext<T> = HookContext(
             key,
@@ -190,14 +192,17 @@ class OpenFeatureClient(
             details = FlagEvaluationDetails.from(providerEval, key)
             hookSupport.afterHooks(flagValueType, hookCtx, details, mergedHooks, hints)
         } catch (error: Exception) {
-            if (error is OpenFeatureError) {
-                details.errorCode = error.errorCode()
+            val errorCode = if (error is OpenFeatureError) {
+                error.errorCode()
             } else {
-                details.errorCode = ErrorCode.GENERAL
+                ErrorCode.GENERAL
             }
 
-            details.errorMessage = error.message
-            details.reason = Reason.ERROR.toString()
+            details = details.copy(
+                errorMessage = error.message,
+                reason = Reason.ERROR.toString(),
+                errorCode = errorCode
+            )
 
             hookSupport.errorHooks(flagValueType, hookCtx, error, mergedHooks, hints)
         }
@@ -216,31 +221,40 @@ class OpenFeatureClient(
         return when (flagValueType) {
             BOOLEAN -> {
                 val defaultBoolean = defaultValue as? Boolean ?: throw typeMatchingException
-                val eval: ProviderEvaluation<Boolean> = provider.getBooleanEvaluation(key, defaultBoolean, context)
+                val eval: ProviderEvaluation<Boolean> =
+                    provider.getBooleanEvaluation(key, defaultBoolean, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
+
             STRING -> {
                 val defaultString = defaultValue as? String ?: throw typeMatchingException
-                val eval: ProviderEvaluation<String> = provider.getStringEvaluation(key, defaultString, context)
+                val eval: ProviderEvaluation<String> =
+                    provider.getStringEvaluation(key, defaultString, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
+
             INTEGER -> {
                 val defaultInteger = defaultValue as? Int ?: throw typeMatchingException
-                val eval: ProviderEvaluation<Int> = provider.getIntegerEvaluation(key, defaultInteger, context)
+                val eval: ProviderEvaluation<Int> =
+                    provider.getIntegerEvaluation(key, defaultInteger, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
+
             DOUBLE -> {
                 val defaultDouble = defaultValue as? Double ?: throw typeMatchingException
-                val eval: ProviderEvaluation<Double> = provider.getDoubleEvaluation(key, defaultDouble, context)
+                val eval: ProviderEvaluation<Double> =
+                    provider.getDoubleEvaluation(key, defaultDouble, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
+
             OBJECT -> {
                 val defaultObject = defaultValue as? Value ?: throw typeMatchingException
-                val eval: ProviderEvaluation<Value> = provider.getObjectEvaluation(key, defaultObject, context)
+                val eval: ProviderEvaluation<Value> =
+                    provider.getObjectEvaluation(key, defaultObject, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
         }
     }
 
-    data class Metadata(override var name: String?) : ClientMetadata
+    data class Metadata(override val name: String?) : ClientMetadata
 }

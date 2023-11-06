@@ -2,7 +2,7 @@ package dev.openfeature.sdk
 
 class ImmutableContext
 (private var targetingKey: String = "", attributes: Map<String, Value> = mapOf()) : EvaluationContext {
-    private var structure: ImmutableStructure = ImmutableStructure(attributes)
+    private val structure: ImmutableStructure = ImmutableStructure(attributes)
     override fun getTargetingKey(): String {
         return targetingKey
     }

@@ -1,6 +1,6 @@
 package dev.openfeature.sdk
 
 data class FlagEvaluationOptions(
-    var hooks: List<Hook<*>> = listOf(),
-    var hookHints: Map<String, Any> = mapOf()
+    val hooks: List<Hook<*>> = listOf(),
+    val hookHints: Map<String, Any> = mapOf()
 )

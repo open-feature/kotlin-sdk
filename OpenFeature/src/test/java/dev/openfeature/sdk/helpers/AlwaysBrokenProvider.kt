@@ -65,5 +65,5 @@ class AlwaysBrokenProvider(override var hooks: List<Hook<*>> = listOf(), overrid
         throw FlagNotFoundError(key)
     }
 
-    class AlwaysBrokenProviderMetadata(override var name: String? = "test") : ProviderMetadata
+    class AlwaysBrokenProviderMetadata(override val name: String? = "test") : ProviderMetadata
 }
