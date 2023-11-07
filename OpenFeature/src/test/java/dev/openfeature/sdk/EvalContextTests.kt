@@ -7,10 +7,12 @@ import java.util.Date
 class EvalContextTests {
 
     @Test
-    fun testContextStoresTargetingKey() {
+    fun testContextIsImmutableButStoresTargetingKey() {
         val ctx = ImmutableContext()
-        ctx.setTargetingKey("test")
-        Assert.assertEquals("test", ctx.getTargetingKey())
+        Assert.assertEquals("", ctx.getTargetingKey())
+
+        val newCtx = ctx.withTargetingKey("test")
+        Assert.assertEquals("test", newCtx.getTargetingKey())
     }
 
     @Test
