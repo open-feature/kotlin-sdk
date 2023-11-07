@@ -4,11 +4,11 @@ import dev.openfeature.sdk.exceptions.ErrorCode
 
 data class FlagEvaluationDetails<T>(
     val flagKey: String,
-    override var value: T,
-    override var variant: String? = null,
-    override var reason: String? = null,
-    override var errorCode: ErrorCode? = null,
-    override var errorMessage: String? = null
+    override val value: T,
+    override val variant: String? = null,
+    override val reason: String? = null,
+    override val errorCode: ErrorCode? = null,
+    override val errorMessage: String? = null
 ) : BaseEvaluation<T> {
     companion object
 }

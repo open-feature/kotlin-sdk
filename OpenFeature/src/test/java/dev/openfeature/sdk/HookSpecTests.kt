@@ -39,11 +39,13 @@ class HookSpecTests {
 
     @Test
     fun testHookEvaluationOrder() = runTest {
-        val provider = NoOpProvider()
         val evalOrder: MutableList<String> = mutableListOf()
         val addEval: (String) -> Unit = { eval: String -> evalOrder += eval }
 
-        provider.hooks = listOf(GenericSpyHookMock("provider", addEval))
+        val provider = NoOpProvider(
+            hooks = listOf(GenericSpyHookMock("provider", addEval))
+        )
+
         OpenFeatureAPI.setProvider(provider)
         OpenFeatureAPI.addHooks(listOf(GenericSpyHookMock("api", addEval)))
         val client = OpenFeatureAPI.getClient()

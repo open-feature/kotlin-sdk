@@ -1,7 +1,7 @@
 package dev.openfeature.sdk
 
-class NoOpProvider : FeatureProvider {
-    override var metadata: ProviderMetadata = NoOpProviderMetadata("No-op provider")
+class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureProvider {
+    override val metadata: ProviderMetadata = NoOpProviderMetadata("No-op provider")
     override fun initialize(initialContext: EvaluationContext?) {
         // no-op
     }
@@ -17,7 +17,6 @@ class NoOpProvider : FeatureProvider {
         // no-op
     }
 
-    override var hooks: List<Hook<*>> = listOf()
     override fun getBooleanEvaluation(
         key: String,
         defaultValue: Boolean,
@@ -58,5 +57,5 @@ class NoOpProvider : FeatureProvider {
         return ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
     }
 
-    data class NoOpProviderMetadata(override var name: String?) : ProviderMetadata
+    data class NoOpProviderMetadata(override val name: String?) : ProviderMetadata
 }

@@ -1,6 +1,6 @@
 package dev.openfeature.sdk
 
-class ImmutableStructure(private var attributes: Map<String, Value> = mapOf()) : Structure {
+class ImmutableStructure(private val attributes: Map<String, Value> = mapOf()) : Structure {
     override fun keySet(): Set<String> {
         return attributes.keys
     }

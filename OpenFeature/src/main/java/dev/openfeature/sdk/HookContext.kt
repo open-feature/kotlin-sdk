@@ -1,10 +1,10 @@
 package dev.openfeature.sdk
 
 data class HookContext<T>(
-    var flagKey: String,
+    val flagKey: String,
     val type: FlagValueType,
-    var defaultValue: T,
-    var ctx: EvaluationContext?,
-    var clientMetadata: ClientMetadata?,
-    var providerMetadata: ProviderMetadata
+    val defaultValue: T,
+    val ctx: EvaluationContext?,
+    val clientMetadata: ClientMetadata?,
+    val providerMetadata: ProviderMetadata
 )
