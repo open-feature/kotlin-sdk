@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.0](https://github.com/open-feature/kotlin-sdk/compare/v0.0.4...v0.1.0) (2023-11-08)
+
+
+### ✨ New Features
+
+* Add new error for type mismatch ([#64](https://github.com/open-feature/kotlin-sdk/issues/64)) ([95e910a](https://github.com/open-feature/kotlin-sdk/commit/95e910a23be8a55eda1218144e540a3221cd877f))
+
+
+### 🧹 Chore
+
+* update spec release link ([7888447](https://github.com/open-feature/kotlin-sdk/commit/7888447c968d911c4495a9e3bf027d1fcd739f70))
+* update the release version badge on the readme ([#59](https://github.com/open-feature/kotlin-sdk/issues/59)) ([aa44c7f](https://github.com/open-feature/kotlin-sdk/commit/aa44c7f1bf1cf0922ad22d94b02693288be499d7))
+
+
+### 🔄 Refactoring
+
+* changing vars to vals ([#65](https://github.com/open-feature/kotlin-sdk/issues/65)) ([cdcb2df](https://github.com/open-feature/kotlin-sdk/commit/cdcb2df45fc956bc4f80d3273ea1cb5ba37446b9))
+* make targeting key immutable ([#66](https://github.com/open-feature/kotlin-sdk/issues/66)) ([3ec73f2](https://github.com/open-feature/kotlin-sdk/commit/3ec73f243a650021464e872b6593fef7677d2153))
+
 ## [0.0.4](https://github.com/open-feature/kotlin-sdk/compare/v0.0.3...v0.0.4) (2023-10-16)
 
 

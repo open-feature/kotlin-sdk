@@ -16,8 +16,8 @@
     <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.6.0&color=yellow&style=for-the-badge" />
   </a>
   <!-- x-release-please-start-version -->
-  <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.0.4">
-    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.0.4&color=blue&style=for-the-badge" />
+  <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.1.0">
+    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.1.0&color=blue&style=for-the-badge" />
   </a>
   <!-- x-release-please-end -->
   <br/>
@@ -49,7 +49,7 @@ Installation via Maven Central is currently [WIP](https://github.com/open-featur
 You can add the OpenFeature SDK dependency:
 ```kotlin
 dependencies {
-    api("com.github.open-feature:kotlin-sdk:0.0.4")
+    api("com.github.open-feature:kotlin-sdk:0.1.0")
 }
 ```
 
@@ -60,7 +60,7 @@ The Android project must include `maven("https://jitpack.io")` in `settings.grad
 You can now add the OpenFeature SDK dependency:
 ```kotlin
 dependencies {
-    api("com.github.open-feature:kotlin-sdk:0.0.4")
+    api("com.github.open-feature:kotlin-sdk:0.1.0")
 }
 ```
 <!-- x-release-please-end -->
