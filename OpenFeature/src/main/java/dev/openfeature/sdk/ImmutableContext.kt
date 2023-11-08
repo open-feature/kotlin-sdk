@@ -1,15 +1,19 @@
 package dev.openfeature.sdk
 
-class ImmutableContext
-(private var targetingKey: String = "", attributes: Map<String, Value> = mapOf()) : EvaluationContext {
+class ImmutableContext(
+    private val targetingKey: String = "",
+    attributes: Map<String, Value> = mapOf()
+) : EvaluationContext {
     private val structure: ImmutableStructure = ImmutableStructure(attributes)
     override fun getTargetingKey(): String {
         return targetingKey
     }
 
-    override fun setTargetingKey(targetingKey: String) {
-        this.targetingKey = targetingKey
-    }
+    override fun withTargetingKey(targetingKey: String): ImmutableContext =
+        ImmutableContext(
+            targetingKey = targetingKey,
+            attributes = this.structure.asMap()
+        )
 
     override fun keySet(): Set<String> {
         return structure.keySet()
