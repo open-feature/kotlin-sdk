@@ -6,7 +6,10 @@ import dev.openfeature.sdk.Hook
 import dev.openfeature.sdk.ProviderEvaluation
 import dev.openfeature.sdk.ProviderMetadata
 import dev.openfeature.sdk.Value
+import dev.openfeature.sdk.events.OpenFeatureEvents
 import dev.openfeature.sdk.exceptions.OpenFeatureError.FlagNotFoundError
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 class AlwaysBrokenProvider(override var hooks: List<Hook<*>> = listOf(), override var metadata: ProviderMetadata = AlwaysBrokenProviderMetadata()) :
     FeatureProvider {
@@ -64,6 +67,10 @@ class AlwaysBrokenProvider(override var hooks: List<Hook<*>> = listOf(), overrid
     ): ProviderEvaluation<Value> {
         throw FlagNotFoundError(key)
     }
+
+    override fun observe(): Flow<OpenFeatureEvents> = flow { }
+
+    override fun isProviderReady(): Boolean = true
 
     class AlwaysBrokenProviderMetadata(override val name: String? = "test") : ProviderMetadata
 }

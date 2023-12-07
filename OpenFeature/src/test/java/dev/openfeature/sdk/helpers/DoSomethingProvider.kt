@@ -6,6 +6,9 @@ import dev.openfeature.sdk.Hook
 import dev.openfeature.sdk.ProviderEvaluation
 import dev.openfeature.sdk.ProviderMetadata
 import dev.openfeature.sdk.Value
+import dev.openfeature.sdk.events.OpenFeatureEvents
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 class DoSomethingProvider(
     override val hooks: List<Hook<*>> = listOf(),
@@ -65,5 +68,10 @@ class DoSomethingProvider(
     ): ProviderEvaluation<Value> {
         return ProviderEvaluation(Value.Null)
     }
+
+    override fun observe(): Flow<OpenFeatureEvents> = flowOf()
+
+    override fun isProviderReady(): Boolean = true
+
     class DoSomethingProviderMetadata(override val name: String? = "something") : ProviderMetadata
 }
