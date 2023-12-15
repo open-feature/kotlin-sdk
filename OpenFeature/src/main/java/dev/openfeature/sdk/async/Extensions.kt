@@ -25,6 +25,14 @@ fun OpenFeatureClient.toAsync(): AsyncClient? {
     }
 }
 
+suspend fun OpenFeatureAPI.setProviderAndWait(
+    provider: FeatureProvider,
+    dispatcher: CoroutineDispatcher
+) {
+    setProvider(provider)
+    provider.awaitReady(dispatcher)
+}
+
 internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.ProviderReady>()
     .onStart {
         if (isProviderReady()) {
@@ -32,19 +40,11 @@ internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.
         }
     }
 
-suspend fun OpenFeatureAPI.awaitProviderReady(
-    dispatcher: CoroutineDispatcher = Dispatchers.IO
-) {
-    val provider = getProvider()
-    requireNotNull(provider)
-    return provider.awaitProviderReady(dispatcher)
+inline fun <reified T : OpenFeatureEvents> OpenFeatureAPI.observeEvents(): Flow<T>? {
+    return getProvider()?.observe<T>()
 }
 
-fun OpenFeatureAPI.observeEvents(): Flow<OpenFeatureEvents>? {
-    return getProvider()?.observe()
-}
-
-suspend fun FeatureProvider.awaitProviderReady(
+suspend fun FeatureProvider.awaitReady(
     dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) = suspendCancellableCoroutine { continuation ->
     val coroutineScope = CoroutineScope(dispatcher)
