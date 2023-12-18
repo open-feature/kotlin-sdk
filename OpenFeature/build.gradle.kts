@@ -41,7 +41,7 @@ publishing {
     publications {
         register<MavenPublication>("release") {
             groupId = project.extra["groupId"].toString()
-            artifactId = "kotlin-sdk"
+            artifactId = "android-sdk"
             version = releaseVersion
 
             pom {
