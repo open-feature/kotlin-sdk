@@ -56,18 +56,12 @@ dependencies {
 
 ```kotlin
 // configure a provider and get client
-OpenFeatureAPI.setProvider(customProvider)
-val client = OpenFeatureAPI.getClient()
+coroutineScope.launch(Dispatchers.IO) {
+  OpenFeatureAPI.setProviderAndWait(customProvider)
+  val client = OpenFeatureAPI.getClient()
 
 // get a bool flag value
-client.getBooleanValue("boolFlag", default = false)
-
-// get a bool flag after "ready" signal from provider
-coroutineScope.launch {
-    WithContext(Dispatchers.IO) {
-        client.awaitProviderReady()
-    }
-    client.getBooleanValue("boolFlag", default = false)
+  client.getBooleanValue("boolFlag", default = false)
 }
 ```
 
@@ -144,9 +138,8 @@ Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGE
 Please refer to the documentation of the provider you're using to see what events are supported.
 
 ```kotlin
-OpenFeatureAPI.eventsObserver()
-    .observe<OpenFeatureEvents.ProviderReady>()
-    .collect {
+OpenFeatureAPI.observeEvents<OpenFeatureEvents.ProviderReady>()
+    ?.collect {
         // do something once the provider is ready
     }
 ```

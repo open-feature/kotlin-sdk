@@ -1,10 +1,5 @@
 package dev.openfeature.sdk
 
-import dev.openfeature.sdk.events.EventHandler
-import dev.openfeature.sdk.events.OpenFeatureEvents
-import dev.openfeature.sdk.events.observe
-import kotlinx.coroutines.CoroutineDispatcher
-
 @Suppress("TooManyFunctions")
 object OpenFeatureAPI {
     private var provider: FeatureProvider? = null
@@ -22,10 +17,6 @@ object OpenFeatureAPI {
     fun getProvider(): FeatureProvider? {
         return provider
     }
-
-    inline fun <reified T : OpenFeatureEvents> observeEvents(dispatcher: CoroutineDispatcher) =
-        EventHandler.eventsObserver(dispatcher)
-            .observe<T>()
 
     fun clearProvider() {
         provider = null

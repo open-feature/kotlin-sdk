@@ -1,6 +1,9 @@
 package dev.openfeature.sdk
 
-interface FeatureProvider {
+import dev.openfeature.sdk.events.EventObserver
+import dev.openfeature.sdk.events.ProviderStatus
+
+interface FeatureProvider : EventObserver, ProviderStatus {
     val hooks: List<Hook<*>>
     val metadata: ProviderMetadata
 
