@@ -22,8 +22,8 @@
   <!-- x-release-please-end -->
   <br/>
   <img alt="Status" src="https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg" />
-  <a href="https://jitpack.io/#open-feature/kotlin-sdk">
-    <img alt="JitPack" src="https://jitpack.io/v/open-feature/kotlin-sdk.svg" />
+  <a href="https://mvnrepository.com/artifact/dev.openfeature/kotlin-sdk">
+    <img alt="MavenCentral" src="https://img.shields.io/maven-central/v/dev.openfeature/kotlin-sdk" />
   </a>
 </p>
 <!-- x-hide-in-docs-start -->
@@ -43,33 +43,14 @@ Note that this library is intended to be used in a mobile context, and has not b
 
 #### Maven Central
 
-Installation via Maven Central is currently [WIP](https://github.com/open-feature/kotlin-sdk/issues/37)
+Installation via Maven Central is preferred, using the following dependency:
 
 <!-- x-release-please-start-version -->
-You can add the OpenFeature SDK dependency:
 ```kotlin
 dependencies {
-    api("com.github.open-feature:kotlin-sdk:0.1.0")
+    api("dev.openfeature:kotlin-sdk:0.1.0")
 }
 ```
-
-#### Jitpack
-
-The Android project must include `maven("https://jitpack.io")` in `settings.gradle`.
-
-You can now add the OpenFeature SDK dependency:
-```kotlin
-dependencies {
-    api("com.github.open-feature:kotlin-sdk:0.1.0")
-}
-```
-<!-- x-release-please-end -->
-Please note that the `version` can be any `Commit SHA` or a version based on a branch as follows:
-```sh
-api("com.github.open-feature:kotlin-sdk:[ANY_BRANCH]-SNAPSHOT")
-```
-
-This will get a build from the head of the mentioned branch. 
 
 ### Usage
 
