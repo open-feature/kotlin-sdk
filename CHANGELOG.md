@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/open-feature/kotlin-sdk/compare/v0.2.0...v0.2.1) (2023-12-19)
+
+
+### ✨ New Features
+
+* downgrade the kotlin version so it's compatible with AGP 7.4 ([#83](https://github.com/open-feature/kotlin-sdk/issues/83)) ([8c3207a](https://github.com/open-feature/kotlin-sdk/commit/8c3207a1eba4be793fdcc87043f53ead05e314d5))
+* set evaluation-context in setProviderAndWait() ([#80](https://github.com/open-feature/kotlin-sdk/issues/80)) ([e19dd88](https://github.com/open-feature/kotlin-sdk/commit/e19dd8893c8df98c49168af27ec44be43d542dcb))
+
 ## [0.2.0](https://github.com/open-feature/kotlin-sdk/compare/v0.1.0...v0.2.0) (2023-12-19)
 
 
