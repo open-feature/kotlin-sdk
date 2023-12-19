@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.0](https://github.com/open-feature/kotlin-sdk/compare/v0.1.0...v0.2.0) (2023-12-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* Artifact name change ([#79](https://github.com/open-feature/kotlin-sdk/issues/79))
+
+### 🐛 Bug Fixes
+
+* **deps:** update dependency org.jetbrains.kotlinx:kotlinx-serialization-json to v1.6.2 ([#68](https://github.com/open-feature/kotlin-sdk/issues/68)) ([f7c7ab0](https://github.com/open-feature/kotlin-sdk/commit/f7c7ab0e7235533fc5f665ff6d383ea4522b25ad))
+
+
+### ✨ New Features
+
+* Make the eventing provider specific instead of being singleton ([#75](https://github.com/open-feature/kotlin-sdk/issues/75)) ([321f8be](https://github.com/open-feature/kotlin-sdk/commit/321f8be3201c4c7bf33ace1edb1b70e8efd352f8))
+
+
+### 🧹 Chore
+
+* Artifact name change ([#79](https://github.com/open-feature/kotlin-sdk/issues/79)) ([8c540e6](https://github.com/open-feature/kotlin-sdk/commit/8c540e6064bb79c1bf425bb006ad7e2b3b3a616e))
+* Remove mentions of jitpack. Adjusts maven central instructions ([#78](https://github.com/open-feature/kotlin-sdk/issues/78)) ([1246d5d](https://github.com/open-feature/kotlin-sdk/commit/1246d5d1b53fc00898d3ac99cd750f0206ef11d6))
+* Remove minify false  ([#77](https://github.com/open-feature/kotlin-sdk/issues/77)) ([f4ba35d](https://github.com/open-feature/kotlin-sdk/commit/f4ba35d34c19ddc3a7c4dd81ced01689766af4c3))
+
 ## [0.1.0](https://github.com/open-feature/kotlin-sdk/compare/v0.0.4...v0.1.0) (2023-11-08)
 
 
