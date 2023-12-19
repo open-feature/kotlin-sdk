@@ -1,5 +1,6 @@
 package dev.openfeature.sdk.async
 
+import dev.openfeature.sdk.EvaluationContext
 import dev.openfeature.sdk.FeatureProvider
 import dev.openfeature.sdk.OpenFeatureAPI
 import dev.openfeature.sdk.OpenFeatureClient
@@ -27,9 +28,10 @@ fun OpenFeatureClient.toAsync(): AsyncClient? {
 
 suspend fun OpenFeatureAPI.setProviderAndWait(
     provider: FeatureProvider,
-    dispatcher: CoroutineDispatcher
+    dispatcher: CoroutineDispatcher,
+    initialContext: EvaluationContext? = null
 ) {
-    setProvider(provider)
+    setProvider(provider, initialContext)
     provider.awaitReady(dispatcher)
 }
 
