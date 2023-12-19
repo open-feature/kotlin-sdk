@@ -5,7 +5,7 @@ plugins {
     id("maven-publish")
     id("signing")
     id("org.jlleitschuh.gradle.ktlint")
-    kotlin("plugin.serialization") version "1.9.10"
+    kotlin("plugin.serialization") version "1.8.10"
 }
 
 val releaseVersion = project.extra["version"].toString()
