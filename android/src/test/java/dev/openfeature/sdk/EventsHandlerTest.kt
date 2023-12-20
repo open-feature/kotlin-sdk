@@ -253,4 +253,33 @@ class EventsHandlerTest {
         job.join()
         Assert.assertEquals(listOf("text1"), resultTexts)
     }
+
+    @Test
+    fun accessing_status_from_provider_works() = runTest {
+        val dispatcher = UnconfinedTestDispatcher(testScheduler)
+        val eventHandler = EventHandler(dispatcher)
+        val provider = TestFeatureProvider(dispatcher, eventHandler)
+
+        Assert.assertEquals(OpenFeatureEvents.ProviderShutDown, provider.getProviderStatus())
+
+        provider.emitReady()
+
+        Assert.assertEquals(OpenFeatureEvents.ProviderReady, provider.getProviderStatus())
+
+        provider.emitStale()
+
+        Assert.assertEquals(OpenFeatureEvents.ProviderStale, provider.getProviderStatus())
+
+        val illegalStateException = IllegalStateException("test")
+        provider.emitError(illegalStateException)
+
+        Assert.assertEquals(
+            OpenFeatureEvents.ProviderError(illegalStateException),
+            provider.getProviderStatus()
+        )
+
+        provider.shutdown()
+
+        Assert.assertEquals(OpenFeatureEvents.ProviderShutDown, provider.getProviderStatus())
+    }
 }
