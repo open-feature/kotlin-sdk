@@ -4,6 +4,7 @@ import dev.openfeature.sdk.async.observeProviderReady
 import dev.openfeature.sdk.async.toAsync
 import dev.openfeature.sdk.events.EventHandler
 import dev.openfeature.sdk.events.OpenFeatureEvents
+import dev.openfeature.sdk.events.isProviderReady
 import dev.openfeature.sdk.events.observe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -192,7 +193,7 @@ class EventsHandlerTest {
 
         OpenFeatureAPI.setProvider(
             mock {
-                on { isProviderReady() } doReturn provider.isProviderReady()
+                on { getProviderStatus() } doReturn provider.getProviderStatus()
                 on { observeProviderReady() } doReturn provider.observeProviderReady()
             }
         )
@@ -234,7 +235,7 @@ class EventsHandlerTest {
 
         OpenFeatureAPI.setProvider(
             mock {
-                on { isProviderReady() } doReturn provider.isProviderReady()
+                on { getProviderStatus() } doReturn provider.getProviderStatus()
                 on { observeProviderReady() } doReturn provider.observeProviderReady()
             }
         )

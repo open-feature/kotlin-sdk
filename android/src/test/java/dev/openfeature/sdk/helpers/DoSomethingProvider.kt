@@ -71,8 +71,6 @@ class DoSomethingProvider(
 
     override fun observe(): Flow<OpenFeatureEvents> = flowOf()
 
-    override fun isProviderReady(): Boolean = true
-
     override fun getProviderStatus(): OpenFeatureEvents = OpenFeatureEvents.ProviderReady
 
     class DoSomethingProviderMetadata(override val name: String? = "something") : ProviderMetadata

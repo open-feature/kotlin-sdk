@@ -73,8 +73,6 @@ class AlwaysBrokenProvider(
 
     override fun observe(): Flow<OpenFeatureEvents> = flow { }
 
-    override fun isProviderReady(): Boolean = true
-
     override fun getProviderStatus(): OpenFeatureEvents =
         OpenFeatureEvents.ProviderError(FlagNotFoundError("test"))
 

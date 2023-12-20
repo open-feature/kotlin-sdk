@@ -67,8 +67,6 @@ class TestFeatureProvider(
 
     override fun observe() = eventHandler.observe()
 
-    override fun isProviderReady(): Boolean = eventHandler.isProviderReady()
-
     override fun getProviderStatus(): OpenFeatureEvents = eventHandler.getProviderStatus()
 
     fun emitReady() {
