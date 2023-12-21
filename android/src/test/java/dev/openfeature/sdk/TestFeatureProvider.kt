@@ -18,7 +18,7 @@ class TestFeatureProvider(
     }
 
     override fun shutdown() {
-        TODO("Not yet implemented")
+        eventHandler.publish(OpenFeatureEvents.ProviderShutDown)
     }
 
     override fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
@@ -67,7 +67,7 @@ class TestFeatureProvider(
 
     override fun observe() = eventHandler.observe()
 
-    override fun isProviderReady(): Boolean = eventHandler.isProviderReady()
+    override fun getProviderStatus(): OpenFeatureEvents = eventHandler.getProviderStatus()
 
     fun emitReady() {
         eventHandler.publish(OpenFeatureEvents.ProviderReady)
@@ -75,5 +75,9 @@ class TestFeatureProvider(
 
     fun emitStale() {
         eventHandler.publish(OpenFeatureEvents.ProviderStale)
+    }
+
+    fun emitError(exception: Exception) {
+        eventHandler.publish(OpenFeatureEvents.ProviderError(exception))
     }
 }

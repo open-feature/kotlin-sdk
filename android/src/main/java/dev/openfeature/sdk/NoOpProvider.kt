@@ -63,7 +63,7 @@ class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureProvid
 
     override fun observe(): Flow<OpenFeatureEvents> = flowOf()
 
-    override fun isProviderReady(): Boolean = true
+    override fun getProviderStatus(): OpenFeatureEvents = OpenFeatureEvents.ProviderReady
 
     data class NoOpProviderMetadata(override val name: String?) : ProviderMetadata
 }

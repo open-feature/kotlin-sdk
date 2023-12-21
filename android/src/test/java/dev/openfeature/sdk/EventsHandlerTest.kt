@@ -4,6 +4,7 @@ import dev.openfeature.sdk.async.observeProviderReady
 import dev.openfeature.sdk.async.toAsync
 import dev.openfeature.sdk.events.EventHandler
 import dev.openfeature.sdk.events.OpenFeatureEvents
+import dev.openfeature.sdk.events.isProviderReady
 import dev.openfeature.sdk.events.observe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -192,7 +193,7 @@ class EventsHandlerTest {
 
         OpenFeatureAPI.setProvider(
             mock {
-                on { isProviderReady() } doReturn provider.isProviderReady()
+                on { getProviderStatus() } doReturn provider.getProviderStatus()
                 on { observeProviderReady() } doReturn provider.observeProviderReady()
             }
         )
@@ -234,7 +235,7 @@ class EventsHandlerTest {
 
         OpenFeatureAPI.setProvider(
             mock {
-                on { isProviderReady() } doReturn provider.isProviderReady()
+                on { getProviderStatus() } doReturn provider.getProviderStatus()
                 on { observeProviderReady() } doReturn provider.observeProviderReady()
             }
         )
@@ -252,5 +253,34 @@ class EventsHandlerTest {
         provider.emitReady()
         job.join()
         Assert.assertEquals(listOf("text1"), resultTexts)
+    }
+
+    @Test
+    fun accessing_status_from_provider_works() = runTest {
+        val dispatcher = UnconfinedTestDispatcher(testScheduler)
+        val eventHandler = EventHandler(dispatcher)
+        val provider = TestFeatureProvider(dispatcher, eventHandler)
+
+        Assert.assertEquals(OpenFeatureEvents.ProviderShutDown, provider.getProviderStatus())
+
+        provider.emitReady()
+
+        Assert.assertEquals(OpenFeatureEvents.ProviderReady, provider.getProviderStatus())
+
+        provider.emitStale()
+
+        Assert.assertEquals(OpenFeatureEvents.ProviderStale, provider.getProviderStatus())
+
+        val illegalStateException = IllegalStateException("test")
+        provider.emitError(illegalStateException)
+
+        Assert.assertEquals(
+            OpenFeatureEvents.ProviderError(illegalStateException),
+            provider.getProviderStatus()
+        )
+
+        provider.shutdown()
+
+        Assert.assertEquals(OpenFeatureEvents.ProviderShutDown, provider.getProviderStatus())
     }
 }

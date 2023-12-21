@@ -5,6 +5,7 @@ import dev.openfeature.sdk.FeatureProvider
 import dev.openfeature.sdk.OpenFeatureAPI
 import dev.openfeature.sdk.OpenFeatureClient
 import dev.openfeature.sdk.events.OpenFeatureEvents
+import dev.openfeature.sdk.events.isProviderReady
 import dev.openfeature.sdk.events.observe
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope

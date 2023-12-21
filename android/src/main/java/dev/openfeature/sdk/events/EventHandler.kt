@@ -1,5 +1,6 @@
 package dev.openfeature.sdk.events
 
+import dev.openfeature.sdk.FeatureProvider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -15,8 +16,11 @@ interface EventObserver {
 }
 
 interface ProviderStatus {
-    fun isProviderReady(): Boolean
+    fun getProviderStatus(): OpenFeatureEvents
 }
+
+fun FeatureProvider.isProviderReady(): Boolean =
+    getProviderStatus() == OpenFeatureEvents.ProviderReady
 
 interface EventsPublisher {
     fun publish(event: OpenFeatureEvents)
@@ -25,22 +29,25 @@ interface EventsPublisher {
 inline fun <reified T : OpenFeatureEvents> EventObserver.observe() = observe()
     .filterIsInstance<T>()
 
-class EventHandler(dispatcher: CoroutineDispatcher) : EventObserver, EventsPublisher, ProviderStatus {
+class EventHandler(dispatcher: CoroutineDispatcher) :
+    EventObserver,
+    EventsPublisher,
+    ProviderStatus {
     private val sharedFlow: MutableSharedFlow<OpenFeatureEvents> = MutableSharedFlow()
-    private val isProviderReady = MutableStateFlow(false)
+    private val currentStatus: MutableStateFlow<OpenFeatureEvents> =
+        MutableStateFlow(OpenFeatureEvents.ProviderShutDown)
     private val job = Job()
     private val coroutineScope = CoroutineScope(job + dispatcher)
 
     init {
         coroutineScope.launch {
             sharedFlow.collect {
+                currentStatus.value = it
                 when (it) {
-                    is OpenFeatureEvents.ProviderReady -> isProviderReady.value = true
-                    is OpenFeatureEvents.ProviderStale -> isProviderReady.value = false
                     is OpenFeatureEvents.ProviderShutDown -> {
-                        isProviderReady.value = false
                         job.cancelChildren()
                     }
+
                     else -> {
                         // do nothing
                     }
@@ -57,7 +64,5 @@ class EventHandler(dispatcher: CoroutineDispatcher) : EventObserver, EventsPubli
 
     override fun observe(): Flow<OpenFeatureEvents> = sharedFlow
 
-    override fun isProviderReady(): Boolean {
-        return isProviderReady.value
-    }
+    override fun getProviderStatus(): OpenFeatureEvents = currentStatus.value
 }
