@@ -22,8 +22,8 @@
   <!-- x-release-please-end -->
   <br/>
   <img alt="Status" src="https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg" />
-  <a href="https://mvnrepository.com/artifact/dev.openfeature/kotlin-sdk">
-    <img alt="MavenCentral" src="https://img.shields.io/maven-central/v/dev.openfeature/kotlin-sdk" />
+  <a href="https://mvnrepository.com/artifact/dev.openfeature/android-sdk">
+    <img alt="MavenCentral" src="https://img.shields.io/maven-central/v/dev.openfeature/android-sdk" />
   </a>
 </p>
 <!-- x-hide-in-docs-start -->
