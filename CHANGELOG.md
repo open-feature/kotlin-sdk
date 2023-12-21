@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2](https://github.com/open-feature/kotlin-sdk/compare/v0.2.1...v0.2.2) (2023-12-21)
+
+
+### ✨ New Features
+
+* add getProviderStatus() function ([#84](https://github.com/open-feature/kotlin-sdk/issues/84)) ([b3ba673](https://github.com/open-feature/kotlin-sdk/commit/b3ba673807dbba6919a08ff47fdebd6ab0d2cceb))
+
+
+### 🧹 Chore
+
+* fix MavenCentral badge ([e8eea26](https://github.com/open-feature/kotlin-sdk/commit/e8eea26b6e11fddd092a72b618a7e7eaaba567da))
+
 ## [0.2.1](https://github.com/open-feature/kotlin-sdk/compare/v0.2.0...v0.2.1) (2023-12-19)
 
 
