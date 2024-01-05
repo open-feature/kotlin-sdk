@@ -32,6 +32,8 @@
 
 <!-- x-hide-in-docs-end -->
 ## 🚀 Quick start
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopen-feature%2Fkotlin-sdk.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopen-feature%2Fkotlin-sdk?ref=badge_shield)
+
 
 ### Requirements
 
@@ -246,3 +248,7 @@ Interested in contributing? Great, we'd love your help! To get started, take a l
 
 Made with [contrib.rocks](https://contrib.rocks).
 <!-- x-hide-in-docs-end -->
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopen-feature%2Fkotlin-sdk.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopen-feature%2Fkotlin-sdk?ref=badge_large)
