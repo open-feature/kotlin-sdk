@@ -4,7 +4,6 @@ import dev.openfeature.sdk.async.observeProviderReady
 import dev.openfeature.sdk.async.toAsync
 import dev.openfeature.sdk.events.EventHandler
 import dev.openfeature.sdk.events.OpenFeatureEvents
-import dev.openfeature.sdk.events.isProviderReady
 import dev.openfeature.sdk.events.observe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
