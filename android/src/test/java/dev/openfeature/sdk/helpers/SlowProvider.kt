@@ -6,19 +6,24 @@ import dev.openfeature.sdk.Hook
 import dev.openfeature.sdk.ProviderEvaluation
 import dev.openfeature.sdk.ProviderMetadata
 import dev.openfeature.sdk.Value
+import dev.openfeature.sdk.events.EventHandler
 import dev.openfeature.sdk.events.OpenFeatureEvents
-import dev.openfeature.sdk.exceptions.OpenFeatureError
-import dev.openfeature.sdk.exceptions.OpenFeatureError.FlagNotFoundError
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
-class AlwaysBrokenProvider(
-    override var hooks: List<Hook<*>> = listOf(),
-    override var metadata: ProviderMetadata = AlwaysBrokenProviderMetadata()
-) :
-    FeatureProvider {
+class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dispatcher: CoroutineDispatcher) : FeatureProvider {
+    override val metadata: ProviderMetadata = SlowProviderMetadata("Slow provider")
+    private var ready = false
+    private var eventHandler = EventHandler(dispatcher)
     override fun initialize(initialContext: EvaluationContext?) {
-        // no-op
+        CoroutineScope(dispatcher).launch {
+            Thread.sleep(2000) // TODO Improve without sleep
+            ready = true
+            eventHandler.publish(OpenFeatureEvents.ProviderReady)
+        }
     }
 
     override fun shutdown() {
@@ -37,7 +42,7 @@ class AlwaysBrokenProvider(
         defaultValue: Boolean,
         context: EvaluationContext?
     ): ProviderEvaluation<Boolean> {
-        throw FlagNotFoundError(key)
+        return ProviderEvaluation(!defaultValue)
     }
 
     override fun getStringEvaluation(
@@ -45,7 +50,7 @@ class AlwaysBrokenProvider(
         defaultValue: String,
         context: EvaluationContext?
     ): ProviderEvaluation<String> {
-        throw FlagNotFoundError(key)
+        return ProviderEvaluation(defaultValue.reversed())
     }
 
     override fun getIntegerEvaluation(
@@ -53,7 +58,7 @@ class AlwaysBrokenProvider(
         defaultValue: Int,
         context: EvaluationContext?
     ): ProviderEvaluation<Int> {
-        throw FlagNotFoundError(key)
+        return ProviderEvaluation(defaultValue * 100)
     }
 
     override fun getDoubleEvaluation(
@@ -61,7 +66,7 @@ class AlwaysBrokenProvider(
         defaultValue: Double,
         context: EvaluationContext?
     ): ProviderEvaluation<Double> {
-        throw FlagNotFoundError(key)
+        return ProviderEvaluation(defaultValue * 100)
     }
 
     override fun getObjectEvaluation(
@@ -69,13 +74,16 @@ class AlwaysBrokenProvider(
         defaultValue: Value,
         context: EvaluationContext?
     ): ProviderEvaluation<Value> {
-        throw FlagNotFoundError(key)
+        return ProviderEvaluation(Value.Null)
     }
 
-    override fun observe(): Flow<OpenFeatureEvents> = flow { }
+    override fun observe(): Flow<OpenFeatureEvents> = flowOf()
 
-    override fun getProviderStatus(): OpenFeatureEvents =
-        OpenFeatureEvents.ProviderError(OpenFeatureError.GeneralError("Unknown error"))
+    override fun getProviderStatus(): OpenFeatureEvents = if (ready) {
+        OpenFeatureEvents.ProviderReady
+    } else {
+        OpenFeatureEvents.ProviderStale
+    }
 
-    class AlwaysBrokenProviderMetadata(override val name: String? = "test") : ProviderMetadata
+    data class SlowProviderMetadata(override val name: String?) : ProviderMetadata
 }

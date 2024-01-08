@@ -1,6 +1,5 @@
 package dev.openfeature.sdk.events
 
-import dev.openfeature.sdk.FeatureProvider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -18,9 +17,6 @@ interface EventObserver {
 interface ProviderStatus {
     fun getProviderStatus(): OpenFeatureEvents
 }
-
-fun FeatureProvider.isProviderReady(): Boolean =
-    getProviderStatus() == OpenFeatureEvents.ProviderReady
 
 interface EventsPublisher {
     fun publish(event: OpenFeatureEvents)
