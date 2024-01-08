@@ -5,8 +5,6 @@ import dev.openfeature.sdk.FeatureProvider
 import dev.openfeature.sdk.OpenFeatureAPI
 import dev.openfeature.sdk.OpenFeatureClient
 import dev.openfeature.sdk.events.OpenFeatureEvents
-import dev.openfeature.sdk.events.isProviderError
-import dev.openfeature.sdk.events.isProviderReady
 import dev.openfeature.sdk.events.observe
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -17,7 +15,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.lang.RuntimeException
 
 fun OpenFeatureClient.toAsync(): AsyncClient? {
     val provider = OpenFeatureAPI.getProvider()
@@ -40,15 +37,16 @@ suspend fun OpenFeatureAPI.setProviderAndWait(
 
 internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.ProviderReady>()
     .onStart {
-        if (isProviderReady()) {
+        if (getProviderStatus() == OpenFeatureEvents.ProviderReady) {
             this.emit(OpenFeatureEvents.ProviderReady)
         }
     }
 
 internal fun FeatureProvider.observeProviderError() = observe<OpenFeatureEvents.ProviderError>()
     .onStart {
-        if (isProviderError()) {
-            this.emit(OpenFeatureEvents.ProviderError(RuntimeException())) // TODO Forward the correct error
+        val status = getProviderStatus()
+        if (status is OpenFeatureEvents.ProviderError) {
+            this.emit(status)
         }
     }
 
