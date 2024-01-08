@@ -14,7 +14,7 @@ object OpenFeatureAPI {
         try {
             provider.initialize(context)
         } catch (e: Throwable) {
-            // TODO What to do here?
+            // This should never happen
         }
     }
 
