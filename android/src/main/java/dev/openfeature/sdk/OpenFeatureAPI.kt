@@ -11,7 +11,11 @@ object OpenFeatureAPI {
     fun setProvider(provider: FeatureProvider, initialContext: EvaluationContext? = null) {
         this@OpenFeatureAPI.provider = provider
         if (initialContext != null) context = initialContext
-        provider.initialize(context)
+        try {
+            provider.initialize(context)
+        } catch (e: Throwable) {
+            // TODO What to do here?
+        }
     }
 
     fun getProvider(): FeatureProvider? {

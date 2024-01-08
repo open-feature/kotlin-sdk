@@ -19,8 +19,13 @@ interface ProviderStatus {
     fun getProviderStatus(): OpenFeatureEvents
 }
 
-fun FeatureProvider.isProviderReady(): Boolean =
-    getProviderStatus() == OpenFeatureEvents.ProviderReady
+fun FeatureProvider.isProviderReady(): Boolean {
+    val providerStatus = getProviderStatus()
+    return providerStatus == OpenFeatureEvents.ProviderReady
+}
+
+fun FeatureProvider.isProviderError(): Boolean =
+    getProviderStatus() is OpenFeatureEvents.ProviderError
 
 interface EventsPublisher {
     fun publish(event: OpenFeatureEvents)

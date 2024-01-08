@@ -5,6 +5,7 @@ import dev.openfeature.sdk.FeatureProvider
 import dev.openfeature.sdk.OpenFeatureAPI
 import dev.openfeature.sdk.OpenFeatureClient
 import dev.openfeature.sdk.events.OpenFeatureEvents
+import dev.openfeature.sdk.events.isProviderError
 import dev.openfeature.sdk.events.isProviderReady
 import dev.openfeature.sdk.events.observe
 import kotlinx.coroutines.CoroutineDispatcher
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.lang.RuntimeException
 
 fun OpenFeatureClient.toAsync(): AsyncClient? {
     val provider = OpenFeatureAPI.getProvider()
@@ -33,7 +35,7 @@ suspend fun OpenFeatureAPI.setProviderAndWait(
     initialContext: EvaluationContext? = null
 ) {
     setProvider(provider, initialContext)
-    provider.awaitReady(dispatcher)
+    provider.awaitReadyOrError(dispatcher)
 }
 
 internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.ProviderReady>()
@@ -43,11 +45,18 @@ internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.
         }
     }
 
+internal fun FeatureProvider.observeProviderError() = observe<OpenFeatureEvents.ProviderError>()
+    .onStart {
+        if (isProviderError()) {
+            this.emit(OpenFeatureEvents.ProviderError(RuntimeException())) // TODO Forward the correct error
+        }
+    }
+
 inline fun <reified T : OpenFeatureEvents> OpenFeatureAPI.observeEvents(): Flow<T>? {
     return getProvider()?.observe<T>()
 }
 
-suspend fun FeatureProvider.awaitReady(
+suspend fun FeatureProvider.awaitReadyOrError(
     dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) = suspendCancellableCoroutine { continuation ->
     val coroutineScope = CoroutineScope(dispatcher)
@@ -60,10 +69,10 @@ suspend fun FeatureProvider.awaitReady(
     }
 
     coroutineScope.launch {
-        observe<OpenFeatureEvents.ProviderError>()
+        observeProviderError()
             .take(1)
             .collect {
-                continuation.resumeWith(Result.failure(it.error))
+                continuation.resumeWith(Result.success(Unit))
             }
     }
 
