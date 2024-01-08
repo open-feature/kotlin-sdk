@@ -8,10 +8,11 @@ interface FeatureProvider : EventObserver, ProviderStatus {
     val metadata: ProviderMetadata
 
     // Called by OpenFeatureAPI whenever the new Provider is registered
+    // This function should never throw
     fun initialize(initialContext: EvaluationContext?)
 
-    // called when the lifecycle of the OpenFeatureClient is over
-    // to release resources/threads.
+    // Called when the lifecycle of the OpenFeatureClient is over
+    // to release resources/threads
     fun shutdown()
 
     // Called by OpenFeatureAPI whenever a new EvaluationContext is set by the application
