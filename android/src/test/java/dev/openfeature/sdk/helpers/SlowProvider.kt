@@ -8,8 +8,10 @@ import dev.openfeature.sdk.ProviderMetadata
 import dev.openfeature.sdk.Value
 import dev.openfeature.sdk.events.EventHandler
 import dev.openfeature.sdk.events.OpenFeatureEvents
+import dev.openfeature.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -20,7 +22,7 @@ class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dis
     private var eventHandler = EventHandler(dispatcher)
     override fun initialize(initialContext: EvaluationContext?) {
         CoroutineScope(dispatcher).launch {
-            Thread.sleep(2000) // TODO Improve without sleep
+            delay(10000)
             ready = true
             eventHandler.publish(OpenFeatureEvents.ProviderReady)
         }
@@ -42,6 +44,7 @@ class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dis
         defaultValue: Boolean,
         context: EvaluationContext?
     ): ProviderEvaluation<Boolean> {
+        if (!ready) throw OpenFeatureError.FlagNotFoundError(key)
         return ProviderEvaluation(!defaultValue)
     }
 
@@ -50,6 +53,7 @@ class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dis
         defaultValue: String,
         context: EvaluationContext?
     ): ProviderEvaluation<String> {
+        if (!ready) throw OpenFeatureError.FlagNotFoundError(key)
         return ProviderEvaluation(defaultValue.reversed())
     }
 
@@ -58,6 +62,7 @@ class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dis
         defaultValue: Int,
         context: EvaluationContext?
     ): ProviderEvaluation<Int> {
+        if (!ready) throw OpenFeatureError.FlagNotFoundError(key)
         return ProviderEvaluation(defaultValue * 100)
     }
 
@@ -66,6 +71,7 @@ class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dis
         defaultValue: Double,
         context: EvaluationContext?
     ): ProviderEvaluation<Double> {
+        if (!ready) throw OpenFeatureError.FlagNotFoundError(key)
         return ProviderEvaluation(defaultValue * 100)
     }
 
@@ -74,6 +80,7 @@ class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dis
         defaultValue: Value,
         context: EvaluationContext?
     ): ProviderEvaluation<Value> {
+        if (!ready) throw OpenFeatureError.FlagNotFoundError(key)
         return ProviderEvaluation(Value.Null)
     }
 
