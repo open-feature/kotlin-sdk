@@ -1,9 +1,15 @@
 package dev.openfeature.sdk
 
+import dev.openfeature.sdk.async.setProviderAndWait
 import dev.openfeature.sdk.exceptions.ErrorCode
 import dev.openfeature.sdk.helpers.AlwaysBrokenProvider
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
+import dev.openfeature.sdk.helpers.SlowProvider
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Test
@@ -57,5 +63,27 @@ class DeveloperExperienceTests {
         Assert.assertEquals(ErrorCode.FLAG_NOT_FOUND, details.errorCode)
         Assert.assertEquals("Could not find flag named: test", details.errorMessage)
         Assert.assertEquals(Reason.ERROR.toString(), details.reason)
+    }
+
+    @Test
+    fun testSetProviderAndWaitReady() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        CoroutineScope(dispatcher).launch {
+            OpenFeatureAPI.setProviderAndWait(SlowProvider(dispatcher = dispatcher), dispatcher, ImmutableContext())
+        }
+        testScheduler.advanceTimeBy(1) // Make sure setProviderAndWait is called
+        val booleanValue1 = OpenFeatureAPI.getClient().getBooleanValue("test", false)
+        Assert.assertFalse(booleanValue1)
+        testScheduler.advanceTimeBy(10000) // SlowProvider is now Ready
+        val booleanValue2 = OpenFeatureAPI.getClient().getBooleanValue("test", false)
+        Assert.assertTrue(booleanValue2)
+    }
+
+    @Test
+    fun testSetProviderAndWaitError() = runTest {
+        val dispatcher = UnconfinedTestDispatcher()
+        OpenFeatureAPI.setProviderAndWait(AlwaysBrokenProvider(), dispatcher, ImmutableContext())
+        val booleanValue = OpenFeatureAPI.getClient().getBooleanValue("test", false)
+        Assert.assertFalse(booleanValue)
     }
 }

@@ -5,7 +5,6 @@ import dev.openfeature.sdk.FeatureProvider
 import dev.openfeature.sdk.OpenFeatureAPI
 import dev.openfeature.sdk.OpenFeatureClient
 import dev.openfeature.sdk.events.OpenFeatureEvents
-import dev.openfeature.sdk.events.isProviderReady
 import dev.openfeature.sdk.events.observe
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -33,13 +32,21 @@ suspend fun OpenFeatureAPI.setProviderAndWait(
     initialContext: EvaluationContext? = null
 ) {
     setProvider(provider, initialContext)
-    provider.awaitReady(dispatcher)
+    provider.awaitReadyOrError(dispatcher)
 }
 
 internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.ProviderReady>()
     .onStart {
-        if (isProviderReady()) {
+        if (getProviderStatus() == OpenFeatureEvents.ProviderReady) {
             this.emit(OpenFeatureEvents.ProviderReady)
+        }
+    }
+
+internal fun FeatureProvider.observeProviderError() = observe<OpenFeatureEvents.ProviderError>()
+    .onStart {
+        val status = getProviderStatus()
+        if (status is OpenFeatureEvents.ProviderError) {
+            this.emit(status)
         }
     }
 
@@ -47,7 +54,7 @@ inline fun <reified T : OpenFeatureEvents> OpenFeatureAPI.observeEvents(): Flow<
     return getProvider()?.observe<T>()
 }
 
-suspend fun FeatureProvider.awaitReady(
+suspend fun FeatureProvider.awaitReadyOrError(
     dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) = suspendCancellableCoroutine { continuation ->
     val coroutineScope = CoroutineScope(dispatcher)
@@ -60,10 +67,10 @@ suspend fun FeatureProvider.awaitReady(
     }
 
     coroutineScope.launch {
-        observe<OpenFeatureEvents.ProviderError>()
+        observeProviderError()
             .take(1)
             .collect {
-                continuation.resumeWith(Result.failure(it.error))
+                continuation.resumeWith(Result.success(Unit))
             }
     }
 
