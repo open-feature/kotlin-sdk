@@ -9,8 +9,11 @@ import dev.openfeature.sdk.events.observe
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
@@ -42,6 +45,16 @@ internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.
         }
     }
 
+/*
+Observe events from currently configured Provider.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+fun OpenFeatureAPI.observeEvents(): Flow<OpenFeatureEvents> {
+    return sharedProvidersFlow.flatMapLatest { provider ->
+        provider.observe()
+    }
+}
+
 internal fun FeatureProvider.observeProviderError() = observe<OpenFeatureEvents.ProviderError>()
     .onStart {
         val status = getProviderStatus()
@@ -49,10 +62,6 @@ internal fun FeatureProvider.observeProviderError() = observe<OpenFeatureEvents.
             this.emit(status)
         }
     }
-
-inline fun <reified T : OpenFeatureEvents> OpenFeatureAPI.observeEvents(): Flow<T>? {
-    return getProvider()?.observe<T>()
-}
 
 suspend fun FeatureProvider.awaitReadyOrError(
     dispatcher: CoroutineDispatcher = Dispatchers.IO

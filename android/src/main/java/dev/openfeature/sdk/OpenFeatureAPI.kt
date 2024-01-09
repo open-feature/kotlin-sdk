@@ -1,15 +1,21 @@
 package dev.openfeature.sdk
 
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+
 @Suppress("TooManyFunctions")
 object OpenFeatureAPI {
     private var provider: FeatureProvider? = null
     private var context: EvaluationContext? = null
+    private val providersFlow: MutableSharedFlow<FeatureProvider> = MutableSharedFlow(replay = 1)
+    internal val sharedProvidersFlow: SharedFlow<FeatureProvider> get() = providersFlow
 
     var hooks: List<Hook<*>> = listOf()
         private set
 
     fun setProvider(provider: FeatureProvider, initialContext: EvaluationContext? = null) {
         this@OpenFeatureAPI.provider = provider
+        providersFlow.tryEmit(provider)
         if (initialContext != null) context = initialContext
         try {
             provider.initialize(context)
