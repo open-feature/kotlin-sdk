@@ -139,12 +139,27 @@ Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGE
 
 Please refer to the documentation of the provider you're using to see what events are supported.
 
+Example usage:
 ```kotlin
-OpenFeatureAPI.addHandler<OpenFeatureEvents.ProviderReady>()
-    .collect {
-        // do something once the provider is ready
-    }
+viewModelScope.launch {
+  OpenFeatureAPI.addHandler<OpenFeatureEvents.ProviderReady>().collect {
+    println(">> ProviderReady event received")
+  }
+}
+
+viewModelScope.launch {
+  OpenFeatureAPI.setProviderAndWait(
+    ConfidenceFeatureProvider.create(
+      app.applicationContext,
+      clientSecret
+    ),
+    Dispatchers.IO,
+    myContext
+  )
+}
 ```
+
+_(It's only possible to observe events from the global `OpenFeatureAPI`, until multiple providers are supported)_
 
 ### Shutdown
 
