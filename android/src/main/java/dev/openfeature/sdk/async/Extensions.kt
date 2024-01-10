@@ -48,9 +48,9 @@ internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.
 Observe events from currently configured Provider.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-fun OpenFeatureAPI.observeEvents(): Flow<OpenFeatureEvents> {
+internal inline fun <reified T : OpenFeatureEvents> OpenFeatureAPI.addHandler(): Flow<T> {
     return sharedProvidersFlow.flatMapLatest { provider ->
-        provider.observe()
+        provider.observe<T>()
     }
 }
 
