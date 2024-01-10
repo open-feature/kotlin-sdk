@@ -1,8 +1,10 @@
 package dev.openfeature.sdk
 
+import dev.openfeature.sdk.async.observeEvents
 import dev.openfeature.sdk.async.setProviderAndWait
 import dev.openfeature.sdk.exceptions.ErrorCode
 import dev.openfeature.sdk.helpers.AlwaysBrokenProvider
+import dev.openfeature.sdk.helpers.DoSomethingProvider
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
 import dev.openfeature.sdk.helpers.SlowProvider
 import kotlinx.coroutines.CoroutineScope
@@ -10,6 +12,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Test
@@ -85,5 +88,25 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.setProviderAndWait(AlwaysBrokenProvider(), dispatcher, ImmutableContext())
         val booleanValue = OpenFeatureAPI.getClient().getBooleanValue("test", false)
         Assert.assertFalse(booleanValue)
+    }
+
+    @Test
+    fun testObserveEvents() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var eventCount = 0
+        CoroutineScope(dispatcher).launch {
+            OpenFeatureAPI.observeEvents().collect {
+                eventCount++
+            }
+        }
+        CoroutineScope(dispatcher).launch {
+            OpenFeatureAPI.setProviderAndWait(
+                DoSomethingProvider(dispatcher = dispatcher),
+                dispatcher,
+                ImmutableContext()
+            )
+        }
+        advanceUntilIdle()
+        Assert.assertEquals(eventCount, 1)
     }
 }
