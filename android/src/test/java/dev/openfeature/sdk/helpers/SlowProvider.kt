@@ -13,7 +13,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dispatcher: CoroutineDispatcher) : FeatureProvider {
@@ -84,7 +83,7 @@ class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dis
         return ProviderEvaluation(Value.Null)
     }
 
-    override fun observe(): Flow<OpenFeatureEvents> = flowOf()
+    override fun observe(): Flow<OpenFeatureEvents> = eventHandler.observe()
 
     override fun getProviderStatus(): OpenFeatureEvents = if (ready) {
         OpenFeatureEvents.ProviderReady
