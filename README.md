@@ -159,7 +159,7 @@ viewModelScope.launch {
 }
 ```
 
-_(It's only possible to observe events from the global `OpenFeatureAPI`, until multiple providers are supported)_
+<!-- (It's only possible to observe events from the global `OpenFeatureAPI`, until multiple providers are supported) -->
 
 ### Shutdown
 
@@ -228,7 +228,7 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
     }
 
     override fun observe(): Flow<OpenFeatureEvents> {
-        // return the observation flow
+        // return a `Flow` of the Events
     }
 
     override fun getProviderStatus(): OpenFeatureEvents {
