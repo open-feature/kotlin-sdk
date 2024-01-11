@@ -150,7 +150,7 @@ viewModelScope.launch {
 viewModelScope.launch {
   OpenFeatureAPI.setProviderAndWait(
     ConfidenceFeatureProvider.create(
-      app.applicationContext,
+      applicationContext,
       clientSecret
     ),
     Dispatchers.IO,
