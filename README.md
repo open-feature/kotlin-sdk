@@ -55,12 +55,12 @@ dependencies {
 ### Usage
 
 ```kotlin
-// configure a provider and get client
 coroutineScope.launch(Dispatchers.IO) {
+  // configure a provider, wait for it to complete its initialization tasks
   OpenFeatureAPI.setProviderAndWait(customProvider)
   val client = OpenFeatureAPI.getClient()
 
-// get a bool flag value
+  // get a bool flag value
   client.getBooleanValue("boolFlag", default = false)
 }
 ```
@@ -74,7 +74,7 @@ coroutineScope.launch(Dispatchers.IO) {
 | ✅      | [Hooks](#hooks)                 | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
 | ❌      | Logging                         | Integrate with popular logging packages.                                                                                           |
 | ❌      | Named clients                   | Utilize multiple providers in a single application.                                                                                |
-| ⚠️      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
+| ✅️      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
 | ✅      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
 | ⚠️      | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                |
 
@@ -89,8 +89,10 @@ If the provider you're looking for hasn't been created yet, see the [develop a p
 Once you've added a provider as a dependency, it can be registered with OpenFeature like this:
 
 ```kotlin
-OpenFeatureAPI.setProvider(MyProvider())
+OpenFeatureAPI.setProviderAndWait(MyProvider())
 ```
+
+_(Asynchronous API that doesn't wait is also available)_
 
 
 ### Targeting
@@ -137,12 +139,27 @@ Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGE
 
 Please refer to the documentation of the provider you're using to see what events are supported.
 
+Example usage:
 ```kotlin
-OpenFeatureAPI.observeEvents<OpenFeatureEvents.ProviderReady>()
-    ?.collect {
-        // do something once the provider is ready
-    }
+viewModelScope.launch {
+  OpenFeatureAPI.observe<OpenFeatureEvents.ProviderReady>().collect {
+    println(">> ProviderReady event received")
+  }
+}
+
+viewModelScope.launch {
+  OpenFeatureAPI.setProviderAndWait(
+    ConfidenceFeatureProvider.create(
+      applicationContext,
+      clientSecret
+    ),
+    Dispatchers.IO,
+    myEvaluationContext
+  )
+}
 ```
+
+<!-- (It's only possible to observe events from the global `OpenFeatureAPI`, until multiple providers are supported) -->
 
 ### Shutdown
 
@@ -210,6 +227,13 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
         // add necessary changes on context change
     }
 
+    override fun observe(): Flow<OpenFeatureEvents> {
+        // return a `Flow` of the Events
+    }
+
+    override fun getProviderStatus(): OpenFeatureEvents {
+        // return the event representative of the current Provider Status
+    }
 }
 ```
 
