@@ -142,7 +142,7 @@ Please refer to the documentation of the provider you're using to see what event
 Example usage:
 ```kotlin
 viewModelScope.launch {
-  OpenFeatureAPI.addHandler<OpenFeatureEvents.ProviderReady>().collect {
+  OpenFeatureAPI.observe<OpenFeatureEvents.ProviderReady>().collect {
     println(">> ProviderReady event received")
   }
 }

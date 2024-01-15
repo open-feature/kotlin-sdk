@@ -1,6 +1,6 @@
 package dev.openfeature.sdk
 
-import dev.openfeature.sdk.async.addHandler
+import dev.openfeature.sdk.async.observe
 import dev.openfeature.sdk.async.setProviderAndWait
 import dev.openfeature.sdk.events.OpenFeatureEvents
 import dev.openfeature.sdk.exceptions.ErrorCode
@@ -96,7 +96,7 @@ class DeveloperExperienceTests {
         val dispatcher = StandardTestDispatcher(testScheduler)
         var eventCount = 0
         CoroutineScope(dispatcher).launch {
-            OpenFeatureAPI.addHandler<OpenFeatureEvents.ProviderReady>().collect {
+            OpenFeatureAPI.observe<OpenFeatureEvents.ProviderReady>().collect {
                 eventCount++
             }
         }
