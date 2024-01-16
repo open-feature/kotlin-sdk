@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.2](https://github.com/open-feature/kotlin-sdk/compare/v0.2.1...v0.2.2) (2024-01-15)
+
+
+### 🐛 Bug Fixes
+
+* setProviderAndWait does not hang on ProviderError ([#88](https://github.com/open-feature/kotlin-sdk/issues/88)) ([1d4c24f](https://github.com/open-feature/kotlin-sdk/commit/1d4c24f193589fa7d0c754308547a775a3b55856))
+
+
+### ✨ New Features
+
+* add getProviderStatus() function ([#84](https://github.com/open-feature/kotlin-sdk/issues/84)) ([b3ba673](https://github.com/open-feature/kotlin-sdk/commit/b3ba673807dbba6919a08ff47fdebd6ab0d2cceb))
+* Update observeEvents() API ([#89](https://github.com/open-feature/kotlin-sdk/issues/89)) ([466115b](https://github.com/open-feature/kotlin-sdk/commit/466115bce5b0de978b47fe15ff29e8875083fb2d))
+
+
+### 🧹 Chore
+
+* fix MavenCentral badge ([e8eea26](https://github.com/open-feature/kotlin-sdk/commit/e8eea26b6e11fddd092a72b618a7e7eaaba567da))
+
+
+### 📚 Documentation
+
+* Update Events docs and signature ([#90](https://github.com/open-feature/kotlin-sdk/issues/90)) ([9ab5006](https://github.com/open-feature/kotlin-sdk/commit/9ab5006eb8c9945c68959efcd1722da2a2b522db))
+
 ## [0.2.1](https://github.com/open-feature/kotlin-sdk/compare/v0.2.0...v0.2.1) (2023-12-19)
 
 
