@@ -92,7 +92,7 @@ Once you've added a provider as a dependency, it can be registered with OpenFeat
 OpenFeatureAPI.setProviderAndWait(MyProvider())
 ```
 
-_(Asynchronous API that doesn't wait is also available)_
+> Asynchronous API that doesn't wait is also available
 
 
 ### Targeting
