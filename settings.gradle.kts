@@ -12,5 +12,13 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
 rootProject.name = "OpenFeature"
 include(":android")
+include(":kotlinxserialization")
+
+includeBuild(".") {
+    dependencySubstitution {
+        substitute(module("dev.openfeature:android-sdk")).using(project(":android"))
+    }
+}
