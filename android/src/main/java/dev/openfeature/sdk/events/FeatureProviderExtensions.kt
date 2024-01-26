@@ -1,41 +1,14 @@
-package dev.openfeature.sdk.async
+package dev.openfeature.sdk.events
 
-import dev.openfeature.sdk.EvaluationContext
 import dev.openfeature.sdk.FeatureProvider
-import dev.openfeature.sdk.OpenFeatureAPI
-import dev.openfeature.sdk.OpenFeatureClient
-import dev.openfeature.sdk.events.OpenFeatureEvents
-import dev.openfeature.sdk.events.observe
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-
-fun OpenFeatureClient.toAsync(): AsyncClient? {
-    val provider = OpenFeatureAPI.getProvider()
-    return provider?.let {
-        AsyncClientImpl(
-            this,
-            it
-        )
-    }
-}
-
-suspend fun OpenFeatureAPI.setProviderAndWait(
-    provider: FeatureProvider,
-    dispatcher: CoroutineDispatcher,
-    initialContext: EvaluationContext? = null
-) {
-    setProvider(provider, initialContext)
-    provider.awaitReadyOrError(dispatcher)
-}
 
 internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.ProviderReady>()
     .onStart {
@@ -43,16 +16,6 @@ internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.
             this.emit(OpenFeatureEvents.ProviderReady)
         }
     }
-
-/*
-Observe events from currently configured Provider.
- */
-@OptIn(ExperimentalCoroutinesApi::class)
-internal inline fun <reified T : OpenFeatureEvents> OpenFeatureAPI.observe(): Flow<T> {
-    return sharedProvidersFlow.flatMapLatest { provider ->
-        provider.observe<T>()
-    }
-}
 
 internal fun FeatureProvider.observeProviderError() = observe<OpenFeatureEvents.ProviderError>()
     .onStart {

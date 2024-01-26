@@ -1,7 +1,14 @@
 package dev.openfeature.sdk
 
+import dev.openfeature.sdk.events.OpenFeatureEvents
+import dev.openfeature.sdk.events.awaitReadyOrError
+import dev.openfeature.sdk.events.observe
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.flatMapLatest
 
 @Suppress("TooManyFunctions")
 object OpenFeatureAPI {
@@ -22,6 +29,15 @@ object OpenFeatureAPI {
         } catch (e: Throwable) {
             // This is not allowed to happen
         }
+    }
+
+    suspend fun setProviderAndWait(
+        provider: FeatureProvider,
+        dispatcher: CoroutineDispatcher,
+        initialContext: EvaluationContext? = null
+    ) {
+        setProvider(provider, initialContext)
+        provider.awaitReadyOrError(dispatcher)
     }
 
     fun getProvider(): FeatureProvider? {
@@ -60,5 +76,15 @@ object OpenFeatureAPI {
 
     fun shutdown() {
         provider?.shutdown()
+    }
+
+    /*
+    Observe events from currently configured Provider.
+    */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    internal inline fun <reified T : OpenFeatureEvents> observe(): Flow<T> {
+        return sharedProvidersFlow.flatMapLatest { provider ->
+            provider.observe<T>()
+        }
     }
 }

@@ -1,10 +1,9 @@
 package dev.openfeature.sdk
 
-import dev.openfeature.sdk.async.observeProviderReady
-import dev.openfeature.sdk.async.toAsync
 import dev.openfeature.sdk.events.EventHandler
 import dev.openfeature.sdk.events.OpenFeatureEvents
 import dev.openfeature.sdk.events.observe
+import dev.openfeature.sdk.events.observeProviderReady
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -15,9 +14,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Test
-import org.mockito.Mockito.`when`
-import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.mock
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -177,81 +173,6 @@ class EventsHandlerTest {
         provider.emitStale()
         job.join()
         Assert.assertTrue(isProviderStale)
-    }
-
-    @Test
-    fun observe_string_value_from_client_works() = runTest {
-        val dispatcher = UnconfinedTestDispatcher(testScheduler)
-        val eventHandler = EventHandler(dispatcher)
-        val provider = TestFeatureProvider(dispatcher, eventHandler)
-
-        provider.emitReady()
-        val key = "mykey"
-        val default = "default"
-        val resultTexts = mutableListOf<String>()
-
-        OpenFeatureAPI.setProvider(
-            mock {
-                on { getProviderStatus() } doReturn provider.getProviderStatus()
-                on { observeProviderReady() } doReturn provider.observeProviderReady()
-            }
-        )
-
-        val mockOpenFeatureClient = mock<OpenFeatureClient> {
-            on { getStringValue(key, default) } doReturn "text1"
-        }
-
-        // observing the provider status after the provider ready event is published
-        val job = backgroundScope.launch(dispatcher) {
-            mockOpenFeatureClient.toAsync()!!
-                .observeStringValue(key, default)
-                .take(2)
-                .collect {
-                    resultTexts.add(it)
-                }
-        }
-
-        `when`(mockOpenFeatureClient.getStringValue(key, default))
-            .thenReturn("text2")
-
-        provider.emitReady()
-        job.join()
-        Assert.assertEquals(listOf("text1", "text2"), resultTexts)
-    }
-
-    @Test
-    fun observe_string_value_from_client_waits_until_provider_ready() = runTest {
-        val dispatcher = UnconfinedTestDispatcher(testScheduler)
-        val eventHandler = EventHandler(dispatcher)
-        val provider = TestFeatureProvider(dispatcher, eventHandler)
-        val key = "mykey"
-        val default = "default"
-        val resultTexts = mutableListOf<String>()
-
-        val mockOpenFeatureClient = mock<OpenFeatureClient> {
-            on { getStringValue(key, default) } doReturn "text1"
-        }
-
-        OpenFeatureAPI.setProvider(
-            mock {
-                on { getProviderStatus() } doReturn provider.getProviderStatus()
-                on { observeProviderReady() } doReturn provider.observeProviderReady()
-            }
-        )
-
-        // observing the provider status after the provider ready event is published
-        val job = backgroundScope.launch(dispatcher) {
-            mockOpenFeatureClient.toAsync()!!
-                .observeStringValue(key, default)
-                .take(1)
-                .collect {
-                    resultTexts.add(it)
-                }
-        }
-
-        provider.emitReady()
-        job.join()
-        Assert.assertEquals(listOf("text1"), resultTexts)
     }
 
     @Test

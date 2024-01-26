@@ -1,7 +1,5 @@
 package dev.openfeature.sdk
 
-import dev.openfeature.sdk.async.observe
-import dev.openfeature.sdk.async.setProviderAndWait
 import dev.openfeature.sdk.events.OpenFeatureEvents
 import dev.openfeature.sdk.exceptions.ErrorCode
 import dev.openfeature.sdk.helpers.AlwaysBrokenProvider
