@@ -181,7 +181,7 @@ class EventsHandlerTest {
         val eventHandler = EventHandler(dispatcher)
         val provider = TestFeatureProvider(dispatcher, eventHandler)
 
-        Assert.assertEquals(OpenFeatureEvents.ProviderShutDown, provider.getProviderStatus())
+        Assert.assertEquals(OpenFeatureEvents.ProviderNotReady, provider.getProviderStatus())
 
         provider.emitReady()
 
@@ -201,6 +201,6 @@ class EventsHandlerTest {
 
         provider.shutdown()
 
-        Assert.assertEquals(OpenFeatureEvents.ProviderShutDown, provider.getProviderStatus())
+        Assert.assertEquals(OpenFeatureEvents.ProviderNotReady, provider.getProviderStatus())
     }
 }

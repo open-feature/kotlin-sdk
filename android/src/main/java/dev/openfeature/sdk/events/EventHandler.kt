@@ -31,7 +31,7 @@ class EventHandler(dispatcher: CoroutineDispatcher) :
     ProviderStatus {
     private val sharedFlow: MutableSharedFlow<OpenFeatureEvents> = MutableSharedFlow()
     private val currentStatus: MutableStateFlow<OpenFeatureEvents> =
-        MutableStateFlow(OpenFeatureEvents.ProviderShutDown)
+        MutableStateFlow(OpenFeatureEvents.ProviderNotReady)
     private val job = Job()
     private val coroutineScope = CoroutineScope(job + dispatcher)
 
@@ -40,7 +40,7 @@ class EventHandler(dispatcher: CoroutineDispatcher) :
             sharedFlow.collect {
                 currentStatus.value = it
                 when (it) {
-                    is OpenFeatureEvents.ProviderShutDown -> {
+                    is OpenFeatureEvents.ProviderNotReady -> {
                         job.cancelChildren()
                     }
 

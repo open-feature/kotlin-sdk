@@ -18,7 +18,7 @@ class TestFeatureProvider(
     }
 
     override fun shutdown() {
-        eventHandler.publish(OpenFeatureEvents.ProviderShutDown)
+        eventHandler.publish(OpenFeatureEvents.ProviderNotReady)
     }
 
     override fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
