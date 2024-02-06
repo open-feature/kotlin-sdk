@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.3](https://github.com/open-feature/kotlin-sdk/compare/v0.2.2...v0.2.3) (2024-02-02)
+
+
+### 🧹 Chore
+
+* Remove AsyncClient and refactor extensions ([#96](https://github.com/open-feature/kotlin-sdk/issues/96)) ([53a0908](https://github.com/open-feature/kotlin-sdk/commit/53a0908ee5d2e2fbacbfca9ce22e92e2e5de2308))
+* update readme ([#95](https://github.com/open-feature/kotlin-sdk/issues/95)) ([2f83367](https://github.com/open-feature/kotlin-sdk/commit/2f833679c0983d33ac0aecfdf172fff8175e4c82))
+
+
+### 📚 Documentation
+
+* changed emphasis of provider register disclaimer ([cce8368](https://github.com/open-feature/kotlin-sdk/commit/cce8368f090b335b7b29c66479aaebb44c58ca5b))
+
+
+### 🔄 Refactoring
+
+* Rename shutdown event to notready event ([#97](https://github.com/open-feature/kotlin-sdk/issues/97)) ([5a2bc63](https://github.com/open-feature/kotlin-sdk/commit/5a2bc6353d862597bdae7ca803ebd1f444601e12))
+
 ## [0.2.2](https://github.com/open-feature/kotlin-sdk/compare/v0.2.1...v0.2.2) (2024-01-15)
 
 
