@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/open-feature/kotlin-sdk/compare/v0.2.3...v0.3.0) (2024-04-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove kotlinx.serialization dependency
+
+### 🔄 Refactoring
+
+* remove kotlinx.serialization dependency ([3145d6c](https://github.com/open-feature/kotlin-sdk/commit/3145d6c41359598e8565a19d576863df82de6f16))
+
 ## [0.2.3](https://github.com/open-feature/kotlin-sdk/compare/v0.2.2...v0.2.3) (2024-02-02)
 
 
