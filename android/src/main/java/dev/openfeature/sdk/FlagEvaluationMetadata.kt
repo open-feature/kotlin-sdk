@@ -16,6 +16,8 @@ class EvaluationMetadata internal constructor(private val values: Map<String, An
         fun builder(): Builder {
             return Builder()
         }
+
+        val EMPTY = EvaluationMetadata(emptyMap())
     }
 
     override fun equals(other: Any?): Boolean {

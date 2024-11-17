@@ -76,7 +76,8 @@ class FlagEvaluationsTests {
         Assert.assertEquals(booleanDetails, client.getBooleanDetails(key, false))
         Assert.assertEquals(booleanDetails, client.getBooleanDetails(key, false, FlagEvaluationOptions()))
 
-        val stringDetails = FlagEvaluationDetails(key, "tset")
+        // in DoSomethingProvider, the string evaluation is special since it contains some metadata values
+        val stringDetails = FlagEvaluationDetails(key, "tset", metadata = DoSomethingProvider.evaluationMetadata)
         Assert.assertEquals(stringDetails, client.getStringDetails(key, "test"))
         Assert.assertEquals(stringDetails, client.getStringDetails(key, "test", FlagEvaluationOptions()))
 
@@ -91,6 +92,18 @@ class FlagEvaluationsTests {
         val objectDetails = FlagEvaluationDetails(key, Value.Null)
         Assert.assertEquals(objectDetails, client.getObjectDetails(key, Value.Structure(mapOf())))
         Assert.assertEquals(objectDetails, client.getObjectDetails(key, Value.Structure(mapOf()), FlagEvaluationOptions()))
+    }
+
+    @Test
+    fun testMetadataFlagEvaluation() = runTest {
+        OpenFeatureAPI.setProvider(DoSomethingProvider())
+        val client = OpenFeatureAPI.getClient()
+        val key = "key"
+
+        val details = client.getStringDetails(key, "default")
+        val metadata: EvaluationMetadata = details.metadata
+        Assert.assertEquals("value1", metadata.getString("key1"))
+        Assert.assertEquals(42, metadata.getInt("key2"))
     }
 
     @Test

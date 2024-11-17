@@ -7,5 +7,6 @@ data class ProviderEvaluation<T>(
     val variant: String? = null,
     val reason: String? = null,
     val errorCode: ErrorCode? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val metadata: EvaluationMetadata = EvaluationMetadata.EMPTY
 )
