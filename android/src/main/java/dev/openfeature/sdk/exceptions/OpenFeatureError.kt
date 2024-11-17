@@ -50,4 +50,11 @@ sealed class OpenFeatureError : Exception() {
             return ErrorCode.TYPE_MISMATCH
         }
     }
+
+    class ProviderFatalError(override val message: String = "The Provider is in an irrecoverable error state") :
+        OpenFeatureError() {
+        override fun errorCode(): ErrorCode {
+            return ErrorCode.PROVIDER_FATAL
+        }
+    }
 }

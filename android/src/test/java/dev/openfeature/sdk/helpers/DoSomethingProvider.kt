@@ -7,13 +7,9 @@ import dev.openfeature.sdk.Hook
 import dev.openfeature.sdk.ProviderEvaluation
 import dev.openfeature.sdk.ProviderMetadata
 import dev.openfeature.sdk.Value
-import dev.openfeature.sdk.events.EventHandler
-import dev.openfeature.sdk.events.OpenFeatureEvents
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 class DoSomethingProvider(
     override val hooks: List<Hook<*>> = listOf(),
@@ -26,23 +22,20 @@ class DoSomethingProvider(
             .putInt("key2", 42)
             .build()
     }
-    private var eventHandler = EventHandler(dispatcher)
 
-    override fun initialize(initialContext: EvaluationContext?) {
-        CoroutineScope(dispatcher).launch {
-            eventHandler.publish(OpenFeatureEvents.ProviderReady)
-        }
+    override suspend fun initialize(initialContext: EvaluationContext?) {
+        delay(1000)
     }
 
     override fun shutdown() {
         // no-op
     }
 
-    override fun onContextSet(
+    override suspend fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
-        // no-op
+        delay(500)
     }
 
     override fun getBooleanEvaluation(
@@ -87,10 +80,6 @@ class DoSomethingProvider(
     ): ProviderEvaluation<Value> {
         return ProviderEvaluation(Value.Null)
     }
-
-    override fun observe(): Flow<OpenFeatureEvents> = eventHandler.observe()
-
-    override fun getProviderStatus(): OpenFeatureEvents = OpenFeatureEvents.ProviderReady
 
     class DoSomethingProviderMetadata(override val name: String? = "something") : ProviderMetadata
 }

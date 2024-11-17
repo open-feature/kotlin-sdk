@@ -1,12 +1,8 @@
 package dev.openfeature.sdk
 
-import dev.openfeature.sdk.events.OpenFeatureEvents
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
-
 open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureProvider {
     override val metadata: ProviderMetadata = NoOpProviderMetadata("No-op provider")
-    override fun initialize(initialContext: EvaluationContext?) {
+    override suspend fun initialize(initialContext: EvaluationContext?) {
         // no-op
     }
 
@@ -14,7 +10,7 @@ open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureP
         // no-op
     }
 
-    override fun onContextSet(
+    override suspend fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
@@ -60,10 +56,6 @@ open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureP
     ): ProviderEvaluation<Value> {
         return ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
     }
-
-    override fun observe(): Flow<OpenFeatureEvents> = flowOf()
-
-    override fun getProviderStatus(): OpenFeatureEvents = OpenFeatureEvents.ProviderReady
 
     data class NoOpProviderMetadata(override val name: String?) : ProviderMetadata
 }
