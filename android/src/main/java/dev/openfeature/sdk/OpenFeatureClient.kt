@@ -168,7 +168,7 @@ class OpenFeatureClient(
         val options = optionsIn ?: FlagEvaluationOptions(listOf(), mapOf())
         val hints = options.hookHints
         var details = FlagEvaluationDetails(key, defaultValue)
-        val provider = openFeatureAPI.getProvider() ?: NoOpProvider()
+        val provider = openFeatureAPI.getProvider()
         val mergedHooks: List<Hook<*>> =
             provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
         val context = openFeatureAPI.getEvaluationContext()
