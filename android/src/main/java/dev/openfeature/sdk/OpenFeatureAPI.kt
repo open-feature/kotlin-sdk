@@ -12,7 +12,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 
 @Suppress("TooManyFunctions")
 object OpenFeatureAPI {
-    private var provider: FeatureProvider? = null
+    private val NOOP_PROVIDER = NoOpProvider()
+    private var provider: FeatureProvider = NOOP_PROVIDER
     private var context: EvaluationContext? = null
     private val providersFlow: MutableSharedFlow<FeatureProvider> = MutableSharedFlow(replay = 1)
     internal val sharedProvidersFlow: SharedFlow<FeatureProvider> get() = providersFlow
@@ -40,18 +41,18 @@ object OpenFeatureAPI {
         provider.awaitReadyOrError(dispatcher)
     }
 
-    fun getProvider(): FeatureProvider? {
+    fun getProvider(): FeatureProvider {
         return provider
     }
 
     fun clearProvider() {
-        provider = null
+        provider = NOOP_PROVIDER
     }
 
     fun setEvaluationContext(evaluationContext: EvaluationContext) {
         val oldContext = context
         context = evaluationContext
-        getProvider()?.onContextSet(oldContext, evaluationContext)
+        getProvider().onContextSet(oldContext, evaluationContext)
     }
 
     fun getEvaluationContext(): EvaluationContext? {
@@ -59,7 +60,7 @@ object OpenFeatureAPI {
     }
 
     fun getProviderMetadata(): ProviderMetadata? {
-        return provider?.metadata
+        return provider.metadata
     }
 
     fun getClient(name: String? = null, version: String? = null): Client {
@@ -75,7 +76,7 @@ object OpenFeatureAPI {
     }
 
     fun shutdown() {
-        provider?.shutdown()
+        provider.shutdown()
     }
 
     /*
