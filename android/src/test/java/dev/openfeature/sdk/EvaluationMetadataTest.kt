@@ -32,10 +32,4 @@ class EvaluationMetadataTest {
         Assert.assertNull(metadata.getBoolean("key4"))
         Assert.assertNull(metadata.getDouble("key1"))
     }
-
-    @Test
-    fun testGetAny() {
-        val any: Any? = metadata.getAny("key1")
-        Assert.assertEquals("value1", any as? String)
-    }
 }

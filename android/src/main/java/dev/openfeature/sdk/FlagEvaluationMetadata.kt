@@ -10,8 +10,6 @@ class EvaluationMetadata internal constructor(private val values: Map<String, An
 
     fun getDouble(key: String): Double? = values[key] as? Double
 
-    fun getAny(key: String): Any? = values[key]
-
     companion object {
         fun builder(): Builder {
             return Builder()
