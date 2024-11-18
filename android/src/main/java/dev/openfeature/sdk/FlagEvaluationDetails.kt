@@ -4,12 +4,13 @@ import dev.openfeature.sdk.exceptions.ErrorCode
 
 data class FlagEvaluationDetails<T>(
     val flagKey: String,
-    override val value: T,
-    override val variant: String? = null,
-    override val reason: String? = null,
-    override val errorCode: ErrorCode? = null,
-    override val errorMessage: String? = null
-) : BaseEvaluation<T> {
+    val value: T,
+    val variant: String? = null,
+    val reason: String? = null,
+    val errorCode: ErrorCode? = null,
+    val errorMessage: String? = null,
+    val metadata: EvaluationMetadata = EvaluationMetadata.EMPTY
+) {
     companion object
 }
 
@@ -18,11 +19,12 @@ fun <T> FlagEvaluationDetails.Companion.from(
     flagKey: String
 ): FlagEvaluationDetails<T> {
     return FlagEvaluationDetails(
-        flagKey,
-        providerEval.value,
-        providerEval.variant,
-        providerEval.reason,
-        providerEval.errorCode,
-        providerEval.errorMessage
+        flagKey = flagKey,
+        value = providerEval.value,
+        variant = providerEval.variant,
+        reason = providerEval.reason,
+        errorCode = providerEval.errorCode,
+        errorMessage = providerEval.errorMessage,
+        metadata = providerEval.metadata
     )
 }

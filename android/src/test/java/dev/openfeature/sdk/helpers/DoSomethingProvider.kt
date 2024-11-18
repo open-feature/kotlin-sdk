@@ -1,6 +1,7 @@
 package dev.openfeature.sdk.helpers
 
 import dev.openfeature.sdk.EvaluationContext
+import dev.openfeature.sdk.EvaluationMetadata
 import dev.openfeature.sdk.FeatureProvider
 import dev.openfeature.sdk.Hook
 import dev.openfeature.sdk.ProviderEvaluation
@@ -19,6 +20,12 @@ class DoSomethingProvider(
     override val metadata: ProviderMetadata = DoSomethingProviderMetadata(),
     private var dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : FeatureProvider {
+    companion object {
+        val evaluationMetadata = EvaluationMetadata.builder()
+            .putString("key1", "value1")
+            .putInt("key2", 42)
+            .build()
+    }
     private var eventHandler = EventHandler(dispatcher)
 
     override fun initialize(initialContext: EvaluationContext?) {
@@ -51,7 +58,10 @@ class DoSomethingProvider(
         defaultValue: String,
         context: EvaluationContext?
     ): ProviderEvaluation<String> {
-        return ProviderEvaluation(defaultValue.reversed())
+        return ProviderEvaluation(
+            value = defaultValue.reversed(),
+            metadata = evaluationMetadata
+        )
     }
 
     override fun getIntegerEvaluation(
