@@ -38,5 +38,6 @@ interface FeatureProvider : EventObserver, ProviderStatus {
      * @param details   Data pertinent to a particular tracking event (Optional)
      */
     fun track(trackingEventName: String, context: EvaluationContext?, details: TrackingEventDetails?) {
+        // an empty default implementation to make implementing this functionality optional
     }
 }
