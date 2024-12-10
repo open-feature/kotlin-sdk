@@ -159,6 +159,12 @@ class OpenFeatureClient(
         return evaluateFlag(OBJECT, key, defaultValue, options)
     }
 
+    override fun track(trackingEventName: String, details: TrackingEventDetails?) {
+        validateTrackingEventName(trackingEventName)
+        openFeatureAPI.getProvider()
+            .track(trackingEventName, openFeatureAPI.getEvaluationContext(), details)
+    }
+
     private fun <T> evaluateFlag(
         flagValueType: FlagValueType,
         key: String,
@@ -257,4 +263,10 @@ class OpenFeatureClient(
     }
 
     data class Metadata(override val name: String?) : ClientMetadata
+}
+
+private fun validateTrackingEventName(name: String) {
+    if (name.isEmpty()) {
+        throw IllegalArgumentException("trackingEventName cannot be empty")
+    }
 }
