@@ -126,6 +126,21 @@ This is essential for robust experimentation powered by feature flags. Note that
 that handle feature flag evaluations, calling `track(...)` may throw an `IllegalArgumentException` 
 if an empty string is passed as the `trackingEventName`.
 
+Below is an example of how we can track a "Checkout" event with some `TrackingDetails`.
+
+```kotlin
+OpenFeatureAPI.getClient().track(
+  "Checkout",
+  TrackingEventDetails(
+    499.99,
+    ImmutableStructure(
+      "numberOfItems" to Value.Integer(4),
+      "timeInCheckout" to Value.String("PT3M20S")
+    )
+  )
+)
+```
+
 Tracking is optionally implemented by Providers.
 
 
