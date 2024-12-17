@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/open-feature/kotlin-sdk/compare/v0.3.1...v0.3.2) (2024-12-17)
+
+
+### 🧹 Chore
+
+* **deps:** update plugin io.github.gradle-nexus.publish-plugin to v2 ([#103](https://github.com/open-feature/kotlin-sdk/issues/103)) ([4443e0a](https://github.com/open-feature/kotlin-sdk/commit/4443e0a5eeb9ca4066f30a7039bce51a725c9cf7))
+
 ## [0.3.1](https://github.com/open-feature/kotlin-sdk/compare/v0.3.0...v0.3.1) (2024-12-17)
 
 
