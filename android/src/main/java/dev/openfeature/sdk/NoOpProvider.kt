@@ -4,7 +4,7 @@ import dev.openfeature.sdk.events.OpenFeatureEvents
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
-class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureProvider {
+open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureProvider {
     override val metadata: ProviderMetadata = NoOpProviderMetadata("No-op provider")
     override fun initialize(initialContext: EvaluationContext?) {
         // no-op

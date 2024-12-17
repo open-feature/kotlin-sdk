@@ -27,4 +27,17 @@ interface FeatureProvider : EventObserver, ProviderStatus {
     fun getIntegerEvaluation(key: String, defaultValue: Int, context: EvaluationContext?): ProviderEvaluation<Int>
     fun getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?): ProviderEvaluation<Double>
     fun getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?): ProviderEvaluation<Value>
+
+    /**
+     * Feature provider implementations can opt in for to support Tracking by implementing this method.
+     *
+     * Performs tracking of a particular action or application state.
+     *
+     * @param trackingEventName Event name to track
+     * @param context   Evaluation context used in flag evaluation (Optional)
+     * @param details   Data pertinent to a particular tracking event (Optional)
+     */
+    fun track(trackingEventName: String, context: EvaluationContext?, details: TrackingEventDetails?) {
+        // an empty default implementation to make implementing this functionality optional
+    }
 }

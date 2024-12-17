@@ -68,15 +68,16 @@ coroutineScope.launch(Dispatchers.IO) {
 ## 🌟 Features
 
 | Status | Features                        | Description                                                                                                                        |
-| ------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+|--------|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
 | ✅      | [Providers](#providers)         | Integrate with a commercial, open source, or in-house feature management tool.                                                     |
 | ✅      | [Targeting](#targeting)         | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
 | ✅      | [Hooks](#hooks)                 | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
+| ✅      | [Tracking](#tracking)           | Associate user actions with feature flag evaluations.                                                                              |
 | ❌      | [Logging](#logging)             | Integrate with popular logging packages.                                                                                           |
 | ❌      | [Named clients](#named-clients) | Utilize multiple providers in a single application.                                                                                |
 | ✅      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
 | ✅      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
-| ⚠️      | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                |
+| ⚠️     | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                |
 
 <sub>Implemented: ✅ | In-progress: ⚠️ | Not implemented yet: ❌</sub>
 
@@ -117,7 +118,6 @@ If the hook you're looking for hasn't been created yet, see the [develop a hook]
 
 Once you've added a hook as a dependency, it can be registered at the global, client, or flag invocation level.
 
-
 ```kotlin
 // add a hook globally, to run on all evaluations
 OpenFeatureAPI.addHooks(listOf(ExampleHook()))
@@ -130,6 +130,32 @@ client.addHooks(listOf(ExampleHook()))
 val retval = client.getBooleanValue(flagKey, false,
     FlagEvaluationOptions(listOf(ExampleHook())))
 ```
+
+### Tracking
+
+The [tracking API](https://openfeature.dev/specification/sections/tracking/) allows you to use 
+OpenFeature abstractions to associate user actions with feature flag evaluations.
+This is essential for robust experimentation powered by feature flags. Note that, unlike methods 
+that handle feature flag evaluations, calling `track(...)` may throw an `IllegalArgumentException` 
+if an empty string is passed as the `trackingEventName`.
+
+Below is an example of how we can track a "Checkout" event with some `TrackingDetails`.
+
+```kotlin
+OpenFeatureAPI.getClient().track(
+  "Checkout",
+  TrackingEventDetails(
+    499.99,
+    ImmutableStructure(
+      "numberOfItems" to Value.Integer(4),
+      "timeInCheckout" to Value.String("PT3M20S")
+    )
+  )
+)
+```
+
+Tracking is optionally implemented by Providers.
+
 ### Logging
 
 Logging customization is not yet available in the Kotlin SDK.
