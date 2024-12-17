@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.1](https://github.com/open-feature/kotlin-sdk/compare/v0.3.0...v0.3.1) (2024-12-17)
+
+
+### ✨ New Features
+
+* add flag evaluation metadata to evaluation details ([#111](https://github.com/open-feature/kotlin-sdk/issues/111)) ([6e9aa29](https://github.com/open-feature/kotlin-sdk/commit/6e9aa2977d6a47a600d0ccaad72d92b34b52d505))
+* add support for tracking ([#114](https://github.com/open-feature/kotlin-sdk/issues/114)) ([3b7ce62](https://github.com/open-feature/kotlin-sdk/commit/3b7ce626af7c2d8058b0edece34a6353ec4df58a))
+
+
+### 🔄 Refactoring
+
+* use the noop-provider instead of null provider ([#112](https://github.com/open-feature/kotlin-sdk/issues/112)) ([1f59e3d](https://github.com/open-feature/kotlin-sdk/commit/1f59e3d2f0bca60fe71e2bc50deff29827ca22d6))
+
 ## [0.3.0](https://github.com/open-feature/kotlin-sdk/compare/v0.2.3...v0.3.0) (2024-04-08)
 
 
