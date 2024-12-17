@@ -118,6 +118,19 @@ If the hook you're looking for hasn't been created yet, see the [develop a hook]
 
 Once you've added a hook as a dependency, it can be registered at the global, client, or flag invocation level.
 
+```kotlin
+// add a hook globally, to run on all evaluations
+OpenFeatureAPI.addHooks(listOf(ExampleHook()))
+
+// add a hook on this client, to run on all evaluations made by this client
+val client = OpenFeatureAPI.getClient()
+client.addHooks(listOf(ExampleHook()))
+
+// add a hook for this evaluation only
+val retval = client.getBooleanValue(flagKey, false,
+    FlagEvaluationOptions(listOf(ExampleHook())))
+```
+
 ### Tracking
 
 The [tracking API](https://openfeature.dev/specification/sections/tracking/) allows you to use 
@@ -143,19 +156,6 @@ OpenFeatureAPI.getClient().track(
 
 Tracking is optionally implemented by Providers.
 
-
-```kotlin
-// add a hook globally, to run on all evaluations
-OpenFeatureAPI.addHooks(listOf(ExampleHook()))
-
-// add a hook on this client, to run on all evaluations made by this client
-val client = OpenFeatureAPI.getClient()
-client.addHooks(listOf(ExampleHook()))
-
-// add a hook for this evaluation only
-val retval = client.getBooleanValue(flagKey, false,
-    FlagEvaluationOptions(listOf(ExampleHook())))
-```
 ### Logging
 
 Logging customization is not yet available in the Kotlin SDK.
