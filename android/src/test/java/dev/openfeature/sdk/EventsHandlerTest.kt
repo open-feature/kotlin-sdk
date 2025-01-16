@@ -22,7 +22,7 @@ class EventsHandlerTest {
     fun observing_event_observer_works() = runTest {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         val eventHandler = EventHandler(dispatcher)
-        val provider = TestFeatureProvider(dispatcher, eventHandler)
+        val provider = TestFeatureProvider(eventHandler)
         var emitted = false
 
         val job = backgroundScope.launch(dispatcher) {
@@ -41,7 +41,7 @@ class EventsHandlerTest {
     fun multiple_subscribers_works() = runTest {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         val eventHandler = EventHandler(dispatcher)
-        val provider = TestFeatureProvider(dispatcher, eventHandler)
+        val provider = TestFeatureProvider(eventHandler)
         val numberOfSubscribers = 10
         val parentJob = Job()
         var emitted = 0
@@ -65,7 +65,7 @@ class EventsHandlerTest {
     fun canceling_one_subscriber_does_not_cancel_others() = runTest {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         val eventHandler = EventHandler(dispatcher)
-        val provider = TestFeatureProvider(dispatcher, eventHandler)
+        val provider = TestFeatureProvider(eventHandler)
         val numberOfSubscribers = 10
         val parentJob = Job()
         var emitted = 0
@@ -95,7 +95,7 @@ class EventsHandlerTest {
     fun the_provider_status_stream_works() = runTest {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         val eventHandler = EventHandler(dispatcher)
-        val provider = TestFeatureProvider(dispatcher, eventHandler)
+        val provider = TestFeatureProvider(eventHandler)
         var isProviderReady = false
 
         // observing the provider status after the provider ready event is published
@@ -118,7 +118,7 @@ class EventsHandlerTest {
         var isProviderReady = false
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         val eventHandler = EventHandler(dispatcher)
-        val provider = TestFeatureProvider(dispatcher, eventHandler)
+        val provider = TestFeatureProvider(eventHandler)
 
         // observing the provider status after the provider ready event is published
         val job = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
@@ -137,7 +137,7 @@ class EventsHandlerTest {
     fun the_provider_status_stream_is_replays_current_status() = runTest {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         val eventHandler = EventHandler(dispatcher)
-        val provider = TestFeatureProvider(dispatcher, eventHandler)
+        val provider = TestFeatureProvider(eventHandler)
         provider.emitReady()
         var isProviderReady = false
 
@@ -158,7 +158,7 @@ class EventsHandlerTest {
     fun the_provider_becomes_stale() = runTest {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         val eventHandler = EventHandler(dispatcher)
-        val provider = TestFeatureProvider(dispatcher, eventHandler)
+        val provider = TestFeatureProvider(eventHandler)
         var isProviderStale = false
 
         val job = backgroundScope.launch(dispatcher) {
@@ -179,7 +179,7 @@ class EventsHandlerTest {
     fun accessing_status_from_provider_works() = runTest {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         val eventHandler = EventHandler(dispatcher)
-        val provider = TestFeatureProvider(dispatcher, eventHandler)
+        val provider = TestFeatureProvider(eventHandler)
 
         Assert.assertEquals(OpenFeatureEvents.ProviderNotReady, provider.getProviderStatus())
 
