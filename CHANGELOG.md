@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/open-feature/kotlin-sdk/compare/v0.3.2...v0.3.3) (2025-01-16)
+
+
+### 🐛 Bug Fixes
+
+* Coroutine resume bug ([#118](https://github.com/open-feature/kotlin-sdk/issues/118)) ([9cd73aa](https://github.com/open-feature/kotlin-sdk/commit/9cd73aa23a424e2622312b6063cfa7b616702d22))
+
 ## [0.3.2](https://github.com/open-feature/kotlin-sdk/compare/v0.3.1...v0.3.2) (2024-12-17)
 
 
