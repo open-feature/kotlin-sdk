@@ -74,7 +74,11 @@ class DeveloperExperienceTests {
     fun testSetProviderAndWaitReady() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         CoroutineScope(dispatcher).launch {
-            OpenFeatureAPI.setProviderAndWait(SlowProvider(dispatcher = dispatcher), dispatcher, ImmutableContext())
+            OpenFeatureAPI.setProviderAndWait(
+                SlowProvider(dispatcher = dispatcher),
+                dispatcher,
+                ImmutableContext()
+            )
         }
         testScheduler.advanceTimeBy(1) // Make sure setProviderAndWait is called
         val booleanValue1 = OpenFeatureAPI.getClient().getBooleanValue("test", false)
@@ -121,9 +125,13 @@ class DeveloperExperienceTests {
             OpenFeatureAPI.observe<OpenFeatureEvents>().toCollection(resultEvents)
         }
         OpenFeatureAPI.setProviderAndWait(healing, dispatcher, ImmutableContext())
-        testScheduler.advanceUntilIdle()
         Assert.assertEquals(2, resultEvents.size)
-        Assert.assertTrue(resultEvents[0] is OpenFeatureEvents.ProviderError)
+        val errorEvent = resultEvents[0]
+        Assert.assertTrue(errorEvent is OpenFeatureEvents.ProviderError)
+        Assert.assertEquals(
+            "AutoHealingProvider is trying to heal",
+            (errorEvent as OpenFeatureEvents.ProviderError).error.message
+        )
         Assert.assertEquals(OpenFeatureEvents.ProviderReady, resultEvents[1])
         OpenFeatureAPI.shutdown()
         r.cancel()
