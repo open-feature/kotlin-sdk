@@ -3,11 +3,14 @@ package dev.openfeature.sdk
 import dev.openfeature.sdk.events.OpenFeatureEvents
 import dev.openfeature.sdk.exceptions.ErrorCode
 import dev.openfeature.sdk.helpers.AlwaysBrokenProvider
+import dev.openfeature.sdk.helpers.AutoHealingProvider
 import dev.openfeature.sdk.helpers.DoSomethingProvider
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
 import dev.openfeature.sdk.helpers.SlowProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -71,7 +74,11 @@ class DeveloperExperienceTests {
     fun testSetProviderAndWaitReady() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         CoroutineScope(dispatcher).launch {
-            OpenFeatureAPI.setProviderAndWait(SlowProvider(dispatcher = dispatcher), dispatcher, ImmutableContext())
+            OpenFeatureAPI.setProviderAndWait(
+                SlowProvider(dispatcher = dispatcher),
+                dispatcher,
+                ImmutableContext()
+            )
         }
         testScheduler.advanceTimeBy(1) // Make sure setProviderAndWait is called
         val booleanValue1 = OpenFeatureAPI.getClient().getBooleanValue("test", false)
@@ -107,5 +114,26 @@ class DeveloperExperienceTests {
         }
         advanceUntilIdle()
         Assert.assertEquals(eventCount, 1)
+    }
+
+    @Test
+    fun testProviderThatHealsWithErrorThenReady() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val healing = AutoHealingProvider(dispatcher = dispatcher, healDelay = 100)
+        val resultEvents = mutableListOf<OpenFeatureEvents>()
+        val r = async {
+            OpenFeatureAPI.observe<OpenFeatureEvents>().toCollection(resultEvents)
+        }
+        OpenFeatureAPI.setProviderAndWait(healing, dispatcher, ImmutableContext())
+        Assert.assertEquals(2, resultEvents.size)
+        val errorEvent = resultEvents[0]
+        Assert.assertTrue(errorEvent is OpenFeatureEvents.ProviderError)
+        Assert.assertEquals(
+            "AutoHealingProvider is trying to heal",
+            (errorEvent as OpenFeatureEvents.ProviderError).error.message
+        )
+        Assert.assertEquals(OpenFeatureEvents.ProviderReady, resultEvents[1])
+        OpenFeatureAPI.shutdown()
+        r.cancel()
     }
 }

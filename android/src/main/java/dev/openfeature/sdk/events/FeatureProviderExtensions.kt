@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
@@ -12,7 +13,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 internal fun FeatureProvider.observeProviderReady() = observe<OpenFeatureEvents.ProviderReady>()
     .onStart {
-        if (getProviderStatus() == OpenFeatureEvents.ProviderReady) {
+        val status = getProviderStatus()
+        if (status == OpenFeatureEvents.ProviderReady) {
             this.emit(OpenFeatureEvents.ProviderReady)
         }
     }
@@ -30,15 +32,7 @@ suspend fun FeatureProvider.awaitReadyOrError(
 ) = suspendCancellableCoroutine { continuation ->
     val coroutineScope = CoroutineScope(dispatcher)
     coroutineScope.launch {
-        observeProviderReady()
-            .take(1)
-            .collect {
-                continuation.resumeWith(Result.success(Unit))
-            }
-    }
-
-    coroutineScope.launch {
-        observeProviderError()
+        merge(observeProviderReady(), observeProviderError())
             .take(1)
             .collect {
                 continuation.resumeWith(Result.success(Unit))

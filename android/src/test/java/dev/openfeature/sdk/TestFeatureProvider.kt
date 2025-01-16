@@ -2,10 +2,8 @@ package dev.openfeature.sdk
 
 import dev.openfeature.sdk.events.EventHandler
 import dev.openfeature.sdk.events.OpenFeatureEvents
-import kotlinx.coroutines.CoroutineDispatcher
 
 class TestFeatureProvider(
-    dispatcher: CoroutineDispatcher,
     private val eventHandler: EventHandler
 ) : FeatureProvider {
     override val hooks: List<Hook<*>>
