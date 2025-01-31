@@ -183,7 +183,7 @@ class DeveloperExperienceTests {
         testScheduler.advanceUntilIdle()
         // After 2 seconds the slow provider is ready
         // Setting a new context should cause the provider to reconcile
-        OpenFeatureAPI.setEvaluationContext(ImmutableContext(targetingKey = "tk"))
+        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(targetingKey = "tk"))
         testScheduler.advanceUntilIdle()
         // After 2 seconds the slow provider is ready again
         // Shutting down should cause the status to be NotReady
@@ -219,7 +219,7 @@ class DeveloperExperienceTests {
         testScheduler.advanceUntilIdle()
 
         // setting a context will make it reconciling and then ready
-        OpenFeatureAPI.setEvaluationContext(ImmutableContext(targetingKey = "new"))
+        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(targetingKey = "new"))
         testScheduler.advanceTimeBy(100)
 
         // Shutting down should cause the status to be NotReady

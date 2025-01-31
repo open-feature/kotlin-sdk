@@ -13,6 +13,7 @@ import java.util.concurrent.CancellationException
 @Suppress("TooManyFunctions")
 object OpenFeatureAPI {
     private var setProviderJob: Deferred<Unit>? = null
+    private var setEvaluationContextJob: Deferred<Unit>? = null
     private val NOOP_PROVIDER = NoOpProvider()
     private var provider: FeatureProvider = NOOP_PROVIDER
     private var context: EvaluationContext? = null
@@ -106,7 +107,8 @@ object OpenFeatureAPI {
     }
 
     /**
-     * Set the [EvaluationContext] for the SDK.
+     * Set the [EvaluationContext] for the SDK. This method will block until the context is set and the provider is ready.
+     *
      * If the new context is different compare to the old context, this will cause the provider to reconcile with the new context.
      * When the provider "Reconciles" it will set the status to [OpenFeatureStatus.Reconciling].
      * When the provider successfully reconciles it will set the status to [OpenFeatureStatus.Ready].
@@ -114,7 +116,35 @@ object OpenFeatureAPI {
      *
      * @param evaluationContext the [EvaluationContext] to set
      */
-    suspend fun setEvaluationContext(evaluationContext: EvaluationContext) {
+    suspend fun setEvaluationContextAndWait(evaluationContext: EvaluationContext) {
+        setEvaluationContextInternal(evaluationContext)
+    }
+
+    /**
+     * Set the [EvaluationContext] for the SDK. This method will return immediately and set the context in a coroutine scope.
+     *
+     * If the new context is different compare to the old context, this will cause the provider to reconcile with the new context.
+     * When the provider "Reconciles" it will set the status to [OpenFeatureStatus.Reconciling].
+     * When the provider successfully reconciles it will set the status to [OpenFeatureStatus.Ready].
+     * If the provider fails to reconcile it will set the status to [OpenFeatureStatus.Error].
+     *
+     * This method requires you to manually wait for the status to be Ready before using the SDK for flag evaluations.
+     * This can be done by using the [statusFlow] and waiting for the first Ready status or by accessing [getStatus]
+     *
+     *
+     * @param evaluationContext the [EvaluationContext] to set
+     */
+    fun setEvaluationContext(
+        evaluationContext: EvaluationContext,
+        dispatcher: CoroutineDispatcher = Dispatchers.IO
+    ) {
+        setEvaluationContextJob?.cancel()
+        this.setEvaluationContextJob = CoroutineScope(dispatcher).async {
+            setEvaluationContextInternal(evaluationContext)
+        }
+    }
+
+    private suspend fun setEvaluationContextInternal(evaluationContext: EvaluationContext) {
         val oldContext = context
         context = evaluationContext
         if (oldContext != evaluationContext) {
@@ -179,6 +209,7 @@ object OpenFeatureAPI {
      * The SDK status will be set to [OpenFeatureStatus.NotReady].
      */
     fun shutdown() {
+        setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled"))
         setProviderJob?.cancel(CancellationException("Provider set job was cancelled"))
         _statusFlow.tryEmit(OpenFeatureStatus.NotReady)
         getProvider().shutdown()
