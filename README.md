@@ -12,8 +12,8 @@
 <!-- x-hide-in-docs-end -->
 <!-- The 'github-badges' class is used in the docs -->
 <p align="center" class="github-badges">
-  <a href="https://github.com/open-feature/spec/releases/tag/v0.6.0">
-    <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.6.0&color=yellow&style=for-the-badge" />
+  <a href="https://github.com/open-feature/spec/releases/tag/v0.8.0">
+    <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.8.0&color=yellow&style=for-the-badge" />
   </a>
   <!-- x-release-please-start-version -->
   <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.3.3">
@@ -75,7 +75,7 @@ coroutineScope.launch(Dispatchers.IO) {
 | ✅      | [Tracking](#tracking)           | Associate user actions with feature flag evaluations.                                                                              |
 | ❌      | [Logging](#logging)             | Integrate with popular logging packages.                                                                                           |
 | ❌      | [Named clients](#named-clients) | Utilize multiple providers in a single application.                                                                                |
-| ✅      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
+| ❌      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
 | ✅      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
 | ⚠️     | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                |
 
@@ -90,10 +90,21 @@ If the provider you're looking for hasn't been created yet, see the [develop a p
 Once you've added a provider as a dependency, it can be registered with OpenFeature like this:
 
 ```kotlin
-OpenFeatureAPI.setProviderAndWait(MyProvider())
+coroutineScope.launch(Dispatchers.IO) {
+    OpenFeatureAPI.setProviderAndWait(MyProvider())
+}
 ```
 
-> Asynchronous API that doesn't wait is also available
+Asynchronous API that doesn't wait is also available. It's useful when you want to set a provider and continue with other tasks.
+
+However, flag evaluations are only possible after the provider is Ready.
+
+```kotlin
+OpenFeatureAPI.setProvider(MyProvider()) // can pass a dispatcher here
+// The provider initialization happens on a coroutine launched on the IO dispatcher. 
+val status = OpenFeatureAPI.getStatus()
+// When status is Ready, flag evaluations can be made
+```
 
 
 ### Targeting
@@ -164,35 +175,6 @@ Logging customization is not yet available in the Kotlin SDK.
 
 Support for named clients is not yet available in the Kotlin SDK.
 
-### Eventing
-
-Events allow you to react to state changes in the provider or underlying flag management system, such as flag definition changes, provider readiness, or error conditions.
-Initialization events (`PROVIDER_READY` on success, `PROVIDER_ERROR` on failure) are dispatched for every provider.
-Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGED`.
-
-Please refer to the documentation of the provider you're using to see what events are supported.
-
-Example usage:
-```kotlin
-viewModelScope.launch {
-  OpenFeatureAPI.observe<OpenFeatureEvents.ProviderReady>().collect {
-    println(">> ProviderReady event received")
-  }
-}
-
-viewModelScope.launch {
-  OpenFeatureAPI.setProviderAndWait(
-    ConfidenceFeatureProvider.create(
-      applicationContext,
-      clientSecret
-    ),
-    Dispatchers.IO,
-    myEvaluationContext
-  )
-}
-```
-
-<!-- (It's only possible to observe events from the global `OpenFeatureAPI`, until multiple providers are supported) -->
 
 ### Shutdown
 
@@ -252,20 +234,12 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
         // resolve a string flag value
     }
 
-    override fun initialize(initialContext: EvaluationContext?) {
+    override suspend fun initialize(initialContext: EvaluationContext?) {
         // add context-aware provider initialization
     }
 
-    override fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
         // add necessary changes on context change
-    }
-
-    override fun observe(): Flow<OpenFeatureEvents> {
-        // return a `Flow` of the Events
-    }
-
-    override fun getProviderStatus(): OpenFeatureEvents {
-        // return the event representative of the current Provider Status
     }
 }
 ```
