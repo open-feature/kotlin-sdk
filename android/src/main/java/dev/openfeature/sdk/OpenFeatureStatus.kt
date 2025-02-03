@@ -19,14 +19,14 @@ sealed interface OpenFeatureStatus {
     class Error(val error: OpenFeatureError) : OpenFeatureStatus
 
     /**
+     * The provider has entered an irrecoverable error state.
+     */
+    class Fatal(val error: OpenFeatureError) : OpenFeatureStatus
+
+    /**
      * The provider's cached state is no longer valid and may not be up-to-date with the source of truth.
      */
     object Stale : OpenFeatureStatus
-
-    /**
-     * The provider has entered an irrecoverable error state.
-     */
-    object Fatal : OpenFeatureStatus
 
     /**
      * The provider is reconciling its state with a context change.

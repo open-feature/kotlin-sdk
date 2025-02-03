@@ -221,7 +221,7 @@ class OpenFeatureClient(
         val providerStatus = openFeatureAPI.getStatus()
         if (providerStatus == OpenFeatureStatus.NotReady) {
             throw OpenFeatureError.ProviderNotReadyError()
-        } else if (providerStatus == OpenFeatureStatus.Fatal) {
+        } else if (providerStatus is OpenFeatureStatus.Fatal) {
             throw OpenFeatureError.ProviderFatalError()
         }
     }
