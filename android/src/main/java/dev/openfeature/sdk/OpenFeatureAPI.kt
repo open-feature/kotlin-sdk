@@ -1,23 +1,36 @@
 package dev.openfeature.sdk
 
+import dev.openfeature.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.launch
 import java.util.concurrent.CancellationException
 
 @Suppress("TooManyFunctions")
 object OpenFeatureAPI {
-    private var setProviderJob: Deferred<Unit>? = null
-    private var setEvaluationContextJob: Deferred<Unit>? = null
+    private var setProviderJob: Job? = null
+    private var setEvaluationContextJob: Job? = null
+    private var observeProviderEventsJob: Job? = null
+    private var providerEventObservationScope: CoroutineScope? = null
+
     private val NOOP_PROVIDER = NoOpProvider()
     private var provider: FeatureProvider = NOOP_PROVIDER
     private var context: EvaluationContext? = null
+    val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(NOOP_PROVIDER)
 
     private val _statusFlow: MutableSharedFlow<OpenFeatureStatus> =
         MutableSharedFlow<OpenFeatureStatus>(replay = 1, extraBufferCapacity = 5)
@@ -29,6 +42,7 @@ object OpenFeatureAPI {
      * A flow of [OpenFeatureStatus] that emits the current status of the SDK.
      */
     val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
+    private var providerJob: Job? = null
 
     var hooks: List<Hook<*>> = listOf()
         private set
@@ -51,8 +65,8 @@ object OpenFeatureAPI {
         initialContext: EvaluationContext? = null
     ) {
         setProviderJob?.cancel()
-        this.setProviderJob = CoroutineScope(dispatcher).async {
-            setProviderInternal(provider, initialContext)
+        this.setProviderJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+            setProviderInternal(provider, dispatcher, initialContext)
         }
     }
 
@@ -64,19 +78,35 @@ object OpenFeatureAPI {
      */
     suspend fun setProviderAndWait(
         provider: FeatureProvider,
-        initialContext: EvaluationContext? = null
+        initialContext: EvaluationContext? = null,
+        dispatcher: CoroutineDispatcher = Dispatchers.IO
     ) {
-        setProviderInternal(provider, initialContext)
+        setProviderInternal(provider, dispatcher, initialContext)
     }
 
+    private fun listenToProviderEvents(provider: FeatureProvider, dispatcher: CoroutineDispatcher) {
+        providerJob?.cancel()
+        this.providerJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+            provider.observe().collect(handleProviderEvents)
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun setProviderInternal(
         provider: FeatureProvider,
+        dispatcher: CoroutineDispatcher,
         initialContext: EvaluationContext? = null
     ) {
-        this@OpenFeatureAPI.provider = provider
-        _statusFlow.emit(OpenFeatureStatus.NotReady)
+        // TODO should we send shutdown to previous provider:
+        // getProvider().shutdown()
+
+        this@OpenFeatureAPI.provider = provider.also {
+            _statusFlow.emit(OpenFeatureStatus.NotReady)
+        }
+        providersFlow.value = provider
         if (initialContext != null) context = initialContext
         try {
+            listenToProviderEvents(provider, dispatcher)
             getProvider().initialize(context)
             _statusFlow.emit(OpenFeatureStatus.Ready)
         } catch (e: OpenFeatureError) {
@@ -102,9 +132,11 @@ object OpenFeatureAPI {
     /**
      * Clear the current [FeatureProvider] for the SDK and set it to a no-op provider.
      */
-    fun clearProvider() {
+    suspend fun clearProvider() {
+        getProvider().shutdown()
         provider = NOOP_PROVIDER
-        _statusFlow.tryEmit(OpenFeatureStatus.NotReady)
+        providersFlow.value = NOOP_PROVIDER
+        _statusFlow.emit(OpenFeatureStatus.NotReady)
     }
 
     /**
@@ -140,7 +172,7 @@ object OpenFeatureAPI {
         dispatcher: CoroutineDispatcher = Dispatchers.IO
     ) {
         setEvaluationContextJob?.cancel()
-        this.setEvaluationContextJob = CoroutineScope(dispatcher).async {
+        this.setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
             setEvaluationContextInternal(evaluationContext)
         }
     }
@@ -208,17 +240,54 @@ object OpenFeatureAPI {
      * This will cancel the provider set job and call the provider's shutdown method.
      * The SDK status will be set to [OpenFeatureStatus.NotReady].
      */
-    fun shutdown() {
+    suspend fun shutdown() {
+        clearHooks()
         setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled"))
         setProviderJob?.cancel(CancellationException("Provider set job was cancelled"))
-        provider = NOOP_PROVIDER
-        _statusFlow.tryEmit(OpenFeatureStatus.NotReady)
-        getProvider().shutdown()
-        clearHooks()
+        observeProviderEventsJob?.cancel(CancellationException("Provider event observe job was cancelled"))
+        providerEventObservationScope?.coroutineContext?.cancelChildren()
+        providerEventObservationScope?.coroutineContext?.cancel()
+        clearProvider()
     }
 
     /**
      * Get the current [OpenFeatureStatus] of the SDK.
      */
     fun getStatus(): OpenFeatureStatus = _statusFlow.replayCache.first()
+
+    /**
+     * Observe events from currently configured Provider.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> = providersFlow
+        .flatMapLatest { it.observe() }.filterIsInstance()
+
+    private val handleProviderEvents: FlowCollector<OpenFeatureProviderEvents> = FlowCollector {
+        when (it) {
+            OpenFeatureProviderEvents.ProviderReady -> {
+                _statusFlow.emit(OpenFeatureStatus.Ready)
+            }
+
+            is OpenFeatureProviderEvents.ProviderError -> {
+                val status = if (it.error is OpenFeatureError.ProviderFatalError) {
+                    OpenFeatureStatus.Fatal(it.error)
+                } else {
+                    OpenFeatureStatus.Error(it.error)
+                }
+                _statusFlow.emit(status)
+            }
+
+            OpenFeatureProviderEvents.ProviderNotReady -> {
+                _statusFlow.emit(OpenFeatureStatus.NotReady)
+            }
+
+            OpenFeatureProviderEvents.ProviderStale -> {
+                _statusFlow.emit(OpenFeatureStatus.Stale)
+            }
+
+            OpenFeatureProviderEvents.ProviderConfigurationChanged -> {
+                _statusFlow.emit(OpenFeatureStatus.Ready)
+            }
+        }
+    }
 }

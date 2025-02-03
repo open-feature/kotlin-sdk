@@ -1,34 +1,46 @@
 package dev.openfeature.sdk
 
+import dev.openfeature.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.sdk.exceptions.ErrorCode
 import dev.openfeature.sdk.exceptions.OpenFeatureError
 import dev.openfeature.sdk.helpers.AutoHealingProvider
 import dev.openfeature.sdk.helpers.BrokenInitProvider
+import dev.openfeature.sdk.helpers.DoSomethingProvider
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
+import dev.openfeature.sdk.helpers.OverlyEmittingProvider
 import dev.openfeature.sdk.helpers.SlowProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.debug.DebugProbes
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
-@ExperimentalCoroutinesApi
+@OptIn(ExperimentalCoroutinesApi::class)
 class DeveloperExperienceTests {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Before
+    fun setup() {
+        DebugProbes.install() // Install DebugProbes
+        System.setProperty("kotlinx.coroutines.debug", "on") // Optional, but helpful
+    }
 
-    @After
-    fun tearDown() {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Before
+    fun tearDown() = runTest {
         // It becomes important to clear the provider after each test since the SDK is a singleton
         OpenFeatureAPI.shutdown()
+        DebugProbes.uninstall() // Clean up to prevent side effects
     }
 
     @Test
@@ -52,6 +64,7 @@ class DeveloperExperienceTests {
             SlowProvider(dispatcher = testDispatcher),
             initialContext = ImmutableContext()
         )
+        advanceUntilIdle()
         OpenFeatureAPI.statusFlow.firstOrNull { it is OpenFeatureStatus.Ready }
         val booleanDetails = OpenFeatureAPI.getClient().getBooleanDetails("test", false)
         Assert.assertNull(booleanDetails.errorCode)
@@ -132,6 +145,7 @@ class DeveloperExperienceTests {
     @Test
     fun testBrokenProvider() = runTest {
         OpenFeatureAPI.setProviderAndWait(BrokenInitProvider(), ImmutableContext())
+        testScheduler.advanceUntilIdle()
         val client = OpenFeatureAPI.getClient()
 
         val details = client.getBooleanDetails("test", false)
@@ -143,7 +157,7 @@ class DeveloperExperienceTests {
     @Test
     fun testSetProviderAndWaitReady() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
-        CoroutineScope(dispatcher).launch {
+        val job = CoroutineScope(dispatcher).launch {
             OpenFeatureAPI.setProviderAndWait(
                 SlowProvider(dispatcher = dispatcher),
                 ImmutableContext()
@@ -155,6 +169,7 @@ class DeveloperExperienceTests {
         testScheduler.advanceTimeBy(10000) // SlowProvider is now Ready
         val booleanValue2 = OpenFeatureAPI.getClient().getBooleanValue("test", false)
         assertTrue(booleanValue2)
+        job.cancelAndJoin()
     }
 
     @Test
@@ -166,15 +181,13 @@ class DeveloperExperienceTests {
 
     @Test
     fun testStatusFlow() = runTest {
-        val dispatcher = UnconfinedTestDispatcher(testScheduler)
+        val dispatcher = StandardTestDispatcher(testScheduler)
         val emittedStatuses = mutableListOf<OpenFeatureStatus>()
         val job = launch {
             OpenFeatureAPI.statusFlow.collect {
                 emittedStatuses.add(it)
             }
         }
-        OpenFeatureAPI.clearProvider()
-        testScheduler.advanceUntilIdle()
         // start out with Not Ready
         OpenFeatureAPI.setProviderAndWait(
             SlowProvider(dispatcher = dispatcher),
@@ -236,18 +249,120 @@ class DeveloperExperienceTests {
     }
 
     @Test
-    fun testProviderThatHealsWithErrorThenReady() = runTest {
+    fun testProviderThatErrorsButHealsThenReady() = runTest {
         val healDelayMillis: Long = 100
         val healing = AutoHealingProvider(healDelay = healDelayMillis)
         val job = async {
             OpenFeatureAPI.setProviderAndWait(healing, ImmutableContext())
         }
-        assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        waitAssert {
+            assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        }
         testScheduler.advanceTimeBy(1)
         assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
         testScheduler.advanceTimeBy(healDelayMillis)
-        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+        waitAssert {
+            assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+        }
         job.cancelAndJoin()
         OpenFeatureAPI.shutdown()
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun testStatusFlowShouldSupportSwappingProviders() = runTest {
+        advanceUntilIdle()
+        val firstProvider = DoSomethingProvider(
+            metadata = object : ProviderMetadata {
+                override val name: String = "First Provider"
+            }
+        )
+        val secondProvider = DoSomethingProvider(
+            metadata = object : ProviderMetadata {
+                override val name: String = "Second Provider"
+            }
+        )
+        val emittedStatuses = mutableListOf<OpenFeatureStatus>()
+        val job = launch {
+            OpenFeatureAPI.statusFlow.collect {
+                emittedStatuses.add(it)
+            }
+        }
+
+        OpenFeatureAPI.setProviderAndWait(
+            firstProvider,
+            initialContext = ImmutableContext("first")
+        )
+        testScheduler.advanceUntilIdle()
+        waitAssert {
+            assertEquals(listOf(OpenFeatureStatus.NotReady, OpenFeatureStatus.Ready), emittedStatuses)
+        }
+        OpenFeatureAPI.setProviderAndWait(
+            secondProvider,
+            initialContext = ImmutableContext("second")
+        )
+        testScheduler.advanceUntilIdle()
+        waitAssert {
+            assertEquals(
+                listOf(
+                    OpenFeatureStatus.NotReady,
+                    OpenFeatureStatus.Ready,
+                    OpenFeatureStatus.NotReady,
+                    OpenFeatureStatus.Ready
+                ),
+                emittedStatuses
+            )
+        }
+        testScheduler.advanceUntilIdle()
+        OpenFeatureAPI.shutdown()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                OpenFeatureStatus.NotReady,
+                OpenFeatureStatus.Ready,
+                OpenFeatureStatus.NotReady,
+                OpenFeatureStatus.Ready,
+                OpenFeatureStatus.NotReady
+            ),
+            emittedStatuses
+        )
+        job.cancelAndJoin()
+    }
+
+    @Test
+    fun testProviderEventFlowShouldSupportFiltering() = runTest {
+        val provider = OverlyEmittingProvider("Overly Emitting Provider")
+        val staleEvents = mutableListOf<OpenFeatureProviderEvents>()
+        val job = launch {
+            // only collect events of type stale.
+            OpenFeatureAPI.observe<OpenFeatureProviderEvents.ProviderStale>().collect {
+                staleEvents.add(it)
+            }
+        }
+
+        // emits ProviderReady
+        OpenFeatureAPI.setProviderAndWait(
+            provider,
+            initialContext = ImmutableContext("first")
+        )
+        // emits ProviderStale + ProviderStale + ProviderStale
+        OpenFeatureAPI.getClient().track("hello-world")
+
+        // emits ProviderStale + ProviderConfigurationChanged
+        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("second"))
+        testScheduler.advanceUntilIdle()
+
+        OpenFeatureAPI.shutdown()
+        job.cancelAndJoin()
+        assertEquals(
+            listOf(
+                OpenFeatureProviderEvents.ProviderStale,
+                OpenFeatureProviderEvents.ProviderStale,
+                OpenFeatureProviderEvents.ProviderStale,
+                OpenFeatureProviderEvents.ProviderStale
+            ),
+            staleEvents
+        )
     }
 }

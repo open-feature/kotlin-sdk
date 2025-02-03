@@ -10,7 +10,7 @@ import org.junit.Test
 class HookSpecTests {
 
     @After
-    fun tearDown() {
+    fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
 

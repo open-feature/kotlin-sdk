@@ -2,13 +2,14 @@ package dev.openfeature.sdk
 
 import dev.openfeature.sdk.exceptions.OpenFeatureError.InvalidContextError
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert
 import org.junit.Test
 
 class HookSupportTests {
     @After
-    fun tearDown() {
+    fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
 

@@ -1,6 +1,9 @@
 package dev.openfeature.sdk
 
+import dev.openfeature.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.sdk.exceptions.OpenFeatureError
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlin.jvm.Throws
 
 interface FeatureProvider {
@@ -52,5 +55,13 @@ interface FeatureProvider {
      */
     fun track(trackingEventName: String, context: EvaluationContext?, details: TrackingEventDetails?) {
         // an empty default implementation to make implementing this functionality optional
+    }
+
+    /**
+     * Used by providers to expose internal events to the SDK or the application.
+     * This can be optionally implemented by the provider to expose a flow of internal events.
+     */
+    fun observe(): Flow<OpenFeatureProviderEvents> {
+        return emptyFlow()
     }
 }
