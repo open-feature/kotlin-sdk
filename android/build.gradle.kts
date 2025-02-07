@@ -5,6 +5,7 @@ plugins {
     id("maven-publish")
     id("signing")
     id("org.jlleitschuh.gradle.ktlint")
+    id("org.jetbrains.kotlinx.binary-compatibility-validator")
 }
 
 val releaseVersion = project.extra["version"].toString()
