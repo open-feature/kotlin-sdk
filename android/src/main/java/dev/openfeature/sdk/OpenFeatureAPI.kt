@@ -6,8 +6,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.util.concurrent.CancellationException
 
 @Suppress("TooManyFunctions")
@@ -27,7 +28,7 @@ object OpenFeatureAPI {
     /**
      * A flow of [OpenFeatureStatus] that emits the current status of the SDK.
      */
-    val statusFlow: SharedFlow<OpenFeatureStatus> get() = _statusFlow
+    val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
 
     var hooks: List<Hook<*>> = listOf()
         private set
@@ -73,22 +74,21 @@ object OpenFeatureAPI {
         initialContext: EvaluationContext? = null
     ) {
         this@OpenFeatureAPI.provider = provider
-        // TODO consider if stale status should emit? _statusFlow.tryEmit(OpenFeatureStatus.Stale)
+        _statusFlow.emit(OpenFeatureStatus.NotReady)
         if (initialContext != null) context = initialContext
         try {
             getProvider().initialize(context)
-            _statusFlow.tryEmit(OpenFeatureStatus.Ready)
+            _statusFlow.emit(OpenFeatureStatus.Ready)
         } catch (e: OpenFeatureError) {
-            _statusFlow.tryEmit(OpenFeatureStatus.Error(e))
+            _statusFlow.emit(OpenFeatureStatus.Error(e))
         } catch (e: Throwable) {
-            _statusFlow.tryEmit(
+            _statusFlow.emit(
                 OpenFeatureStatus.Error(
                     OpenFeatureError.GeneralError(
                         e.message ?: e.javaClass.name
                     )
                 )
             )
-            // TODO deal with things by setting status to Error or Fatal
         }
     }
 
@@ -104,6 +104,7 @@ object OpenFeatureAPI {
      */
     fun clearProvider() {
         provider = NOOP_PROVIDER
+        _statusFlow.tryEmit(OpenFeatureStatus.NotReady)
     }
 
     /**
@@ -148,15 +149,14 @@ object OpenFeatureAPI {
         val oldContext = context
         context = evaluationContext
         if (oldContext != evaluationContext) {
-            _statusFlow.tryEmit(OpenFeatureStatus.Reconciling)
+            _statusFlow.emit(OpenFeatureStatus.Reconciling)
             try {
                 getProvider().onContextSet(oldContext, evaluationContext)
-                _statusFlow.tryEmit(OpenFeatureStatus.Ready)
+                _statusFlow.emit(OpenFeatureStatus.Ready)
             } catch (e: OpenFeatureError) {
-                _statusFlow.tryEmit(OpenFeatureStatus.Error(e))
-                // TODO how do we handle fatal errors?
+                _statusFlow.emit(OpenFeatureStatus.Error(e))
             } catch (e: Throwable) {
-                _statusFlow.tryEmit(
+                _statusFlow.emit(
                     OpenFeatureStatus.Error(
                         OpenFeatureError.GeneralError(
                             e.message ?: e.javaClass.name
@@ -211,6 +211,7 @@ object OpenFeatureAPI {
     fun shutdown() {
         setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled"))
         setProviderJob?.cancel(CancellationException("Provider set job was cancelled"))
+        provider = NOOP_PROVIDER
         _statusFlow.tryEmit(OpenFeatureStatus.NotReady)
         getProvider().shutdown()
         clearHooks()
@@ -219,5 +220,5 @@ object OpenFeatureAPI {
     /**
      * Get the current [OpenFeatureStatus] of the SDK.
      */
-    fun getStatus(): OpenFeatureStatus = statusFlow.replayCache.first()
+    fun getStatus(): OpenFeatureStatus = _statusFlow.replayCache.first()
 }
