@@ -36,7 +36,7 @@ class TrackingProviderTests {
             "targetingKey",
             mapOf("integer" to Value.Integer(33))
         )
-        OpenFeatureAPI.setEvaluationContext(
+        OpenFeatureAPI.setEvaluationContextAndWait(
             evaluationContext
         )
         OpenFeatureAPI.getClient().track("MyEventName")
@@ -56,7 +56,7 @@ class TrackingProviderTests {
             "targetingKey",
             mapOf("integer" to Value.Integer(33))
         )
-        OpenFeatureAPI.setEvaluationContext(
+        OpenFeatureAPI.setEvaluationContextAndWait(
             evaluationContext
         )
         OpenFeatureAPI.getClient().track(
