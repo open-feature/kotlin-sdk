@@ -188,6 +188,7 @@ class OpenFeatureClient(
         )
         try {
             hookSupport.beforeHooks(flagValueType, hookCtx, mergedHooks, hints)
+            shortCircuitIfNotReady()
             val providerEval = createProviderEvaluation(
                 flagValueType,
                 key,
@@ -214,6 +215,15 @@ class OpenFeatureClient(
         }
         hookSupport.afterAllHooks(flagValueType, hookCtx, mergedHooks, hints)
         return details
+    }
+
+    private fun shortCircuitIfNotReady() {
+        val providerStatus = openFeatureAPI.getStatus()
+        if (providerStatus == OpenFeatureStatus.NotReady) {
+            throw OpenFeatureError.ProviderNotReadyError()
+        } else if (providerStatus == OpenFeatureStatus.Fatal) {
+            throw OpenFeatureError.ProviderFatalError()
+        }
     }
 
     @Suppress("UNCHECKED_CAST")

@@ -6,36 +6,36 @@ import dev.openfeature.sdk.Hook
 import dev.openfeature.sdk.ProviderEvaluation
 import dev.openfeature.sdk.ProviderMetadata
 import dev.openfeature.sdk.Value
-import dev.openfeature.sdk.events.EventHandler
-import dev.openfeature.sdk.events.OpenFeatureEvents
 import dev.openfeature.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
 
-class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dispatcher: CoroutineDispatcher) : FeatureProvider {
+class SlowProvider(
+    override val hooks: List<Hook<*>> = listOf(),
+    private var dispatcher: CoroutineDispatcher,
     override val metadata: ProviderMetadata = SlowProviderMetadata("Slow provider")
-    private var ready = false
-    private var eventHandler = EventHandler(dispatcher)
-    override fun initialize(initialContext: EvaluationContext?) {
-        CoroutineScope(dispatcher).launch {
-            delay(10000)
-            ready = true
-            eventHandler.publish(OpenFeatureEvents.ProviderReady)
-        }
+) : FeatureProvider {
+    internal var ready = false
+    override suspend fun initialize(initialContext: EvaluationContext?) {
+        CoroutineScope(dispatcher).async {
+            delay(2000)
+        }.await()
+        ready = true
     }
 
     override fun shutdown() {
         // no-op
     }
 
-    override fun onContextSet(
+    override suspend fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
-        // no-op
+        CoroutineScope(dispatcher).async {
+            delay(2000)
+        }.await()
     }
 
     override fun getBooleanEvaluation(
@@ -81,14 +81,6 @@ class SlowProvider(override val hooks: List<Hook<*>> = listOf(), private var dis
     ): ProviderEvaluation<Value> {
         if (!ready) throw OpenFeatureError.FlagNotFoundError(key)
         return ProviderEvaluation(Value.Null)
-    }
-
-    override fun observe(): Flow<OpenFeatureEvents> = eventHandler.observe()
-
-    override fun getProviderStatus(): OpenFeatureEvents = if (ready) {
-        OpenFeatureEvents.ProviderReady
-    } else {
-        OpenFeatureEvents.ProviderStale
     }
 
     data class SlowProviderMetadata(override val name: String?) : ProviderMetadata

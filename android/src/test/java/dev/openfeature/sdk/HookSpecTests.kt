@@ -1,18 +1,22 @@
 package dev.openfeature.sdk
 
-import dev.openfeature.sdk.helpers.AlwaysBrokenProvider
+import dev.openfeature.sdk.helpers.BrokenInitProvider
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert
 import org.junit.Test
 
-@ExperimentalCoroutinesApi
 class HookSpecTests {
+
+    @After
+    fun tearDown() {
+        OpenFeatureAPI.shutdown()
+    }
 
     @Test
     fun testNoErrorHookCalled() = runTest {
-        OpenFeatureAPI.setProvider(NoOpProvider())
+        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
         val client = OpenFeatureAPI.getClient()
         val hook = GenericSpyHookMock()
 
@@ -26,7 +30,7 @@ class HookSpecTests {
 
     @Test
     fun testErrorHookButNoAfterCalled() = runTest {
-        OpenFeatureAPI.setProvider(AlwaysBrokenProvider())
+        OpenFeatureAPI.setProviderAndWait(BrokenInitProvider())
         val client = OpenFeatureAPI.getClient()
         val hook = GenericSpyHookMock()
 
@@ -46,7 +50,7 @@ class HookSpecTests {
             hooks = listOf(GenericSpyHookMock("provider", addEval))
         )
 
-        OpenFeatureAPI.setProvider(provider)
+        OpenFeatureAPI.setProviderAndWait(provider)
         OpenFeatureAPI.addHooks(listOf(GenericSpyHookMock("api", addEval)))
         val client = OpenFeatureAPI.getClient()
         client.addHooks(listOf(GenericSpyHookMock("client", addEval)))

@@ -20,5 +20,8 @@ enum class ErrorCode {
     INVALID_CONTEXT,
 
     // The error was for a reason not enumerated above.
-    GENERAL
+    GENERAL,
+
+    // The provider is in an irrecoverable error state.
+    PROVIDER_FATAL
 }

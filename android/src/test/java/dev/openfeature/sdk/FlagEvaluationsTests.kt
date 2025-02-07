@@ -1,21 +1,26 @@
 package dev.openfeature.sdk
 
 import dev.openfeature.sdk.exceptions.ErrorCode
-import dev.openfeature.sdk.helpers.AlwaysBrokenProvider
+import dev.openfeature.sdk.helpers.BrokenInitProvider
 import dev.openfeature.sdk.helpers.DoSomethingProvider
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert
 import org.junit.Test
 
-@ExperimentalCoroutinesApi
 class FlagEvaluationsTests {
+
+    @After
+    fun tearDown() {
+        OpenFeatureAPI.shutdown()
+    }
+
     @Test
     fun testApiSetsProvider() = runTest {
         val provider = NoOpProvider()
 
-        OpenFeatureAPI.setProvider(provider)
+        OpenFeatureAPI.setProviderAndWait(provider)
         Assert.assertEquals(provider, OpenFeatureAPI.getProvider())
     }
 
@@ -46,7 +51,7 @@ class FlagEvaluationsTests {
 
     @Test
     fun testSimpleFlagEvaluation() = runTest {
-        OpenFeatureAPI.setProvider(DoSomethingProvider())
+        OpenFeatureAPI.setProviderAndWait(DoSomethingProvider())
         val client = OpenFeatureAPI.getClient()
         val key = "key"
 
@@ -68,7 +73,7 @@ class FlagEvaluationsTests {
 
     @Test
     fun testDetailedFlagEvaluation() = runTest {
-        OpenFeatureAPI.setProvider(DoSomethingProvider())
+        OpenFeatureAPI.setProviderAndWait(DoSomethingProvider())
         val client = OpenFeatureAPI.getClient()
         val key = "key"
 
@@ -96,7 +101,7 @@ class FlagEvaluationsTests {
 
     @Test
     fun testMetadataFlagEvaluation() = runTest {
-        OpenFeatureAPI.setProvider(DoSomethingProvider())
+        OpenFeatureAPI.setProviderAndWait(DoSomethingProvider())
         val client = OpenFeatureAPI.getClient()
         val key = "key"
 
@@ -108,7 +113,7 @@ class FlagEvaluationsTests {
 
     @Test
     fun testHooksAreFired() = runTest {
-        OpenFeatureAPI.setProvider(NoOpProvider())
+        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
         val client = OpenFeatureAPI.getClient()
 
         val clientHook = GenericSpyHookMock()
@@ -123,7 +128,7 @@ class FlagEvaluationsTests {
 
     @Test
     fun testBrokenProvider() = runTest {
-        OpenFeatureAPI.setProvider(AlwaysBrokenProvider())
+        OpenFeatureAPI.setProviderAndWait(BrokenInitProvider())
         val client = OpenFeatureAPI.getClient()
 
         client.getBooleanValue("testKey", false)

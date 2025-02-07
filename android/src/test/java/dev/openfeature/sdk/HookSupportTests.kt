@@ -2,10 +2,16 @@ package dev.openfeature.sdk
 
 import dev.openfeature.sdk.exceptions.OpenFeatureError.InvalidContextError
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
+import org.junit.After
 import org.junit.Assert
 import org.junit.Test
 
 class HookSupportTests {
+    @After
+    fun tearDown() {
+        OpenFeatureAPI.shutdown()
+    }
+
     @Test
     fun testShouldAlwaysCallGenericHook() {
         val metadata = OpenFeatureAPI.getClient().metadata

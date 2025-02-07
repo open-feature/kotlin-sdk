@@ -1,5 +1,7 @@
 package dev.openfeature.sdk
 
+import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -15,16 +17,21 @@ class TrackingProviderTests {
         inMemoryTrackingProvider = InMemoryTrackingProvider()
     }
 
+    @After
+    fun tearDown() {
+        OpenFeatureAPI.shutdown()
+    }
+
     @Test(expected = IllegalArgumentException::class)
-    fun throwsOnEmptyName() {
+    fun throwsOnEmptyName() = runTest {
         OpenFeatureAPI.setProvider(inMemoryTrackingProvider)
         OpenFeatureAPI.getClient().track("")
         assertEquals(0, inMemoryTrackingProvider.trackings.size)
     }
 
     @Test
-    fun sendWithoutDetailsAppendsContext() {
-        OpenFeatureAPI.setProvider(inMemoryTrackingProvider)
+    fun sendWithoutDetailsAppendsContext() = runTest {
+        OpenFeatureAPI.setProviderAndWait(inMemoryTrackingProvider)
         val evaluationContext = ImmutableContext(
             "targetingKey",
             mapOf("integer" to Value.Integer(33))
@@ -43,8 +50,8 @@ class TrackingProviderTests {
     }
 
     @Test
-    fun trackEventWithDetails() {
-        OpenFeatureAPI.setProvider(inMemoryTrackingProvider)
+    fun trackEventWithDetails() = runTest {
+        OpenFeatureAPI.setProviderAndWait(inMemoryTrackingProvider)
         val evaluationContext = ImmutableContext(
             "targetingKey",
             mapOf("integer" to Value.Integer(33))

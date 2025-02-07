@@ -1,13 +1,18 @@
 package dev.openfeature.sdk
 
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-@ExperimentalCoroutinesApi
 class OpenFeatureClientTests {
+
+    @After
+    fun tearDown() {
+        OpenFeatureAPI.shutdown()
+    }
+
     @Test
     fun testShouldNowThrowIfHookHasDifferentTypeArgument() = runTest {
         OpenFeatureAPI.setProvider(NoOpProvider())

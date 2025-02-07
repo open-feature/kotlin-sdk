@@ -1,22 +1,35 @@
 package dev.openfeature.sdk
 
-import dev.openfeature.sdk.events.EventObserver
-import dev.openfeature.sdk.events.ProviderStatus
+import dev.openfeature.sdk.exceptions.OpenFeatureError
+import kotlin.jvm.Throws
 
-interface FeatureProvider : EventObserver, ProviderStatus {
+interface FeatureProvider {
     val hooks: List<Hook<*>>
     val metadata: ProviderMetadata
 
-    // Called by OpenFeatureAPI whenever the new Provider is registered
-    // This function should never throw
-    fun initialize(initialContext: EvaluationContext?)
+    /**
+     * Called by OpenFeatureAPI whenever the new Provider is registered
+     * This function should block until ready and throw exceptions if it fails to initialize
+     * @param initialContext any initial context to be set before the provider is ready
+     */
+    @Throws(OpenFeatureError::class)
+    suspend fun initialize(initialContext: EvaluationContext?)
 
-    // Called when the lifecycle of the OpenFeatureClient is over
-    // to release resources/threads
+    /**
+     * Called when the lifecycle of the OpenFeatureClient is over to release resources/threads
+     */
     fun shutdown()
 
-    // Called by OpenFeatureAPI whenever a new EvaluationContext is set by the application
-    fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext)
+    /**
+     * Called by OpenFeatureAPI whenever a new EvaluationContext is set by the application
+     * Perform blocking work here until the provider is ready again or throws an exception
+     * @param oldContext The old EvaluationContext
+     * @param newContext The new EvaluationContext
+     * @throws OpenFeatureError if the provider cannot perform the task
+     */
+    @Throws(OpenFeatureError::class)
+    suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext)
+
     fun getBooleanEvaluation(
         key: String,
         defaultValue: Boolean,
