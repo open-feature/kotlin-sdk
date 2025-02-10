@@ -30,7 +30,8 @@ object OpenFeatureAPI {
     private val NOOP_PROVIDER = NoOpProvider()
     private var provider: FeatureProvider = NOOP_PROVIDER
     private var context: EvaluationContext? = null
-    val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(NOOP_PROVIDER)
+    private val _providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(NOOP_PROVIDER)
+    val providersFlow: Flow<FeatureProvider> get() = _providersFlow
 
     private val _statusFlow: MutableSharedFlow<OpenFeatureStatus> =
         MutableSharedFlow<OpenFeatureStatus>(replay = 1, extraBufferCapacity = 5)
@@ -103,7 +104,7 @@ object OpenFeatureAPI {
         this@OpenFeatureAPI.provider = provider.also {
             _statusFlow.emit(OpenFeatureStatus.NotReady)
         }
-        providersFlow.value = provider
+        _providersFlow.value = provider
         if (initialContext != null) context = initialContext
         try {
             listenToProviderEvents(provider, dispatcher)
@@ -135,7 +136,7 @@ object OpenFeatureAPI {
     suspend fun clearProvider() {
         getProvider().shutdown()
         provider = NOOP_PROVIDER
-        providersFlow.value = NOOP_PROVIDER
+        _providersFlow.value = NOOP_PROVIDER
         _statusFlow.emit(OpenFeatureStatus.NotReady)
     }
 
@@ -258,7 +259,6 @@ object OpenFeatureAPI {
     /**
      * Observe events from currently configured Provider.
      */
-    // reified T : OpenFeatureProviderEvents
     @OptIn(ExperimentalCoroutinesApi::class)
     inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> = providersFlow
         .flatMapLatest { it.observe() }.filterIsInstance()
