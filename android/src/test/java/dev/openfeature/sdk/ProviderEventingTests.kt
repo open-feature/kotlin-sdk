@@ -13,14 +13,14 @@ import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Assert
+import org.junit.Before
 import org.junit.Test
 
 class ProviderEventingTests {
 
-    @After
-    fun tearDown() {
+    @Before
+    fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
 
@@ -62,13 +62,17 @@ class ProviderEventingTests {
             initialContext = ImmutableContext()
         )
         testScheduler.advanceUntilIdle()
-        Assert.assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+        waitAssert {
+            Assert.assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+        }
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("new"))
         testScheduler.advanceUntilIdle()
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
         j.cancelAndJoin()
-        Assert.assertEquals(5, statusList.size)
+        waitAssert {
+            Assert.assertEquals(5, statusList.size)
+        }
         Assert.assertEquals(OpenFeatureStatus.Ready, statusList[0])
         Assert.assertEquals(OpenFeatureStatus.Reconciling, statusList[1])
         Assert.assertTrue(statusList[2] is OpenFeatureStatus.Error)

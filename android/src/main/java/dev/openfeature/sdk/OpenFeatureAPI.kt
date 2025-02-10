@@ -8,10 +8,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -28,13 +30,7 @@ object OpenFeatureAPI {
     private val NOOP_PROVIDER = NoOpProvider()
     private var provider: FeatureProvider = NOOP_PROVIDER
     private var context: EvaluationContext? = null
-    private val _providersFlow: MutableSharedFlow<FeatureProvider> =
-        MutableSharedFlow(
-            replay = 1,
-            extraBufferCapacity = 5,
-            onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-    val providersFlow: Flow<FeatureProvider> get() = _providersFlow
+    val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(NOOP_PROVIDER)
 
     private val _statusFlow: MutableSharedFlow<OpenFeatureStatus> =
         MutableSharedFlow<OpenFeatureStatus>(replay = 1, extraBufferCapacity = 5)
@@ -46,6 +42,7 @@ object OpenFeatureAPI {
      * A flow of [OpenFeatureStatus] that emits the current status of the SDK.
      */
     val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
+    private var providerJob: Job? = null
 
     var hooks: List<Hook<*>> = listOf()
         private set
@@ -87,6 +84,13 @@ object OpenFeatureAPI {
         setProviderInternal(provider, dispatcher, initialContext)
     }
 
+    private fun listenToProviderEvents(provider: FeatureProvider, dispatcher: CoroutineDispatcher) {
+        providerJob?.cancel()
+        this.providerJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+            provider.observe().collect(handleProviderEvents)
+        }
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun setProviderInternal(
         provider: FeatureProvider,
@@ -99,14 +103,10 @@ object OpenFeatureAPI {
         this@OpenFeatureAPI.provider = provider.also {
             _statusFlow.emit(OpenFeatureStatus.NotReady)
         }
-        _providersFlow.emit(provider)
+        providersFlow.value = provider
         if (initialContext != null) context = initialContext
         try {
-            this.providerEventObservationScope = CoroutineScope(dispatcher + SupervisorJob()).also { scope ->
-                this.observeProviderEventsJob = scope.launch {
-                    providersFlow.flatMapLatest { it.observe() }.collect(handleProviderEvents)
-                }
-            }
+            listenToProviderEvents(provider, dispatcher)
             getProvider().initialize(context)
             _statusFlow.emit(OpenFeatureStatus.Ready)
         } catch (e: OpenFeatureError) {
@@ -132,11 +132,11 @@ object OpenFeatureAPI {
     /**
      * Clear the current [FeatureProvider] for the SDK and set it to a no-op provider.
      */
-    fun clearProvider() {
+    suspend fun clearProvider() {
         getProvider().shutdown()
         provider = NOOP_PROVIDER
-        _providersFlow.tryEmit(NOOP_PROVIDER)
-        _statusFlow.tryEmit(OpenFeatureStatus.NotReady)
+        providersFlow.value = NOOP_PROVIDER
+        _statusFlow.emit(OpenFeatureStatus.NotReady)
     }
 
     /**
@@ -240,13 +240,14 @@ object OpenFeatureAPI {
      * This will cancel the provider set job and call the provider's shutdown method.
      * The SDK status will be set to [OpenFeatureStatus.NotReady].
      */
-    fun shutdown() {
-        clearProvider()
+    suspend fun shutdown() {
         clearHooks()
         setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled"))
         setProviderJob?.cancel(CancellationException("Provider set job was cancelled"))
         observeProviderEventsJob?.cancel(CancellationException("Provider event observe job was cancelled"))
-        // providerEventObservationScope?.cancel(CancellationException("Provider event observe job was cancelled"))
+        providerEventObservationScope?.coroutineContext?.cancelChildren()
+        providerEventObservationScope?.coroutineContext?.cancel()
+        clearProvider()
     }
 
     /**

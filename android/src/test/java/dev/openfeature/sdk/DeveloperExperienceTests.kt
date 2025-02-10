@@ -19,7 +19,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -37,7 +36,7 @@ class DeveloperExperienceTests {
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    @After
+    @Before
     fun tearDown() = runTest {
         // It becomes important to clear the provider after each test since the SDK is a singleton
         OpenFeatureAPI.shutdown()
@@ -256,7 +255,9 @@ class DeveloperExperienceTests {
         val job = async {
             OpenFeatureAPI.setProviderAndWait(healing, ImmutableContext())
         }
-        assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        waitAssert {
+            assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        }
         testScheduler.advanceTimeBy(1)
         assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
         testScheduler.advanceTimeBy(healDelayMillis)
@@ -268,6 +269,7 @@ class DeveloperExperienceTests {
 
     @Test
     fun testStatusFlowShouldSupportSwappingProviders() = runTest {
+        advanceUntilIdle()
         val firstProvider = DoSomethingProvider(
             metadata = object : ProviderMetadata {
                 override val name: String = "First Provider"
@@ -290,17 +292,29 @@ class DeveloperExperienceTests {
             initialContext = ImmutableContext("first")
         )
         testScheduler.advanceUntilIdle()
-        assertEquals(listOf(OpenFeatureStatus.NotReady, OpenFeatureStatus.Ready), emittedStatuses)
-
+        waitAssert {
+            assertEquals(listOf(OpenFeatureStatus.NotReady, OpenFeatureStatus.Ready), emittedStatuses)
+        }
         OpenFeatureAPI.setProviderAndWait(
             secondProvider,
             initialContext = ImmutableContext("second")
         )
         testScheduler.advanceUntilIdle()
-
+        waitAssert {
+            assertEquals(
+                listOf(
+                    OpenFeatureStatus.NotReady,
+                    OpenFeatureStatus.Ready,
+                    OpenFeatureStatus.NotReady,
+                    OpenFeatureStatus.Ready
+                ),
+                emittedStatuses
+            )
+        }
+        testScheduler.advanceUntilIdle()
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
-        job.cancelAndJoin()
+
         assertEquals(
             listOf(
                 OpenFeatureStatus.NotReady,
@@ -311,6 +325,7 @@ class DeveloperExperienceTests {
             ),
             emittedStatuses
         )
+        job.cancelAndJoin()
     }
 
     @Test

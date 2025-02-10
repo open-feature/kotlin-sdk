@@ -18,7 +18,7 @@ class TrackingProviderTests {
     }
 
     @After
-    fun tearDown() {
+    fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
 
