@@ -15,7 +15,7 @@ class BrokenInitProvider(
 ) :
     FeatureProvider {
     override suspend fun initialize(initialContext: EvaluationContext?) {
-        throw OpenFeatureError.ProviderNotReadyError("test error")
+        throw OpenFeatureError.ProviderNotReadyError("test error from $this")
     }
 
     override fun shutdown() {

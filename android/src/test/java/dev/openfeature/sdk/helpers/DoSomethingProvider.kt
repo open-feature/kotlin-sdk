@@ -6,16 +6,18 @@ import dev.openfeature.sdk.FeatureProvider
 import dev.openfeature.sdk.Hook
 import dev.openfeature.sdk.ProviderEvaluation
 import dev.openfeature.sdk.ProviderMetadata
+import dev.openfeature.sdk.TrackingEventDetails
 import dev.openfeature.sdk.Value
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
+import dev.openfeature.sdk.events.OpenFeatureProviderEvents
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
-class DoSomethingProvider(
+open class DoSomethingProvider(
     override val hooks: List<Hook<*>> = listOf(),
-    override val metadata: ProviderMetadata = DoSomethingProviderMetadata(),
-    private var dispatcher: CoroutineDispatcher = Dispatchers.IO
+    override val metadata: ProviderMetadata = DoSomethingProviderMetadata()
 ) : FeatureProvider {
+    protected val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
     companion object {
         val evaluationMetadata = EvaluationMetadata.builder()
             .putString("key1", "value1")
@@ -25,6 +27,7 @@ class DoSomethingProvider(
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         delay(1000)
+        events.emit(OpenFeatureProviderEvents.ProviderReady)
     }
 
     override fun shutdown() {
@@ -36,6 +39,7 @@ class DoSomethingProvider(
         newContext: EvaluationContext
     ) {
         delay(500)
+        events.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged)
     }
 
     override fun getBooleanEvaluation(
@@ -82,4 +86,33 @@ class DoSomethingProvider(
     }
 
     class DoSomethingProviderMetadata(override val name: String? = "something") : ProviderMetadata
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> {
+        return events
+    }
+}
+
+class OverlyEmittingProvider(name: String) : DoSomethingProvider(
+    metadata = object : ProviderMetadata {
+        override val name: String = name
+    }
+) {
+    override suspend fun onContextSet(
+        oldContext: EvaluationContext?,
+        newContext: EvaluationContext
+    ) {
+        events.emit(OpenFeatureProviderEvents.ProviderStale)
+        events.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged)
+    }
+
+    override fun track(
+        trackingEventName: String,
+        context: EvaluationContext?,
+        details: TrackingEventDetails?
+    ) {
+        super.track(trackingEventName, context, details)
+        events.tryEmit(OpenFeatureProviderEvents.ProviderStale)
+        events.tryEmit(OpenFeatureProviderEvents.ProviderStale)
+        events.tryEmit(OpenFeatureProviderEvents.ProviderStale)
+    }
 }
