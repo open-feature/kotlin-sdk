@@ -175,6 +175,9 @@ Logging customization is not yet available in the Kotlin SDK.
 
 Support for named clients is not yet available in the Kotlin SDK.
 
+### Eventing
+
+Support for eventing is not yet available in the Kotlin SDK.
 
 ### Shutdown
 
