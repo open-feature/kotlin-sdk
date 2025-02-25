@@ -78,8 +78,11 @@ class StatusTests {
 
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
-        assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        waitAssert {
+            assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        }
         job.cancelAndJoin()
+
         assertEquals(7, statuses.size)
         assertEquals(
             listOf(

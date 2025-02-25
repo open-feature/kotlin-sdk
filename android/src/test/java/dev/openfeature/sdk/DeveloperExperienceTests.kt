@@ -317,16 +317,18 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
 
-        assertEquals(
-            listOf(
-                OpenFeatureStatus.NotReady,
-                OpenFeatureStatus.Ready,
-                OpenFeatureStatus.NotReady,
-                OpenFeatureStatus.Ready,
-                OpenFeatureStatus.NotReady
-            ),
-            emittedStatuses
-        )
+        waitAssert {
+            assertEquals(
+                listOf(
+                    OpenFeatureStatus.NotReady,
+                    OpenFeatureStatus.Ready,
+                    OpenFeatureStatus.NotReady,
+                    OpenFeatureStatus.Ready,
+                    OpenFeatureStatus.NotReady
+                ),
+                emittedStatuses
+            )
+        }
         job.cancelAndJoin()
     }
 
