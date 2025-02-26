@@ -12,7 +12,7 @@ import org.junit.Test
 class FlagEvaluationsTests {
 
     @After
-    fun tearDown() {
+    fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
 

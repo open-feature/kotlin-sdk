@@ -63,12 +63,14 @@ public abstract interface class dev/openfeature/sdk/FeatureProvider {
 	public abstract fun getObjectEvaluation (Ljava/lang/String;Ldev/openfeature/sdk/Value;Ldev/openfeature/sdk/EvaluationContext;)Ldev/openfeature/sdk/ProviderEvaluation;
 	public abstract fun getStringEvaluation (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/sdk/EvaluationContext;)Ldev/openfeature/sdk/ProviderEvaluation;
 	public abstract fun initialize (Ldev/openfeature/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun observe ()Lkotlinx/coroutines/flow/Flow;
 	public abstract fun onContextSet (Ldev/openfeature/sdk/EvaluationContext;Ldev/openfeature/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun shutdown ()V
 	public abstract fun track (Ljava/lang/String;Ldev/openfeature/sdk/EvaluationContext;Ldev/openfeature/sdk/TrackingEventDetails;)V
 }
 
 public final class dev/openfeature/sdk/FeatureProvider$DefaultImpls {
+	public static fun observe (Ldev/openfeature/sdk/FeatureProvider;)Lkotlinx/coroutines/flow/Flow;
 	public static fun track (Ldev/openfeature/sdk/FeatureProvider;Ljava/lang/String;Ldev/openfeature/sdk/EvaluationContext;Ldev/openfeature/sdk/TrackingEventDetails;)V
 }
 
@@ -237,6 +239,7 @@ public class dev/openfeature/sdk/NoOpProvider : dev/openfeature/sdk/FeatureProvi
 	public fun getObjectEvaluation (Ljava/lang/String;Ldev/openfeature/sdk/Value;Ldev/openfeature/sdk/EvaluationContext;)Ldev/openfeature/sdk/ProviderEvaluation;
 	public fun getStringEvaluation (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/sdk/EvaluationContext;)Ldev/openfeature/sdk/ProviderEvaluation;
 	public fun initialize (Ldev/openfeature/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun observe ()Lkotlinx/coroutines/flow/Flow;
 	public fun onContextSet (Ldev/openfeature/sdk/EvaluationContext;Ldev/openfeature/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun shutdown ()V
 	public fun track (Ljava/lang/String;Ldev/openfeature/sdk/EvaluationContext;Ldev/openfeature/sdk/TrackingEventDetails;)V
@@ -257,13 +260,14 @@ public final class dev/openfeature/sdk/OpenFeatureAPI {
 	public static final field INSTANCE Ldev/openfeature/sdk/OpenFeatureAPI;
 	public final fun addHooks (Ljava/util/List;)V
 	public final fun clearHooks ()V
-	public final fun clearProvider ()V
+	public final fun clearProvider (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun getClient (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/sdk/Client;
 	public static synthetic fun getClient$default (Ldev/openfeature/sdk/OpenFeatureAPI;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/openfeature/sdk/Client;
 	public final fun getEvaluationContext ()Ldev/openfeature/sdk/EvaluationContext;
 	public final fun getHooks ()Ljava/util/List;
 	public final fun getProvider ()Ldev/openfeature/sdk/FeatureProvider;
 	public final fun getProviderMetadata ()Ldev/openfeature/sdk/ProviderMetadata;
+	public final fun getProvidersFlow ()Lkotlinx/coroutines/flow/MutableStateFlow;
 	public final fun getStatus ()Ldev/openfeature/sdk/OpenFeatureStatus;
 	public final fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
 	public final fun setEvaluationContext (Ldev/openfeature/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;)V
@@ -271,9 +275,9 @@ public final class dev/openfeature/sdk/OpenFeatureAPI {
 	public final fun setEvaluationContextAndWait (Ldev/openfeature/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setProvider (Ldev/openfeature/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/sdk/EvaluationContext;)V
 	public static synthetic fun setProvider$default (Ldev/openfeature/sdk/OpenFeatureAPI;Ldev/openfeature/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/sdk/EvaluationContext;ILjava/lang/Object;)V
-	public final fun setProviderAndWait (Ldev/openfeature/sdk/FeatureProvider;Ldev/openfeature/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun setProviderAndWait$default (Ldev/openfeature/sdk/OpenFeatureAPI;Ldev/openfeature/sdk/FeatureProvider;Ldev/openfeature/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public final fun shutdown ()V
+	public final fun setProviderAndWait (Ldev/openfeature/sdk/FeatureProvider;Ldev/openfeature/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setProviderAndWait$default (Ldev/openfeature/sdk/OpenFeatureAPI;Ldev/openfeature/sdk/FeatureProvider;Ldev/openfeature/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun shutdown (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class dev/openfeature/sdk/OpenFeatureClient : dev/openfeature/sdk/Client {
@@ -325,7 +329,8 @@ public final class dev/openfeature/sdk/OpenFeatureStatus$Error : dev/openfeature
 }
 
 public final class dev/openfeature/sdk/OpenFeatureStatus$Fatal : dev/openfeature/sdk/OpenFeatureStatus {
-	public static final field INSTANCE Ldev/openfeature/sdk/OpenFeatureStatus$Fatal;
+	public fun <init> (Ldev/openfeature/sdk/exceptions/OpenFeatureError;)V
+	public final fun getError ()Ldev/openfeature/sdk/exceptions/OpenFeatureError;
 }
 
 public final class dev/openfeature/sdk/OpenFeatureStatus$NotReady : dev/openfeature/sdk/OpenFeatureStatus {
@@ -587,6 +592,36 @@ public final class dev/openfeature/sdk/Value$Structure : dev/openfeature/sdk/Val
 	public fun hashCode ()I
 	public fun isNull ()Z
 	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/openfeature/sdk/events/OpenFeatureProviderEvents {
+}
+
+public final class dev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderConfigurationChanged : dev/openfeature/sdk/events/OpenFeatureProviderEvents {
+	public static final field INSTANCE Ldev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderConfigurationChanged;
+}
+
+public final class dev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderError : dev/openfeature/sdk/events/OpenFeatureProviderEvents {
+	public fun <init> (Ldev/openfeature/sdk/exceptions/OpenFeatureError;)V
+	public final fun component1 ()Ldev/openfeature/sdk/exceptions/OpenFeatureError;
+	public final fun copy (Ldev/openfeature/sdk/exceptions/OpenFeatureError;)Ldev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderError;
+	public static synthetic fun copy$default (Ldev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderError;Ldev/openfeature/sdk/exceptions/OpenFeatureError;ILjava/lang/Object;)Ldev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderError;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Ldev/openfeature/sdk/exceptions/OpenFeatureError;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderNotReady : dev/openfeature/sdk/events/OpenFeatureProviderEvents {
+	public static final field INSTANCE Ldev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderNotReady;
+}
+
+public final class dev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderReady : dev/openfeature/sdk/events/OpenFeatureProviderEvents {
+	public static final field INSTANCE Ldev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderReady;
+}
+
+public final class dev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderStale : dev/openfeature/sdk/events/OpenFeatureProviderEvents {
+	public static final field INSTANCE Ldev/openfeature/sdk/events/OpenFeatureProviderEvents$ProviderStale;
 }
 
 public final class dev/openfeature/sdk/exceptions/ErrorCode : java/lang/Enum {

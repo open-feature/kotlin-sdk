@@ -9,7 +9,7 @@ import org.junit.Test
 class OpenFeatureClientTests {
 
     @After
-    fun tearDown() {
+    fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
 

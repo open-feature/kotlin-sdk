@@ -6,8 +6,11 @@ import dev.openfeature.sdk.Hook
 import dev.openfeature.sdk.ProviderEvaluation
 import dev.openfeature.sdk.ProviderMetadata
 import dev.openfeature.sdk.Value
+import dev.openfeature.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 class AutoHealingProvider(
     val healDelay: Long = 1000L,
@@ -17,9 +20,18 @@ class AutoHealingProvider(
         override val name: String = "AutoHealingProvider"
     }
     private var ready = false
+    private val _events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
     override suspend fun initialize(initialContext: EvaluationContext?) {
         ready = false
+        _events.emit(
+            OpenFeatureProviderEvents.ProviderError(
+                OpenFeatureError.ProviderNotReadyError(
+                    "AutoHealingProvider got an error. trying to heal"
+                )
+            )
+        )
         delay(healDelay)
+        _events.emit(OpenFeatureProviderEvents.ProviderReady)
         ready = true
     }
 
@@ -77,5 +89,9 @@ class AutoHealingProvider(
     ): ProviderEvaluation<Value> {
         if (!ready) throw OpenFeatureError.FlagNotFoundError(key)
         return ProviderEvaluation(Value.Null)
+    }
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> {
+        return _events
     }
 }

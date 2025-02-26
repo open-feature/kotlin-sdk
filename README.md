@@ -75,7 +75,7 @@ coroutineScope.launch(Dispatchers.IO) {
 | ✅      | [Tracking](#tracking)           | Associate user actions with feature flag evaluations.                                                                              |
 | ❌      | [Logging](#logging)             | Integrate with popular logging packages.                                                                                           |
 | ❌      | [Named clients](#named-clients) | Utilize multiple providers in a single application.                                                                                |
-| ❌      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
+| ✅      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
 | ✅      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
 | ⚠️     | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                |
 
@@ -171,13 +171,37 @@ Tracking is optionally implemented by Providers.
 
 Logging customization is not yet available in the Kotlin SDK.
 
+It is possible to write and inject logging `Hook`s to log events at different stages of the flag evaluation life-cycle.
+
 ### Named clients
 
 Support for named clients is not yet available in the Kotlin SDK.
 
 ### Eventing
 
-Support for eventing is not yet available in the Kotlin SDK.
+Events from the Provider allow the SDK to react to state changes in the provider or underlying flag management system, such as flag definition changes, provider readiness, or error conditions.
+Events are optional which mean that not all Providers will emit them and it is not a must have. Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGED`.
+
+Please refer to the documentation of the provider you're using to see what events are supported.
+
+Example usage:
+```kotlin
+viewModelScope.launch {
+  OpenFeatureAPI.observe().collect {
+    println(">> Provider event received")
+  }
+}
+
+viewModelScope.launch {
+  OpenFeatureAPI.setProviderAndWait(
+    MyFeatureProvider(),
+    Dispatchers.IO,
+    myEvaluationContext
+  )
+}
+```
+
+<!-- (It's only possible to observe events from the global `OpenFeatureAPI`, until multiple providers are supported) -->
 
 ### Shutdown
 
@@ -243,6 +267,18 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
 
     override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
         // add necessary changes on context change
+    }
+  
+    override fun track(
+      trackingEventName: String,
+      context: EvaluationContext?,
+      details: TrackingEventDetails?
+    ) {
+      // Optionally track an event
+    }
+  
+    override fun observe(): Flow<OpenFeatureProviderEvents> {
+        // Optionally return a `Flow` of OpenFeatureProviderEvents
     }
 }
 ```

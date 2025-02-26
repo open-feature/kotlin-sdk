@@ -4,17 +4,20 @@ import dev.openfeature.sdk.helpers.BrokenInitProvider
 import dev.openfeature.sdk.helpers.DoSomethingProvider
 import junit.framework.Assert.assertEquals
 import junit.framework.Assert.assertTrue
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.After
+import org.junit.Before
 import org.junit.Test
 
 class StatusTests {
 
-    @After
-    fun tearDown() {
-        // It becomes important to clear the provider after each test since the SDK is a singleton
+    @Before
+    fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
 
@@ -60,16 +63,26 @@ class StatusTests {
             }
         }
         OpenFeatureAPI.setProviderAndWait(DoSomethingProvider())
+        testScheduler.advanceUntilIdle()
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("some value"))
         testScheduler.advanceUntilIdle()
-        assertEquals(4, statuses.size)
+        waitAssert {
+            assertEquals(4, statuses.size)
+        }
+
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("some other value"))
         testScheduler.advanceUntilIdle()
-        assertEquals(6, statuses.size)
+        waitAssert {
+            assertEquals(6, statuses.size)
+        }
+
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
-        assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        waitAssert {
+            assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        }
         job.cancelAndJoin()
+
         assertEquals(7, statuses.size)
         assertEquals(
             listOf(
@@ -83,5 +96,18 @@ class StatusTests {
             ),
             statuses
         )
+    }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+suspend fun TestScope.waitAssert(function: () -> Unit) {
+    while (true) {
+        try {
+            function()
+            return
+        } catch (e: Throwable) {
+            delay(100)
+            advanceUntilIdle()
+        }
     }
 }
