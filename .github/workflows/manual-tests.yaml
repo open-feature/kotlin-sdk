@@ -1,0 +1,31 @@
+name: Run Tests Manually
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run the tests on'
+        required: true
+        default: 'main'
+      number_of_runs:
+        description: 'Number of runs for the script'
+        required: true
+        default: '10'
+      gradle_task:
+        description: 'Gradle task to execute'
+        required: false
+        default: 'testDebugUnitTest'
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Run the tests script
+        run: |
+          chmod +x ./run-tests.sh
+          ./run-tests.sh ${{ github.event.inputs.number_of_runs }} ${{ github.event.inputs.gradle_task }}
