@@ -23,5 +23,5 @@ package dev.openfeature.sdk
 data class EvaluationEvent(
     val name: String,
     val attributes: Map<String, Any?>,
-    val body: Map<String, Any?>,
+    val body: Map<String, Any?>
 )

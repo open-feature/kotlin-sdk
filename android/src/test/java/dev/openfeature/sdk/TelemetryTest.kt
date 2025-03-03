@@ -65,7 +65,6 @@ class TelemetryTest {
                 object : ProviderMetadata {
                     override val name: String?
                         get() = null
-
                 }
             )
             val providerEvaluation = ProviderEvaluation("value")

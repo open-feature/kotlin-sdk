@@ -39,7 +39,9 @@ fun <T> createEvaluationEvent(
     attributes[TELEMETRY_REASON] = providerEvaluation.reason?.lowercase() ?: Reason.UNKNOWN.name.lowercase()
     attributes[TELEMETRY_CONTEXT_ID] =
         providerEvaluation.metadata.getString(TELEMETRY_FLAG_META_CONTEXT_ID) ?: hookContext.ctx?.getTargetingKey()
-    providerEvaluation.metadata.getString(TELEMETRY_FLAG_META_FLAG_SET_ID)?.let { attributes[TELEMETRY_FLAG_SET_ID] = it }
+    providerEvaluation.metadata.getString(TELEMETRY_FLAG_META_FLAG_SET_ID)?.let {
+        attributes[TELEMETRY_FLAG_SET_ID] = it
+    }
     providerEvaluation.metadata.getString(TELEMETRY_FLAG_META_VERSION)?.let { attributes[TELEMETRY_VERSION] = it }
 
     val variant = providerEvaluation.variant
