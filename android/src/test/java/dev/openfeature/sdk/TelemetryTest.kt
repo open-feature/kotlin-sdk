@@ -343,6 +343,7 @@ class TelemetryTest {
             val errorMessage = "error message"
             val providerEvaluation = ProviderEvaluation(
                 "value",
+                reason = EvaluationReason.ERROR.name,
                 errorCode = errorCode,
                 errorMessage = errorMessage
             )
@@ -350,6 +351,31 @@ class TelemetryTest {
 
             Assert.assertEquals(errorCode, evaluationEvent.attributes[TELEMETRY_ERROR_CODE])
             Assert.assertEquals(errorMessage, evaluationEvent.attributes[TELEMETRY_ERROR_MSG])
+        }
+
+        @Test
+        fun `error code and message use defaults when reason is error, but no details are available`() {
+            val flagKey = "flag key"
+            val targetingKey = "targeting key"
+            val ctx = ImmutableContext(targetingKey)
+            val hookContext = HookContext(
+                flagKey,
+                FlagValueType.STRING,
+                "default",
+                ctx,
+                mock(),
+                providerMetadata
+            )
+            val providerEvaluation = ProviderEvaluation(
+                "value",
+                reason = EvaluationReason.ERROR.name,
+                errorCode = null,
+                errorMessage = null
+            )
+            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+
+            Assert.assertEquals(ErrorCode.GENERAL, evaluationEvent.attributes[TELEMETRY_ERROR_CODE])
+            Assert.assertNull(evaluationEvent.attributes[TELEMETRY_ERROR_MSG])
         }
 
         @Test
@@ -368,6 +394,7 @@ class TelemetryTest {
             val providerEvaluation = ProviderEvaluation(
                 "value",
                 "variant",
+                reason = EvaluationReason.UNKNOWN.name,
                 errorCode = null,
                 errorMessage = null
             )
