@@ -17,10 +17,17 @@ else
     total_runs=10
 fi
 
+# Second arg is the gradle task to run
+if [ "$2" != "" ]; then
+    gradle_task=$2
+else
+    gradle_task="testDebugUnitTest"
+fi
+
 success_count=0
 failure_count=0
 
-echo "Running test $total_runs times..."
+echo "Running test $total_runs times with gradle task $gradle_task..."
 echo "------------------------"
 start_time=$(date +%s)
 
@@ -29,19 +36,19 @@ for ((i=1; i<=total_runs; i++)); do
     
     # Run the specific test with correct flags
     touch "$OUTPUT_DIR/test-run-$i.txt"
-    ./gradlew testDebugUnitTest --rerun-tasks --daemon > "$OUTPUT_DIR/test-run-$i.txt" 2>&1
+    ./gradlew $gradle_task --rerun-tasks --daemon > "$OUTPUT_DIR/test-run-$i.txt" 2>&1
     
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}PASSED${NC}"
         ((success_count++))
+        echo -e "${GREEN}PASSED${NC}"
     else
+        ((failure_count++))
         echo -e "${RED}FAILED${NC}"
         # Print the output of the test run
         echo "Output of test run $i:"
         cat "$OUTPUT_DIR/test-run-$i.txt"
         # Copy the HTML report with run number
         cp -R "./android/build/reports/tests/" "$OUTPUT_DIR/failure-run-$i/"
-        ((failure_count++))
     fi
 done
 
