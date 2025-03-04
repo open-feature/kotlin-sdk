@@ -81,8 +81,6 @@ class StatusTests {
         waitAssert {
             assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
         }
-        job.cancelAndJoin()
-
         assertEquals(
             listOf(
                 OpenFeatureStatus.NotReady,
@@ -95,6 +93,7 @@ class StatusTests {
             ),
             statuses
         )
+        job.cancelAndJoin()
     }
 }
 
