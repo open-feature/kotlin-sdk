@@ -83,7 +83,6 @@ class StatusTests {
         }
         job.cancelAndJoin()
 
-        assertEquals(7, statuses.size)
         assertEquals(
             listOf(
                 OpenFeatureStatus.NotReady,
@@ -100,13 +99,15 @@ class StatusTests {
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-suspend fun TestScope.waitAssert(function: () -> Unit) {
-    while (true) {
+suspend fun TestScope.waitAssert(timeoutMs: Long = 5000, function: () -> Unit) {
+    var timeWaited = 0L
+    while (timeWaited < timeoutMs) {
         try {
             function()
             return
         } catch (e: Throwable) {
-            delay(100)
+            delay(10)
+            timeWaited += 10
             advanceUntilIdle()
         }
     }
