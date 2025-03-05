@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.0](https://github.com/open-feature/kotlin-sdk/compare/v0.3.3...v0.4.0) (2025-03-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* rework states and adapt spec v0.8 ([#117](https://github.com/open-feature/kotlin-sdk/issues/117))
+
+### 🐛 Bug Fixes
+
+* bring back provider eventing ([#124](https://github.com/open-feature/kotlin-sdk/issues/124)) ([06b6f6b](https://github.com/open-feature/kotlin-sdk/commit/06b6f6bef22c6ec55a07b686d13e848d1aad5857))
+* **deps:** update dependency org.mockito.kotlin:mockito-kotlin to v5.4.0 ([#105](https://github.com/open-feature/kotlin-sdk/issues/105)) ([5bde444](https://github.com/open-feature/kotlin-sdk/commit/5bde4445a6bc6d6bfdaf7291b5eefd0cd4956ad5))
+
+
+### 📚 Documentation
+
+* add eventing section to read me ([#126](https://github.com/open-feature/kotlin-sdk/issues/126)) ([0921091](https://github.com/open-feature/kotlin-sdk/commit/09210914c217a1ebeb396e95ba2a5e0681892207))
+
+
+### 🔄 Refactoring
+
+* rework states and adapt spec v0.8 ([#117](https://github.com/open-feature/kotlin-sdk/issues/117)) ([458b564](https://github.com/open-feature/kotlin-sdk/commit/458b56424d9f9277e125c995234e742cd4873671))
+
 ## [0.3.3](https://github.com/open-feature/kotlin-sdk/compare/v0.3.2...v0.3.3) (2025-01-16)
 
 
