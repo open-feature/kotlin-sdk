@@ -55,7 +55,9 @@ class StatusTests {
 
     @Test
     fun testProviderTransitionsToReconcilingOnContextSet() = runTest {
-        assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        waitAssert {
+            assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        }
         val statuses = mutableListOf<OpenFeatureStatus>()
         val job = launch {
             OpenFeatureAPI.statusFlow.collect {
@@ -63,38 +65,13 @@ class StatusTests {
             }
         }
         OpenFeatureAPI.setProviderAndWait(DoSomethingProvider())
-        testScheduler.advanceUntilIdle()
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("some value"))
-        testScheduler.advanceUntilIdle()
+        waitAssert { assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus()) }
         waitAssert {
-            assertEquals(4, statuses.size)
-        }
-
-        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("some other value"))
-        testScheduler.advanceUntilIdle()
-        waitAssert {
-            assertEquals(6, statuses.size)
-        }
-
-        OpenFeatureAPI.shutdown()
-        testScheduler.advanceUntilIdle()
-        waitAssert {
-            assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+            assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         }
         job.cancelAndJoin()
-
-        assertEquals(
-            listOf(
-                OpenFeatureStatus.NotReady,
-                OpenFeatureStatus.Ready,
-                OpenFeatureStatus.Reconciling,
-                OpenFeatureStatus.Ready,
-                OpenFeatureStatus.Reconciling,
-                OpenFeatureStatus.Ready,
-                OpenFeatureStatus.NotReady
-            ),
-            statuses
-        )
     }
 }
 

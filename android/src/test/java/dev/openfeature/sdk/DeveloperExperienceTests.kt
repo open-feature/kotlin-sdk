@@ -258,11 +258,9 @@ class DeveloperExperienceTests {
         waitAssert {
             assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
         }
-        testScheduler.advanceTimeBy(1)
         waitAssert {
-            assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+            assertTrue(OpenFeatureAPI.getStatus() is OpenFeatureStatus.Error)
         }
-        testScheduler.advanceTimeBy(healDelayMillis)
         waitAssert {
             assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         }
