@@ -27,8 +27,8 @@ class TelemetryTest {
             mock(),
             providerMetadata
         )
-        val providerEvaluation = ProviderEvaluation("value")
-        val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+        val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
+        val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
         Assert.assertEquals(flagKey, evaluationEvent.attributes[TELEMETRY_KEY])
     }
@@ -46,8 +46,8 @@ class TelemetryTest {
                 mock(),
                 providerMetadata
             )
-            val providerEvaluation = ProviderEvaluation("value")
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(providerMetadata.name, evaluationEvent.attributes[TELEMETRY_PROVIDER])
         }
@@ -67,8 +67,8 @@ class TelemetryTest {
                         get() = null
                 }
             )
-            val providerEvaluation = ProviderEvaluation("value")
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals("", evaluationEvent.attributes[TELEMETRY_PROVIDER])
         }
@@ -87,11 +87,14 @@ class TelemetryTest {
                 mock(),
                 providerMetadata
             )
-            val providerEvaluation = ProviderEvaluation(
-                "value",
-                reason = null
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    "value",
+                    reason = null
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(EvaluationReason.UNKNOWN.name.lowercase(), evaluationEvent.attributes[TELEMETRY_REASON])
         }
@@ -108,11 +111,14 @@ class TelemetryTest {
                 mock(),
                 providerMetadata
             )
-            val providerEvaluation = ProviderEvaluation(
-                "value",
-                reason = EvaluationReason.TARGETING_MATCH.name.lowercase()
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    "value",
+                    reason = EvaluationReason.TARGETING_MATCH.name.lowercase()
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(EvaluationReason.TARGETING_MATCH.name.lowercase(), evaluationEvent.attributes[TELEMETRY_REASON])
         }
@@ -134,11 +140,14 @@ class TelemetryTest {
             )
             val contextId = "contextId metadata"
             val evaluationMetadata = EvaluationMetadata(mapOf(Pair("contextId", contextId)))
-            val providerEvaluation = ProviderEvaluation(
-                "value",
-                metadata = evaluationMetadata
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    "value",
+                    metadata = evaluationMetadata
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(contextId, evaluationEvent.attributes[TELEMETRY_CONTEXT_ID])
             Assert.assertNotEquals(targetingKey, evaluationEvent.attributes[TELEMETRY_CONTEXT_ID])
@@ -157,8 +166,8 @@ class TelemetryTest {
                 mock(),
                 providerMetadata
             )
-            val providerEvaluation = ProviderEvaluation("value")
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(targetingKey, evaluationEvent.attributes[TELEMETRY_CONTEXT_ID])
         }
@@ -179,11 +188,14 @@ class TelemetryTest {
             )
             val flagSetId = "flag set id"
             val evaluationMetadata = EvaluationMetadata(mapOf(Pair("flagSetId", flagSetId)))
-            val providerEvaluation = ProviderEvaluation(
-                "value",
-                metadata = evaluationMetadata
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    "value",
+                    metadata = evaluationMetadata
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(flagSetId, evaluationEvent.attributes[TELEMETRY_FLAG_SET_ID])
         }
@@ -200,8 +212,8 @@ class TelemetryTest {
                 mock(),
                 providerMetadata
             )
-            val providerEvaluation = ProviderEvaluation("value")
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertNull(evaluationEvent.attributes[TELEMETRY_FLAG_SET_ID])
         }
@@ -222,11 +234,14 @@ class TelemetryTest {
             )
             val version = "flag set id"
             val evaluationMetadata = EvaluationMetadata(mapOf(Pair("version", version)))
-            val providerEvaluation = ProviderEvaluation(
-                "value",
-                metadata = evaluationMetadata
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    "value",
+                    metadata = evaluationMetadata
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(version, evaluationEvent.attributes[TELEMETRY_VERSION])
         }
@@ -243,8 +258,8 @@ class TelemetryTest {
                 mock(),
                 providerMetadata
             )
-            val providerEvaluation = ProviderEvaluation("value")
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertNull(evaluationEvent.attributes[TELEMETRY_VERSION])
         }
@@ -266,11 +281,14 @@ class TelemetryTest {
             )
             val variant = "variant"
             val value = "value"
-            val providerEvaluation = ProviderEvaluation(
-                value,
-                variant
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    value,
+                    variant
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(variant, evaluationEvent.attributes[TELEMETRY_VARIANT])
             Assert.assertNotEquals(value, evaluationEvent.attributes[TELEMETRY_VARIANT])
@@ -291,11 +309,14 @@ class TelemetryTest {
             )
             val variant = null
             val value = "value"
-            val providerEvaluation = ProviderEvaluation(
-                value,
-                variant
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    value,
+                    variant
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertNull(evaluationEvent.attributes[TELEMETRY_VARIANT])
         }
@@ -315,11 +336,14 @@ class TelemetryTest {
             )
             val variant = null
             val value = "value"
-            val providerEvaluation = ProviderEvaluation(
-                value,
-                variant
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    value,
+                    variant
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(value, evaluationEvent.body[TELEMETRY_BODY])
         }
@@ -341,13 +365,16 @@ class TelemetryTest {
             )
             val errorCode = ErrorCode.PARSE_ERROR
             val errorMessage = "error message"
-            val providerEvaluation = ProviderEvaluation(
-                "value",
-                reason = EvaluationReason.ERROR.name,
-                errorCode = errorCode,
-                errorMessage = errorMessage
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    "value",
+                    reason = EvaluationReason.ERROR.name,
+                    errorCode = errorCode,
+                    errorMessage = errorMessage
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(errorCode, evaluationEvent.attributes[TELEMETRY_ERROR_CODE])
             Assert.assertEquals(errorMessage, evaluationEvent.attributes[TELEMETRY_ERROR_MSG])
@@ -366,13 +393,16 @@ class TelemetryTest {
                 mock(),
                 providerMetadata
             )
-            val providerEvaluation = ProviderEvaluation(
-                "value",
-                reason = EvaluationReason.ERROR.name,
-                errorCode = null,
-                errorMessage = null
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    "value",
+                    reason = EvaluationReason.ERROR.name,
+                    errorCode = null,
+                    errorMessage = null
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertEquals(ErrorCode.GENERAL, evaluationEvent.attributes[TELEMETRY_ERROR_CODE])
             Assert.assertNull(evaluationEvent.attributes[TELEMETRY_ERROR_MSG])
@@ -391,14 +421,17 @@ class TelemetryTest {
                 mock(),
                 providerMetadata
             )
-            val providerEvaluation = ProviderEvaluation(
-                "value",
-                "variant",
-                reason = EvaluationReason.UNKNOWN.name,
-                errorCode = null,
-                errorMessage = null
+            val flagEvaluationDetails = FlagEvaluationDetails.from(
+                ProviderEvaluation(
+                    "value",
+                    "variant",
+                    reason = EvaluationReason.UNKNOWN.name,
+                    errorCode = null,
+                    errorMessage = null
+                ),
+                flagKey
             )
-            val evaluationEvent = createEvaluationEvent(hookContext, providerEvaluation)
+            val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
             Assert.assertNull(evaluationEvent.attributes[TELEMETRY_ERROR_CODE])
             Assert.assertNull(evaluationEvent.attributes[TELEMETRY_ERROR_MSG])

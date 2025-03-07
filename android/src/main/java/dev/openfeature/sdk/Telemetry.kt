@@ -30,30 +30,30 @@ const val FLAG_EVALUATION_EVENT_NAME = "feature_flag.evaluation"
  */
 fun <T> createEvaluationEvent(
     hookContext: HookContext<T>,
-    providerEvaluation: ProviderEvaluation<T>
+    flagEvaluationDetails: FlagEvaluationDetails<T>
 ): EvaluationEvent {
     val attributes = mutableMapOf<String, Any?>()
     val body = mutableMapOf<String, Any?>()
     attributes[TELEMETRY_KEY] = hookContext.flagKey
     attributes[TELEMETRY_PROVIDER] = hookContext.providerMetadata.name ?: ""
-    attributes[TELEMETRY_REASON] = providerEvaluation.reason?.lowercase() ?: Reason.UNKNOWN.name.lowercase()
+    attributes[TELEMETRY_REASON] = flagEvaluationDetails.reason?.lowercase() ?: Reason.UNKNOWN.name.lowercase()
     attributes[TELEMETRY_CONTEXT_ID] =
-        providerEvaluation.metadata.getString(TELEMETRY_FLAG_META_CONTEXT_ID) ?: hookContext.ctx?.getTargetingKey()
-    providerEvaluation.metadata.getString(TELEMETRY_FLAG_META_FLAG_SET_ID)?.let {
+        flagEvaluationDetails.metadata.getString(TELEMETRY_FLAG_META_CONTEXT_ID) ?: hookContext.ctx?.getTargetingKey()
+    flagEvaluationDetails.metadata.getString(TELEMETRY_FLAG_META_FLAG_SET_ID)?.let {
         attributes[TELEMETRY_FLAG_SET_ID] = it
     }
-    providerEvaluation.metadata.getString(TELEMETRY_FLAG_META_VERSION)?.let { attributes[TELEMETRY_VERSION] = it }
+    flagEvaluationDetails.metadata.getString(TELEMETRY_FLAG_META_VERSION)?.let { attributes[TELEMETRY_VERSION] = it }
 
-    val variant = providerEvaluation.variant
+    val variant = flagEvaluationDetails.variant
     if (variant == null) {
-        body[TELEMETRY_BODY] = providerEvaluation.value
+        body[TELEMETRY_BODY] = flagEvaluationDetails.value
     } else {
         attributes[TELEMETRY_VARIANT] = variant
     }
 
-    if (providerEvaluation.reason == Reason.ERROR.name) {
-        attributes[TELEMETRY_ERROR_CODE] = providerEvaluation.errorCode ?: ErrorCode.GENERAL
-        providerEvaluation.errorMessage?.let { attributes[TELEMETRY_ERROR_MSG] = it }
+    if (flagEvaluationDetails.reason == Reason.ERROR.name) {
+        attributes[TELEMETRY_ERROR_CODE] = flagEvaluationDetails.errorCode ?: ErrorCode.GENERAL
+        flagEvaluationDetails.errorMessage?.let { attributes[TELEMETRY_ERROR_MSG] = it }
     }
 
     return EvaluationEvent(
