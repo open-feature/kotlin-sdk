@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -145,9 +147,11 @@ fun Evaluations(toggleDefaults: () -> Unit) {
             .fillMaxSize()
             .verticalScroll(rememberScrollState()) // Enables vertical scrolling
     ) {
-        Row(modifier = Modifier
-            .padding(top = 20.dp)
-            .fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .padding(top = 20.dp)
+                .fillMaxWidth()
+        ) {
             var checked by remember {
                 mutableStateOf(
                     (OpenFeatureAPI.getProvider() as? ExampleProvider)?.returnDefaults ?: false
@@ -202,12 +206,32 @@ fun ProviderAndStatus(statusFlow: Flow<String>, setDelay: (Long) -> Unit) {
             modifier = Modifier.fillMaxWidth()
         )
 
-        Button(modifier = Modifier.padding(top = 4.dp), onClick = {
-            coroutineScope.launch {
+        Row(
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp) // Add spacing between buttons
+        ) {
+            Button(modifier = Modifier.weight(1f), onClick = {
+                // Run setEvaluationContext without Wait to be able to spam the button
                 OpenFeatureAPI.setEvaluationContext(ImmutableContext(randomString()))
+            }) {
+                Text("Set EvaluationContext", style = MaterialTheme.typography.bodySmall)
             }
-        }) {
-            Text("Set EvaluationContext")
+            var loading by remember { mutableStateOf(false) }
+            Button(modifier = Modifier.weight(1f), onClick = {
+                coroutineScope.launch {
+                    loading = true
+                    OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(randomString()))
+                    loading = false
+                }
+            }, enabled = !loading) {
+                if (loading) {
+                    CircularProgressIndicator()
+                } else {
+                    Text("Set EvaluationContext & wait", style = MaterialTheme.typography.bodySmall)
+                }
+            }
         }
         Text(
             style = MaterialTheme.typography.bodySmall,
@@ -300,7 +324,7 @@ fun MainPagePreview() {
         MainPage(
             setDelay = { },
             statusFlow = emptyFlow(),
-            defaultTab = 1,
+            defaultTab = 0,
             toggleDefaults = { }
         )
     }
