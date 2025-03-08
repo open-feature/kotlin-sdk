@@ -101,14 +101,6 @@ class StatusTests {
         waitAssert {
             assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         }
-        statuses.forEach {
-            print(it)
-            (it as? OpenFeatureStatus.Error)?.error?.let {
-                print(" ${it.errorCode()}")
-                print(" ${it.message}")
-            }
-            println()
-        }
         assertFalse(statuses.any { it is OpenFeatureStatus.Error })
         assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         job.cancelAndJoin()
