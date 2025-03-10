@@ -428,7 +428,7 @@ public final class dev/openfeature/sdk/TelemetryKt {
 	public static final field TELEMETRY_REASON Ljava/lang/String;
 	public static final field TELEMETRY_VARIANT Ljava/lang/String;
 	public static final field TELEMETRY_VERSION Ljava/lang/String;
-	public static final fun createEvaluationEvent (Ldev/openfeature/sdk/HookContext;Ldev/openfeature/sdk/ProviderEvaluation;)Ldev/openfeature/sdk/EvaluationEvent;
+	public static final fun createEvaluationEvent (Ldev/openfeature/sdk/HookContext;Ldev/openfeature/sdk/FlagEvaluationDetails;)Ldev/openfeature/sdk/EvaluationEvent;
 }
 
 public abstract interface class dev/openfeature/sdk/Tracking {
