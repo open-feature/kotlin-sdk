@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/open-feature/kotlin-sdk/compare/v0.4.0...v0.4.1) (2025-03-11)
+
+
+### 🐛 Bug Fixes
+
+* ignore cancellation exceptions ([#134](https://github.com/open-feature/kotlin-sdk/issues/134)) ([d6ac0a4](https://github.com/open-feature/kotlin-sdk/commit/d6ac0a4eb4b49035360d5a186326842e541bc1e2))
+
+
+### ✨ New Features
+
+* add otel compatible telemetry signal ([#129](https://github.com/open-feature/kotlin-sdk/issues/129)) ([fc0ff3d](https://github.com/open-feature/kotlin-sdk/commit/fc0ff3d95403498696d25fdb8a4a4f29ea1b0248))
+
 ## [0.4.0](https://github.com/open-feature/kotlin-sdk/compare/v0.3.3...v0.4.0) (2025-03-05)
 
 
