@@ -2,6 +2,7 @@ package dev.openfeature.sdk
 
 import dev.openfeature.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.sdk.exceptions.OpenFeatureError
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +19,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
-import java.util.concurrent.CancellationException
 
 @Suppress("TooManyFunctions")
 object OpenFeatureAPI {
@@ -42,7 +42,6 @@ object OpenFeatureAPI {
      * A flow of [OpenFeatureStatus] that emits the current status of the SDK.
      */
     val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
-    private var providerJob: Job? = null
 
     var hooks: List<Hook<*>> = listOf()
         private set
@@ -64,7 +63,7 @@ object OpenFeatureAPI {
         dispatcher: CoroutineDispatcher = Dispatchers.IO,
         initialContext: EvaluationContext? = null
     ) {
-        setProviderJob?.cancel()
+        setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to new provider"))
         this.setProviderJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
             setProviderInternal(provider, dispatcher, initialContext)
         }
@@ -85,8 +84,8 @@ object OpenFeatureAPI {
     }
 
     private fun listenToProviderEvents(provider: FeatureProvider, dispatcher: CoroutineDispatcher) {
-        providerJob?.cancel()
-        this.providerJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+        observeProviderEventsJob?.cancel(CancellationException("Provider job was cancelled due to new provider"))
+        this.observeProviderEventsJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
             provider.observe().collect(handleProviderEvents)
         }
     }
@@ -105,20 +104,10 @@ object OpenFeatureAPI {
         }
         providersFlow.value = provider
         if (initialContext != null) context = initialContext
-        try {
+        tryWithStatusEmitErrorHandling {
             listenToProviderEvents(provider, dispatcher)
             getProvider().initialize(context)
             _statusFlow.emit(OpenFeatureStatus.Ready)
-        } catch (e: OpenFeatureError) {
-            _statusFlow.emit(OpenFeatureStatus.Error(e))
-        } catch (e: Throwable) {
-            _statusFlow.emit(
-                OpenFeatureStatus.Error(
-                    OpenFeatureError.GeneralError(
-                        e.message ?: e.javaClass.name
-                    )
-                )
-            )
         }
     }
 
@@ -171,7 +160,7 @@ object OpenFeatureAPI {
         evaluationContext: EvaluationContext,
         dispatcher: CoroutineDispatcher = Dispatchers.IO
     ) {
-        setEvaluationContextJob?.cancel()
+        setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to new context"))
         this.setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
             setEvaluationContextInternal(evaluationContext)
         }
@@ -182,20 +171,28 @@ object OpenFeatureAPI {
         context = evaluationContext
         if (oldContext != evaluationContext) {
             _statusFlow.emit(OpenFeatureStatus.Reconciling)
-            try {
+            tryWithStatusEmitErrorHandling {
                 getProvider().onContextSet(oldContext, evaluationContext)
                 _statusFlow.emit(OpenFeatureStatus.Ready)
-            } catch (e: OpenFeatureError) {
-                _statusFlow.emit(OpenFeatureStatus.Error(e))
-            } catch (e: Throwable) {
-                _statusFlow.emit(
-                    OpenFeatureStatus.Error(
-                        OpenFeatureError.GeneralError(
-                            e.message ?: e.javaClass.name
-                        )
+            }
+        }
+    }
+
+    private suspend fun tryWithStatusEmitErrorHandling(function: suspend () -> Unit) {
+        try {
+            function()
+        } catch (e: CancellationException) {
+            // This happens by design and shouldn't be treated as an error
+        } catch (e: OpenFeatureError) {
+            _statusFlow.emit(OpenFeatureStatus.Error(e))
+        } catch (e: Throwable) {
+            _statusFlow.emit(
+                OpenFeatureStatus.Error(
+                    OpenFeatureError.GeneralError(
+                        e.message ?: e.javaClass.name
                     )
                 )
-            }
+            )
         }
     }
 
@@ -242,9 +239,11 @@ object OpenFeatureAPI {
      */
     suspend fun shutdown() {
         clearHooks()
-        setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled"))
-        setProviderJob?.cancel(CancellationException("Provider set job was cancelled"))
-        observeProviderEventsJob?.cancel(CancellationException("Provider event observe job was cancelled"))
+        setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to shutdown"))
+        setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to shutdown"))
+        observeProviderEventsJob?.cancel(
+            CancellationException("Provider event observe job was cancelled due to shutdown")
+        )
         providerEventObservationScope?.coroutineContext?.cancelChildren()
         providerEventObservationScope?.coroutineContext?.cancel()
         clearProvider()
