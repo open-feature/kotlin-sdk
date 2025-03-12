@@ -213,7 +213,7 @@ class OpenFeatureClient(
 
             hookSupport.errorHooks(flagValueType, hookCtx, error, mergedHooks, hints)
         }
-        hookSupport.afterAllHooks(flagValueType, hookCtx, mergedHooks, hints)
+        hookSupport.afterAllHooks(flagValueType, hookCtx, details, mergedHooks, hints)
         return details
     }
 

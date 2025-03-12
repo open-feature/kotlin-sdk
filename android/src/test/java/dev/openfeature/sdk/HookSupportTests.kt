@@ -44,6 +44,7 @@ class HookSupportTests {
         hookSupport.afterAllHooks(
             FlagValueType.BOOLEAN,
             hookContext,
+            FlagEvaluationDetails("", false),
             listOf(hook),
             mapOf()
         )

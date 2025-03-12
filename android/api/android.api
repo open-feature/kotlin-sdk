@@ -173,7 +173,7 @@ public abstract interface class dev/openfeature/sdk/Hook {
 	public abstract fun after (Ldev/openfeature/sdk/HookContext;Ldev/openfeature/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
 	public abstract fun before (Ldev/openfeature/sdk/HookContext;Ljava/util/Map;)V
 	public abstract fun error (Ldev/openfeature/sdk/HookContext;Ljava/lang/Exception;Ljava/util/Map;)V
-	public abstract fun finallyAfter (Ldev/openfeature/sdk/HookContext;Ljava/util/Map;)V
+	public abstract fun finallyAfter (Ldev/openfeature/sdk/HookContext;Ldev/openfeature/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
 	public abstract fun supportsFlagValueType (Ldev/openfeature/sdk/FlagValueType;)Z
 }
 
@@ -181,7 +181,7 @@ public final class dev/openfeature/sdk/Hook$DefaultImpls {
 	public static fun after (Ldev/openfeature/sdk/Hook;Ldev/openfeature/sdk/HookContext;Ldev/openfeature/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
 	public static fun before (Ldev/openfeature/sdk/Hook;Ldev/openfeature/sdk/HookContext;Ljava/util/Map;)V
 	public static fun error (Ldev/openfeature/sdk/Hook;Ldev/openfeature/sdk/HookContext;Ljava/lang/Exception;Ljava/util/Map;)V
-	public static fun finallyAfter (Ldev/openfeature/sdk/Hook;Ldev/openfeature/sdk/HookContext;Ljava/util/Map;)V
+	public static fun finallyAfter (Ldev/openfeature/sdk/Hook;Ldev/openfeature/sdk/HookContext;Ldev/openfeature/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
 	public static fun supportsFlagValueType (Ldev/openfeature/sdk/Hook;Ldev/openfeature/sdk/FlagValueType;)Z
 }
 
@@ -208,7 +208,7 @@ public final class dev/openfeature/sdk/HookContext {
 
 public final class dev/openfeature/sdk/HookSupport {
 	public fun <init> ()V
-	public final fun afterAllHooks (Ldev/openfeature/sdk/FlagValueType;Ldev/openfeature/sdk/HookContext;Ljava/util/List;Ljava/util/Map;)V
+	public final fun afterAllHooks (Ldev/openfeature/sdk/FlagValueType;Ldev/openfeature/sdk/HookContext;Ldev/openfeature/sdk/FlagEvaluationDetails;Ljava/util/List;Ljava/util/Map;)V
 	public final fun afterHooks (Ldev/openfeature/sdk/FlagValueType;Ldev/openfeature/sdk/HookContext;Ldev/openfeature/sdk/FlagEvaluationDetails;Ljava/util/List;Ljava/util/Map;)V
 	public final fun beforeHooks (Ldev/openfeature/sdk/FlagValueType;Ldev/openfeature/sdk/HookContext;Ljava/util/List;Ljava/util/Map;)V
 	public final fun errorHooks (Ldev/openfeature/sdk/FlagValueType;Ldev/openfeature/sdk/HookContext;Ljava/lang/Exception;Ljava/util/List;Ljava/util/Map;)V
