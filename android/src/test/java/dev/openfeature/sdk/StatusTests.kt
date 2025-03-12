@@ -2,17 +2,22 @@ package dev.openfeature.sdk
 
 import dev.openfeature.sdk.helpers.BrokenInitProvider
 import dev.openfeature.sdk.helpers.DoSomethingProvider
-import junit.framework.Assert.assertEquals
-import junit.framework.Assert.assertTrue
+import dev.openfeature.sdk.helpers.SlowProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlin.random.Random
+import kotlin.time.Duration
 
 class StatusTests {
 
@@ -73,7 +78,36 @@ class StatusTests {
         }
         job.cancelAndJoin()
     }
+
+    @Test
+    fun testSpamSetContextWithoutAwait() = runTest {
+        waitAssert {
+            assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        }
+        val statuses = mutableListOf<OpenFeatureStatus>()
+        val job = launch {
+            OpenFeatureAPI.statusFlow.collect {
+                statuses.add(it)
+            }
+        }
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        OpenFeatureAPI.setProviderAndWait(SlowProvider(dispatcher = dispatcher))
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
+        for (i in 1..30) {
+            OpenFeatureAPI.setEvaluationContext(ImmutableContext("test_$i"))
+            delay(Duration.randomMs(0, 10))
+        }
+
+        waitAssert {
+            assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+        }
+        assertFalse(statuses.any { it is OpenFeatureStatus.Error })
+        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+        job.cancelAndJoin()
+    }
 }
+
+private fun Duration.Companion.randomMs(min: Int, max: Int): Duration = Random.nextInt(min, max + 1).milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun TestScope.waitAssert(timeoutMs: Long = 5000, function: () -> Unit) {

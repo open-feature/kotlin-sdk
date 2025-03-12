@@ -39,6 +39,21 @@ public abstract interface class dev/openfeature/sdk/EvaluationContext : dev/open
 	public abstract fun withTargetingKey (Ljava/lang/String;)Ldev/openfeature/sdk/EvaluationContext;
 }
 
+public final class dev/openfeature/sdk/EvaluationEvent {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;)Ldev/openfeature/sdk/EvaluationEvent;
+	public static synthetic fun copy$default (Ldev/openfeature/sdk/EvaluationEvent;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)Ldev/openfeature/sdk/EvaluationEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAttributes ()Ljava/util/Map;
+	public final fun getBody ()Ljava/util/Map;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/openfeature/sdk/EvaluationMetadata {
 	public static final field Companion Ldev/openfeature/sdk/EvaluationMetadata$Companion;
 	public fun equals (Ljava/lang/Object;)Z
@@ -396,6 +411,24 @@ public abstract interface class dev/openfeature/sdk/Structure {
 	public abstract fun getValue (Ljava/lang/String;)Ldev/openfeature/sdk/Value;
 	public abstract fun hashCode ()I
 	public abstract fun keySet ()Ljava/util/Set;
+}
+
+public final class dev/openfeature/sdk/TelemetryKt {
+	public static final field FLAG_EVALUATION_EVENT_NAME Ljava/lang/String;
+	public static final field TELEMETRY_BODY Ljava/lang/String;
+	public static final field TELEMETRY_CONTEXT_ID Ljava/lang/String;
+	public static final field TELEMETRY_ERROR_CODE Ljava/lang/String;
+	public static final field TELEMETRY_ERROR_MSG Ljava/lang/String;
+	public static final field TELEMETRY_FLAG_META_CONTEXT_ID Ljava/lang/String;
+	public static final field TELEMETRY_FLAG_META_FLAG_SET_ID Ljava/lang/String;
+	public static final field TELEMETRY_FLAG_META_VERSION Ljava/lang/String;
+	public static final field TELEMETRY_FLAG_SET_ID Ljava/lang/String;
+	public static final field TELEMETRY_KEY Ljava/lang/String;
+	public static final field TELEMETRY_PROVIDER Ljava/lang/String;
+	public static final field TELEMETRY_REASON Ljava/lang/String;
+	public static final field TELEMETRY_VARIANT Ljava/lang/String;
+	public static final field TELEMETRY_VERSION Ljava/lang/String;
+	public static final fun createEvaluationEvent (Ldev/openfeature/sdk/HookContext;Ldev/openfeature/sdk/FlagEvaluationDetails;)Ldev/openfeature/sdk/EvaluationEvent;
 }
 
 public abstract interface class dev/openfeature/sdk/Tracking {

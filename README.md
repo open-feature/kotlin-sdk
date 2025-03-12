@@ -16,8 +16,8 @@
     <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.8.0&color=yellow&style=for-the-badge" />
   </a>
   <!-- x-release-please-start-version -->
-  <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.4.0">
-    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.4.0&color=blue&style=for-the-badge" />
+  <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.4.1">
+    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.4.1&color=blue&style=for-the-badge" />
   </a>
   <!-- x-release-please-end -->
   <br/>
@@ -48,7 +48,7 @@ Installation via Maven Central is preferred, using the following dependency:
 <!-- x-release-please-start-version -->
 ```kotlin
 dependencies {
-    api("dev.openfeature:android-sdk:0.4.0")
+    api("dev.openfeature:android-sdk:0.4.1")
 }
 ```
 
