@@ -211,6 +211,14 @@ This should only be called when your application is in the process of shutting d
 ```kotlin
 OpenFeatureAPI.shutdown()
 ```
+## Sample app
+
+In the repo there is also a sample app currently under development. 
+The sample app can be used to try out development of a [Provider](#develop-a-provider), a [Hook](#develop-a-hook) 
+or to validate changes to the SDK itself. 
+
+The sample app should not be used as a reference implementation of how to use the OpenFeature SDK 
+in an Android app.
 
 ## Extending
 
