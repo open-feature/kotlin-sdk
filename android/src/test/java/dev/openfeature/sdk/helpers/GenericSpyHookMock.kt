@@ -36,7 +36,7 @@ class GenericSpyHookMock(private var prefix: String = "", var addEval: (String) 
         addEval("$prefix error")
     }
 
-    override fun finallyAfter(ctx: HookContext<Any>, hints: Map<String, Any>) {
+    override fun finallyAfter(ctx: HookContext<Any>, details: FlagEvaluationDetails<Any>, hints: Map<String, Any>) {
         finallyCalledAfter += 1
         addEval("$prefix finallyAfter")
     }

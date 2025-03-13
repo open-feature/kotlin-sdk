@@ -18,21 +18,25 @@ class HookSupport {
                             booleanHook.before(booleanCtx, hints)
                         }
                     }
+
                     FlagValueType.STRING -> {
                         safeLet(hook as? Hook<String>, hookCtx as? HookContext<String>) { stringHook, stringCtx ->
                             stringHook.before(stringCtx, hints)
                         }
                     }
+
                     FlagValueType.INTEGER -> {
                         safeLet(hook as? Hook<Int>, hookCtx as? HookContext<Int>) { integerHook, integerCtx ->
                             integerHook.before(integerCtx, hints)
                         }
                     }
+
                     FlagValueType.DOUBLE -> {
                         safeLet(hook as? Hook<Double>, hookCtx as? HookContext<Double>) { doubleHook, doubleCtx ->
                             doubleHook.before(doubleCtx, hints)
                         }
                     }
+
                     FlagValueType.OBJECT -> {
                         safeLet(hook as? Hook<Value>, hookCtx as? HookContext<Value>) { objectHook, objectCtx ->
                             objectHook.before(objectCtx, hints)
@@ -63,6 +67,7 @@ class HookSupport {
                                 booleanHook.after(booleanCtx, booleanDetails, hints)
                             }
                         }
+
                         FlagValueType.STRING -> {
                             safeLet(
                                 hook as? Hook<String>,
@@ -72,6 +77,7 @@ class HookSupport {
                                 stringHook.after(stringCtx, stringDetails, hints)
                             }
                         }
+
                         FlagValueType.INTEGER -> {
                             safeLet(
                                 hook as? Hook<Int>,
@@ -81,6 +87,7 @@ class HookSupport {
                                 integerHook.after(integerCtx, integerDetails, hints)
                             }
                         }
+
                         FlagValueType.DOUBLE -> {
                             safeLet(
                                 hook as? Hook<Double>,
@@ -90,6 +97,7 @@ class HookSupport {
                                 doubleHook.after(doubleCtx, doubleDetails, hints)
                             }
                         }
+
                         FlagValueType.OBJECT -> {
                             safeLet(
                                 hook as? Hook<Value>,
@@ -107,6 +115,7 @@ class HookSupport {
     fun <T> afterAllHooks(
         flagValueType: FlagValueType,
         hookCtx: HookContext<T>,
+        details: FlagEvaluationDetails<T>,
         hooks: List<Hook<*>>,
         hints: Map<String, Any>
     ) {
@@ -118,41 +127,50 @@ class HookSupport {
                         FlagValueType.BOOLEAN -> {
                             safeLet(
                                 hook as? Hook<Boolean>,
-                                hookCtx as? HookContext<Boolean>
-                            ) { booleanHook, booleanCtx ->
-                                booleanHook.finallyAfter(booleanCtx, hints)
+                                hookCtx as? HookContext<Boolean>,
+                                details as? FlagEvaluationDetails<Boolean>
+                            ) { booleanHook, booleanCtx, booleanDetails ->
+                                booleanHook.finallyAfter(booleanCtx, booleanDetails, hints)
                             }
                         }
+
                         FlagValueType.STRING -> {
                             safeLet(
                                 hook as? Hook<String>,
-                                hookCtx as? HookContext<String>
-                            ) { stringHook, stringCtx ->
-                                stringHook.finallyAfter(stringCtx, hints)
+                                hookCtx as? HookContext<String>,
+                                details as? FlagEvaluationDetails<String>
+                            ) { stringHook, stringCtx, stringDetails ->
+                                stringHook.finallyAfter(stringCtx, stringDetails, hints)
                             }
                         }
+
                         FlagValueType.INTEGER -> {
                             safeLet(
                                 hook as? Hook<Int>,
-                                hookCtx as? HookContext<Int>
-                            ) { integerHook, integerCtx ->
-                                integerHook.finallyAfter(integerCtx, hints)
+                                hookCtx as? HookContext<Int>,
+                                details as? FlagEvaluationDetails<Int>
+                            ) { integerHook, integerCtx, integerDetails ->
+                                integerHook.finallyAfter(integerCtx, integerDetails, hints)
                             }
                         }
+
                         FlagValueType.DOUBLE -> {
                             safeLet(
                                 hook as? Hook<Double>,
-                                hookCtx as? HookContext<Double>
-                            ) { doubleHook, doubleCtx ->
-                                doubleHook.finallyAfter(doubleCtx, hints)
+                                hookCtx as? HookContext<Double>,
+                                details as? FlagEvaluationDetails<Double>
+                            ) { doubleHook, doubleCtx, doubleDetails ->
+                                doubleHook.finallyAfter(doubleCtx, doubleDetails, hints)
                             }
                         }
+
                         FlagValueType.OBJECT -> {
                             safeLet(
                                 hook as? Hook<Value>,
-                                hookCtx as? HookContext<Value>
-                            ) { objectHook, objectCtx ->
-                                objectHook.finallyAfter(objectCtx, hints)
+                                hookCtx as? HookContext<Value>,
+                                details as? FlagEvaluationDetails<Value>
+                            ) { objectHook, objectCtx, objectDetails ->
+                                objectHook.finallyAfter(objectCtx, objectDetails, hints)
                             }
                         }
                     }
@@ -180,6 +198,7 @@ class HookSupport {
                                 booleanHook.error(booleanCtx, error, hints)
                             }
                         }
+
                         FlagValueType.STRING -> {
                             safeLet(
                                 hook as? Hook<String>,
@@ -188,6 +207,7 @@ class HookSupport {
                                 stringHook.error(stringCtx, error, hints)
                             }
                         }
+
                         FlagValueType.INTEGER -> {
                             safeLet(
                                 hook as? Hook<Int>,
@@ -196,6 +216,7 @@ class HookSupport {
                                 integerHook.error(integerCtx, error, hints)
                             }
                         }
+
                         FlagValueType.DOUBLE -> {
                             safeLet(
                                 hook as? Hook<Double>,
@@ -204,6 +225,7 @@ class HookSupport {
                                 doubleHook.error(doubleCtx, error, hints)
                             }
                         }
+
                         FlagValueType.OBJECT -> {
                             safeLet(
                                 hook as? Hook<Value>,
