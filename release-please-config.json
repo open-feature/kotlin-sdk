@@ -10,7 +10,8 @@
                 "README.md",
                 "build.gradle.kts",
                 "android/build.gradle.kts"
-            ]
+            ],
+            "exclude-paths": ["sampleapp"]
         }
     },
     "changelog-sections": [
