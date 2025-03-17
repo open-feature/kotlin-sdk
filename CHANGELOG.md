@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/open-feature/kotlin-sdk/compare/v0.4.1...v0.5.0) (2025-03-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* add evaluation details for finally hooks ([#136](https://github.com/open-feature/kotlin-sdk/issues/136))
+
+### ✨ New Features
+
+* add evaluation details for finally hooks ([#136](https://github.com/open-feature/kotlin-sdk/issues/136)) ([9847a52](https://github.com/open-feature/kotlin-sdk/commit/9847a52221dc91abe1a7d24b655b5c73925ee3c7))
+* **sampleapp:** Adding sample app ([#132](https://github.com/open-feature/kotlin-sdk/issues/132)) ([d8b58b4](https://github.com/open-feature/kotlin-sdk/commit/d8b58b48ad1a89ab31e1f1c2d553e6c7c516f7a8))
+
 ## [0.4.1](https://github.com/open-feature/kotlin-sdk/compare/v0.4.0...v0.4.1) (2025-03-11)
 
 
