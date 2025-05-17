@@ -46,12 +46,12 @@ object OpenFeatureAPI {
      * This can be done by using the [statusFlow] and waiting for the first Ready status or by accessing [getStatus]
      *
      * @param provider the provider to set
-     * @param dispatcher the dispatcher to use for the provider initialization coroutine. Defaults to [Dispatchers.IO] if not set.
+     * @param dispatcher the dispatcher to use for the provider initialization coroutine. Defaults to [Dispatchers.Default] if not set.
      * @param initialContext the initial [EvaluationContext] to use for the provider initialization. Defaults to an null context if not set.
      */
     fun setProvider(
         provider: FeatureProvider,
-        dispatcher: CoroutineDispatcher = Dispatchers.IO,
+        dispatcher: CoroutineDispatcher = Dispatchers.Default,
         initialContext: EvaluationContext? = null
     ) {
         setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to new provider"))
@@ -69,7 +69,7 @@ object OpenFeatureAPI {
     suspend fun setProviderAndWait(
         provider: FeatureProvider,
         initialContext: EvaluationContext? = null,
-        dispatcher: CoroutineDispatcher = Dispatchers.IO
+        dispatcher: CoroutineDispatcher = Dispatchers.Default
     ) {
         setProviderInternal(provider, dispatcher, initialContext)
     }
@@ -149,7 +149,7 @@ object OpenFeatureAPI {
      */
     fun setEvaluationContext(
         evaluationContext: EvaluationContext,
-        dispatcher: CoroutineDispatcher = Dispatchers.IO
+        dispatcher: CoroutineDispatcher = Dispatchers.Default
     ) {
         setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to new context"))
         this.setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
@@ -180,7 +180,7 @@ object OpenFeatureAPI {
             _statusFlow.emit(
                 OpenFeatureStatus.Error(
                     OpenFeatureError.GeneralError(
-                        e.message ?: e::class.qualifiedName ?: "Unknown error"
+                        e.message ?: "Unknown error"
                     )
                 )
             )
