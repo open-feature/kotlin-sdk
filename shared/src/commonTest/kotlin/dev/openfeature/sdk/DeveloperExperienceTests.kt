@@ -14,7 +14,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.debug.DebugProbes
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -24,19 +23,10 @@ import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DeveloperExperienceTests {
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @BeforeTest
-    fun setup() {
-        DebugProbes.install() // Install DebugProbes
-        System.setProperty("kotlinx.coroutines.debug", "on") // Optional, but helpful
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
     @AfterTest
     fun tearDown() = runTest {
         // It becomes important to clear the provider after each test since the SDK is a singleton
         OpenFeatureAPI.shutdown()
-        DebugProbes.uninstall() // Clean up to prevent side effects
     }
 
     @Test
