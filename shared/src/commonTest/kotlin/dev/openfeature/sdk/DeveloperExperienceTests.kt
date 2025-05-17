@@ -354,7 +354,7 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.shutdown()
         job.cancelAndJoin()
         assertEquals(
-            listOf(
+            listOf<OpenFeatureProviderEvents>(
                 OpenFeatureProviderEvents.ProviderStale,
                 OpenFeatureProviderEvents.ProviderStale,
                 OpenFeatureProviderEvents.ProviderStale,
