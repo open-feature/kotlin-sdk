@@ -22,6 +22,18 @@ kotlin {
             }
         }
     }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+        }
+        commonTest.dependencies {
+            implementation("junit:junit:4.13.2")
+            implementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.7.3")
+        }
+    }
 }
 
 android {
@@ -105,14 +117,6 @@ publishing {
             }
         }
     }
-}
-
-dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.7.3")
 }
 
 signing {
