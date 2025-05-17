@@ -39,7 +39,6 @@ kotlin {
         }
         commonTest.dependencies {
             implementation("org.jetbrains.kotlin:kotlin-test:2.1.21")
-            implementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.7.3")
         }
