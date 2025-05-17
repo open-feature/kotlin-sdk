@@ -5,13 +5,14 @@ import dev.openfeature.sdk.helpers.BrokenInitProvider
 import dev.openfeature.sdk.helpers.DoSomethingProvider
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class FlagEvaluationsTests {
 
-    @After
+    @AfterTest
     fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
@@ -21,7 +22,7 @@ class FlagEvaluationsTests {
         val provider = NoOpProvider()
 
         OpenFeatureAPI.setProviderAndWait(provider)
-        Assert.assertEquals(provider, OpenFeatureAPI.getProvider())
+        assertEquals(provider, OpenFeatureAPI.getProvider())
     }
 
     @Test
@@ -30,10 +31,10 @@ class FlagEvaluationsTests {
         val hook2 = GenericSpyHookMock()
 
         OpenFeatureAPI.addHooks(listOf(hook1))
-        Assert.assertEquals(1, OpenFeatureAPI.hooks.count())
+        assertEquals(1, OpenFeatureAPI.hooks.count())
 
         OpenFeatureAPI.addHooks(listOf(hook2))
-        Assert.assertEquals(2, OpenFeatureAPI.hooks.count())
+        assertEquals(2, OpenFeatureAPI.hooks.count())
     }
 
     @Test
@@ -43,10 +44,10 @@ class FlagEvaluationsTests {
 
         val client = OpenFeatureAPI.getClient()
         client.addHooks(listOf(hook1))
-        Assert.assertEquals(1, client.hooks.count())
+        assertEquals(1, client.hooks.count())
 
         client.addHooks(listOf(hook2))
-        Assert.assertEquals(2, client.hooks.count())
+        assertEquals(2, client.hooks.count())
     }
 
     @Test
@@ -55,20 +56,20 @@ class FlagEvaluationsTests {
         val client = OpenFeatureAPI.getClient()
         val key = "key"
 
-        Assert.assertEquals(true, client.getBooleanValue(key, false))
-        Assert.assertEquals(true, client.getBooleanValue(key, false, FlagEvaluationOptions()))
+        assertEquals(true, client.getBooleanValue(key, false))
+        assertEquals(true, client.getBooleanValue(key, false, FlagEvaluationOptions()))
 
-        Assert.assertEquals("test", client.getStringValue(key, "tset"))
-        Assert.assertEquals("test", client.getStringValue(key, "tset", FlagEvaluationOptions()))
+        assertEquals("test", client.getStringValue(key, "tset"))
+        assertEquals("test", client.getStringValue(key, "tset", FlagEvaluationOptions()))
 
-        Assert.assertEquals(400, client.getIntegerValue(key, 4))
-        Assert.assertEquals(400, client.getIntegerValue(key, 4, FlagEvaluationOptions()))
+        assertEquals(400, client.getIntegerValue(key, 4))
+        assertEquals(400, client.getIntegerValue(key, 4, FlagEvaluationOptions()))
 
-        Assert.assertEquals(40.0, client.getDoubleValue(key, 0.4), 0.0)
-        Assert.assertEquals(40.0, client.getDoubleValue(key, 0.4, FlagEvaluationOptions()), 0.0)
+        assertEquals(40.0, client.getDoubleValue(key, 0.4), 0.0)
+        assertEquals(40.0, client.getDoubleValue(key, 0.4, FlagEvaluationOptions()), 0.0)
 
-        Assert.assertEquals(Value.Null, client.getObjectValue(key, Value.Structure(mapOf())))
-        Assert.assertEquals(Value.Null, client.getObjectValue(key, Value.Structure(mapOf()), FlagEvaluationOptions()))
+        assertEquals(Value.Null, client.getObjectValue(key, Value.Structure(mapOf())))
+        assertEquals(Value.Null, client.getObjectValue(key, Value.Structure(mapOf()), FlagEvaluationOptions()))
     }
 
     @Test
@@ -78,25 +79,25 @@ class FlagEvaluationsTests {
         val key = "key"
 
         val booleanDetails = FlagEvaluationDetails(key, true)
-        Assert.assertEquals(booleanDetails, client.getBooleanDetails(key, false))
-        Assert.assertEquals(booleanDetails, client.getBooleanDetails(key, false, FlagEvaluationOptions()))
+        assertEquals(booleanDetails, client.getBooleanDetails(key, false))
+        assertEquals(booleanDetails, client.getBooleanDetails(key, false, FlagEvaluationOptions()))
 
         // in DoSomethingProvider, the string evaluation is special since it contains some metadata values
         val stringDetails = FlagEvaluationDetails(key, "tset", metadata = DoSomethingProvider.evaluationMetadata)
-        Assert.assertEquals(stringDetails, client.getStringDetails(key, "test"))
-        Assert.assertEquals(stringDetails, client.getStringDetails(key, "test", FlagEvaluationOptions()))
+        assertEquals(stringDetails, client.getStringDetails(key, "test"))
+        assertEquals(stringDetails, client.getStringDetails(key, "test", FlagEvaluationOptions()))
 
         val integerDetails = FlagEvaluationDetails(key, 400)
-        Assert.assertEquals(integerDetails, client.getIntegerDetails(key, 4))
-        Assert.assertEquals(integerDetails, client.getIntegerDetails(key, 4, FlagEvaluationOptions()))
+        assertEquals(integerDetails, client.getIntegerDetails(key, 4))
+        assertEquals(integerDetails, client.getIntegerDetails(key, 4, FlagEvaluationOptions()))
 
         val doubleDetails = FlagEvaluationDetails(key, 40.0)
-        Assert.assertEquals(doubleDetails, client.getDoubleDetails(key, 0.4))
-        Assert.assertEquals(doubleDetails, client.getDoubleDetails(key, 0.4, FlagEvaluationOptions()))
+        assertEquals(doubleDetails, client.getDoubleDetails(key, 0.4))
+        assertEquals(doubleDetails, client.getDoubleDetails(key, 0.4, FlagEvaluationOptions()))
 
-        val objectDetails = FlagEvaluationDetails(key, Value.Null)
-        Assert.assertEquals(objectDetails, client.getObjectDetails(key, Value.Structure(mapOf())))
-        Assert.assertEquals(objectDetails, client.getObjectDetails(key, Value.Structure(mapOf()), FlagEvaluationOptions()))
+        val objectDetails = FlagEvaluationDetails<Value>(key, Value.Null)
+        assertEquals(objectDetails, client.getObjectDetails(key, Value.Structure(mapOf())))
+        assertEquals(objectDetails, client.getObjectDetails(key, Value.Structure(mapOf()), FlagEvaluationOptions()))
     }
 
     @Test
@@ -107,8 +108,8 @@ class FlagEvaluationsTests {
 
         val details = client.getStringDetails(key, "default")
         val metadata: EvaluationMetadata = details.metadata
-        Assert.assertEquals("value1", metadata.getString("key1"))
-        Assert.assertEquals(42, metadata.getInt("key2"))
+        assertEquals("value1", metadata.getString("key1"))
+        assertEquals(42, metadata.getInt("key2"))
     }
 
     @Test
@@ -122,8 +123,8 @@ class FlagEvaluationsTests {
         client.addHooks(listOf(clientHook))
         client.getBooleanValue("key", false, FlagEvaluationOptions(listOf(invocationHook)))
 
-        Assert.assertEquals(1, clientHook.beforeCalled)
-        Assert.assertEquals(1, invocationHook.beforeCalled)
+        assertEquals(1, clientHook.beforeCalled)
+        assertEquals(1, invocationHook.beforeCalled)
     }
 
     @Test
@@ -134,17 +135,17 @@ class FlagEvaluationsTests {
         client.getBooleanValue("testKey", false)
         val details = client.getBooleanDetails("testKey", false)
 
-        Assert.assertEquals(ErrorCode.FLAG_NOT_FOUND, details.errorCode)
-        Assert.assertEquals(Reason.ERROR.toString(), details.reason)
-        Assert.assertEquals("Could not find flag named: testKey", details.errorMessage)
+        assertEquals(ErrorCode.FLAG_NOT_FOUND, details.errorCode)
+        assertEquals(Reason.ERROR.toString(), details.reason)
+        assertEquals("Could not find flag named: testKey", details.errorMessage)
     }
 
     @Test
     fun testClientMetadata() {
         val client1 = OpenFeatureAPI.getClient()
-        Assert.assertNull(client1.metadata.name)
+        assertNull(client1.metadata.name)
 
         val client2 = OpenFeatureAPI.getClient("test")
-        Assert.assertEquals("test", client2.metadata.name)
+        assertEquals("test", client2.metadata.name)
     }
 }

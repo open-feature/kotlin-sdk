@@ -2,13 +2,13 @@ package dev.openfeature.sdk
 
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class OpenFeatureClientTests {
 
-    @After
+    @AfterTest
     fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }

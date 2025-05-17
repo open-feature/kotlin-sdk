@@ -1,7 +1,10 @@
 package dev.openfeature.sdk
 
-import org.junit.Assert
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+
 
 class ProviderSpecTests {
 
@@ -10,19 +13,19 @@ class ProviderSpecTests {
         val provider = NoOpProvider()
 
         val boolResult = provider.getBooleanEvaluation("key", false, ImmutableContext())
-        Assert.assertNotNull(boolResult.value)
+        assertNotNull(boolResult.value)
 
         val stringResult = provider.getStringEvaluation("key", "test", ImmutableContext())
-        Assert.assertNotNull(stringResult.value)
+        assertNotNull(stringResult.value)
 
         val intResult = provider.getIntegerEvaluation("key", 4, ImmutableContext())
-        Assert.assertNotNull(intResult.value)
+        assertNotNull(intResult.value)
 
         val doubleResult = provider.getDoubleEvaluation("key", 0.4, ImmutableContext())
-        Assert.assertNotNull(doubleResult.value)
+        assertNotNull(doubleResult.value)
 
         val objectResult = provider.getObjectEvaluation("key", Value.Null, ImmutableContext())
-        Assert.assertNotNull(objectResult.value)
+        assertNotNull(objectResult.value)
     }
 
     @Test
@@ -30,7 +33,7 @@ class ProviderSpecTests {
         val provider = NoOpProvider()
         val boolResult = provider.getBooleanEvaluation("key", false, ImmutableContext())
 
-        Assert.assertEquals(Reason.DEFAULT.toString(), boolResult.reason)
+        assertEquals(Reason.DEFAULT.toString(), boolResult.reason)
     }
 
     @Test
@@ -38,7 +41,7 @@ class ProviderSpecTests {
         val provider = NoOpProvider()
         val boolResult = provider.getBooleanEvaluation("key", false, ImmutableContext())
 
-        Assert.assertNull(boolResult.errorCode)
+        assertNull(boolResult.errorCode)
     }
 
     @Test
@@ -46,18 +49,18 @@ class ProviderSpecTests {
         val provider = NoOpProvider()
 
         val boolResult = provider.getBooleanEvaluation("key", false, ImmutableContext())
-        Assert.assertNotNull(boolResult.variant)
+        assertNotNull(boolResult.variant)
 
         val stringResult = provider.getStringEvaluation("key", "test", ImmutableContext())
-        Assert.assertNotNull(stringResult.variant)
+        assertNotNull(stringResult.variant)
 
         val intResult = provider.getIntegerEvaluation("key", 4, ImmutableContext())
-        Assert.assertNotNull(intResult.variant)
+        assertNotNull(intResult.variant)
 
         val doubleResult = provider.getDoubleEvaluation("key", 0.4, ImmutableContext())
-        Assert.assertNotNull(doubleResult.variant)
+        assertNotNull(doubleResult.variant)
 
         val objectResult = provider.getObjectEvaluation("key", Value.Null, ImmutableContext())
-        Assert.assertNotNull(objectResult.variant)
+        assertNotNull(objectResult.variant)
     }
 }

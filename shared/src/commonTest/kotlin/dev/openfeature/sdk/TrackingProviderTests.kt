@@ -1,32 +1,29 @@
 package dev.openfeature.sdk
 
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.*
 
 class TrackingProviderTests {
 
     private lateinit var inMemoryTrackingProvider: InMemoryTrackingProvider
 
-    @Before
+    @BeforeTest
     fun setup() {
         inMemoryTrackingProvider = InMemoryTrackingProvider()
     }
 
-    @After
+    @AfterTest
     fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun throwsOnEmptyName() = runTest {
-        OpenFeatureAPI.setProvider(inMemoryTrackingProvider)
-        OpenFeatureAPI.getClient().track("")
-        assertEquals(0, inMemoryTrackingProvider.trackings.size)
+        assertFailsWith(IllegalArgumentException::class) {
+            OpenFeatureAPI.setProvider(inMemoryTrackingProvider)
+            OpenFeatureAPI.getClient().track("")
+            assertEquals(0, inMemoryTrackingProvider.trackings.size)
+        }
     }
 
     @Test

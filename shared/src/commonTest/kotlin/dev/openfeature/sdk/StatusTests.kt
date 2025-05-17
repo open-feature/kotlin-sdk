@@ -11,17 +11,13 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
 import kotlin.random.Random
+import kotlin.test.*
 import kotlin.time.Duration
 
 class StatusTests {
 
-    @Before
+    @BeforeTest
     fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }

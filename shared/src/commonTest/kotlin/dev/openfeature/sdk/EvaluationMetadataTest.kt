@@ -1,7 +1,9 @@
 package dev.openfeature.sdk
 
-import org.junit.Assert
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+
 
 class EvaluationMetadataTest {
 
@@ -14,22 +16,22 @@ class EvaluationMetadataTest {
 
     @Test
     fun testAddAndGet() {
-        Assert.assertEquals("value1", metadata.getString("key1"))
-        Assert.assertEquals(42, metadata.getInt("key2"))
-        Assert.assertEquals(true, metadata.getBoolean("key3"))
-        Assert.assertEquals(2.71828, metadata.getDouble("key4"))
+        assertEquals("value1", metadata.getString("key1"))
+        assertEquals(42, metadata.getInt("key2"))
+        assertEquals(true, metadata.getBoolean("key3"))
+        assertEquals(2.71828, metadata.getDouble("key4"))
     }
 
     @Test
     fun testGetNonExistentKey() {
-        Assert.assertNull(metadata.getString("key5"))
+        assertNull(metadata.getString("key5"))
     }
 
     @Test
     fun testInvalidType() {
-        Assert.assertNull(metadata.getString("key2"))
-        Assert.assertNull(metadata.getInt("key3"))
-        Assert.assertNull(metadata.getBoolean("key4"))
-        Assert.assertNull(metadata.getDouble("key1"))
+        assertNull(metadata.getString("key2"))
+        assertNull(metadata.getInt("key3"))
+        assertNull(metadata.getBoolean("key4"))
+        assertNull(metadata.getDouble("key1"))
     }
 }

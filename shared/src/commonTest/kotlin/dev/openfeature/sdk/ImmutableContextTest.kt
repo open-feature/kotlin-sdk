@@ -1,9 +1,10 @@
 package dev.openfeature.sdk
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.fail
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.fail
+
 
 class ImmutableContextTest {
 

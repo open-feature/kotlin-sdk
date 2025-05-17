@@ -1,18 +1,18 @@
 package dev.openfeature.sdk
 
-import org.junit.Assert
-import org.junit.Test
-import java.util.Date
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class EvalContextTests {
 
     @Test
     fun testContextIsImmutableButStoresTargetingKey() {
         val ctx = ImmutableContext()
-        Assert.assertEquals("", ctx.getTargetingKey())
+        assertEquals("", ctx.getTargetingKey())
 
         val newCtx = ctx.withTargetingKey("test")
-        Assert.assertEquals("test", newCtx.getTargetingKey())
+        assertEquals("test", newCtx.getTargetingKey())
     }
 
     @Test
@@ -28,11 +28,11 @@ class EvalContextTests {
             )
         )
 
-        Assert.assertEquals("value", ctx.getValue("string")?.asString())
-        Assert.assertEquals(true, ctx.getValue("bool")?.asBoolean())
-        Assert.assertEquals(3, ctx.getValue("int")?.asInteger())
-        Assert.assertEquals(3.14, ctx.getValue("double")?.asDouble())
-        Assert.assertEquals(now, ctx.getValue("date")?.asDate())
+        assertEquals("value", ctx.getValue("string")?.asString())
+        assertEquals(true, ctx.getValue("bool")?.asBoolean())
+        assertEquals(3, ctx.getValue("int")?.asInteger())
+        assertEquals(3.14, ctx.getValue("double")?.asDouble())
+        assertEquals(now, ctx.getValue("date")?.asDate())
     }
 
     @Test
@@ -48,8 +48,8 @@ class EvalContextTests {
                     )
             )
         )
-        Assert.assertEquals(3, ctx.getValue("list")?.asList()?.get(0)?.asInteger())
-        Assert.assertEquals("4", ctx.getValue("list")?.asList()?.get(1)?.asString())
+        assertEquals(3, ctx.getValue("list")?.asList()?.get(0)?.asInteger())
+        assertEquals("4", ctx.getValue("list")?.asList()?.get(1)?.asString())
     }
 
     @Test
@@ -65,8 +65,8 @@ class EvalContextTests {
                     )
             )
         )
-        Assert.assertEquals("test", ctx.getValue("struct")?.asStructure()?.get("string")?.asString())
-        Assert.assertEquals(3, ctx.getValue("struct")?.asStructure()?.get("int")?.asInteger())
+        assertEquals("test", ctx.getValue("struct")?.asStructure()?.get("string")?.asString())
+        assertEquals(3, ctx.getValue("struct")?.asStructure()?.get("int")?.asInteger())
     }
 
     @Test
@@ -88,15 +88,15 @@ class EvalContextTests {
 
         val map = ctx.asMap()
         val structure = map["obj"]?.asStructure()
-        Assert.assertEquals("test1", map["str1"]?.asString())
-        Assert.assertEquals("test2", map["str2"]?.asString())
-        Assert.assertEquals(true, map["bool1"]?.asBoolean())
-        Assert.assertEquals(false, map["bool2"]?.asBoolean())
-        Assert.assertEquals(4, map["int1"]?.asInteger())
-        Assert.assertEquals(2, map["int2"]?.asInteger())
-        Assert.assertEquals(now, map["dt"]?.asDate())
-        Assert.assertEquals(1, structure?.get("val1")?.asInteger())
-        Assert.assertEquals("2", structure?.get("val2")?.asString())
+        assertEquals("test1", map["str1"]?.asString())
+        assertEquals("test2", map["str2"]?.asString())
+        assertEquals(true, map["bool1"]?.asBoolean())
+        assertEquals(false, map["bool2"]?.asBoolean())
+        assertEquals(4, map["int1"]?.asInteger())
+        assertEquals(2, map["int2"]?.asInteger())
+        assertEquals(now, map["dt"]?.asDate())
+        assertEquals(1, structure?.get("val1")?.asInteger())
+        assertEquals("2", structure?.get("val2")?.asString())
     }
 
     @Test
@@ -107,8 +107,8 @@ class EvalContextTests {
                 "key" to Value.Integer(3)
             )
         )
-        Assert.assertNull(ctx.getValue("key")?.asString())
-        Assert.assertEquals(3, ctx.getValue("key")?.asInteger())
+        assertNull(ctx.getValue("key")?.asString())
+        assertEquals(3, ctx.getValue("key")?.asInteger())
     }
 
     @Test
@@ -118,8 +118,8 @@ class EvalContextTests {
                 "null" to Value.Null
             )
         )
-        Assert.assertEquals(true, ctx.getValue("null")?.isNull())
-        Assert.assertNull(ctx.getValue("null")?.asString())
+        assertEquals(true, ctx.getValue("null")?.isNull())
+        assertNull(ctx.getValue("null")?.asString())
     }
 
     @Test
@@ -155,7 +155,7 @@ class EvalContextTests {
             "list" to listOf("item1", true),
             "structure" to mapOf("field1" to 3, "field2" to 3.14)
         )
-        Assert.assertEquals(expected, ctx.asObjectMap())
+        assertEquals(expected, ctx.asObjectMap())
     }
 
     @Test
@@ -165,7 +165,7 @@ class EvalContextTests {
         val ctx1 = ImmutableContext("user1", map)
         val ctx2 = ImmutableContext("user1", map2)
 
-        Assert.assertEquals(ctx1, ctx2)
+        assertEquals(ctx1, ctx2)
     }
 
     @Test
@@ -174,16 +174,16 @@ class EvalContextTests {
         val context = ImmutableContext("targetingKey", mutableAttributes)
 
         // Verify initial state
-        Assert.assertEquals("value1", context.getValue("key1")?.asString())
-        Assert.assertEquals(42, context.getValue("key2")?.asInteger())
+        assertEquals("value1", context.getValue("key1")?.asString())
+        assertEquals(42, context.getValue("key2")?.asInteger())
 
         // Modify the original mutable map
         mutableAttributes["key1"] = Value.String("modified")
         mutableAttributes["key3"] = Value.Boolean(true)
 
         // Verify that the context is not affected by the modifications
-        Assert.assertEquals("value1", context.getValue("key1")?.asString())
-        Assert.assertEquals(42, context.getValue("key2")?.asInteger())
-        Assert.assertNull(context.getValue("key3"))
+        assertEquals("value1", context.getValue("key1")?.asString())
+        assertEquals(42, context.getValue("key2")?.asInteger())
+        assertNull(context.getValue("key3"))
     }
 }

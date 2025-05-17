@@ -3,13 +3,13 @@ package dev.openfeature.sdk
 import dev.openfeature.sdk.helpers.BrokenInitProvider
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class HookSpecTests {
 
-    @After
+    @AfterTest
     fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
@@ -22,10 +22,10 @@ class HookSpecTests {
 
         client.getBooleanValue("key", false, FlagEvaluationOptions(listOf(hook)))
 
-        Assert.assertEquals(1, hook.beforeCalled)
-        Assert.assertEquals(1, hook.afterCalled)
-        Assert.assertEquals(0, hook.errorCalled)
-        Assert.assertEquals(1, hook.finallyCalledAfter)
+        assertEquals(1, hook.beforeCalled)
+        assertEquals(1, hook.afterCalled)
+        assertEquals(0, hook.errorCalled)
+        assertEquals(1, hook.finallyCalledAfter)
     }
 
     @Test
@@ -35,10 +35,10 @@ class HookSpecTests {
         val hook = GenericSpyHookMock()
 
         client.getBooleanValue("key", false, FlagEvaluationOptions(listOf(hook)))
-        Assert.assertEquals(1, hook.beforeCalled)
-        Assert.assertEquals(0, hook.afterCalled)
-        Assert.assertEquals(1, hook.errorCalled)
-        Assert.assertEquals(1, hook.finallyCalledAfter)
+        assertEquals(1, hook.beforeCalled)
+        assertEquals(0, hook.afterCalled)
+        assertEquals(1, hook.errorCalled)
+        assertEquals(1, hook.finallyCalledAfter)
     }
 
     @Test
@@ -58,7 +58,7 @@ class HookSpecTests {
 
         client.getBooleanValue("key", false, flagOptions)
 
-        Assert.assertEquals(
+        assertEquals(
             listOf(
                 "api before",
                 "client before",

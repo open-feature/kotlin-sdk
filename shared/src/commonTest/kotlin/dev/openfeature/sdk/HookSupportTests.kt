@@ -3,12 +3,12 @@ package dev.openfeature.sdk
 import dev.openfeature.sdk.exceptions.OpenFeatureError.InvalidContextError
 import dev.openfeature.sdk.helpers.GenericSpyHookMock
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class HookSupportTests {
-    @After
+    @AfterTest
     fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
@@ -56,9 +56,9 @@ class HookSupportTests {
             mapOf()
         )
 
-        Assert.assertEquals(1, hook.beforeCalled)
-        Assert.assertEquals(1, hook.afterCalled)
-        Assert.assertEquals(1, hook.finallyCalledAfter)
-        Assert.assertEquals(1, hook.errorCalled)
+        assertEquals(1, hook.beforeCalled)
+        assertEquals(1, hook.afterCalled)
+        assertEquals(1, hook.finallyCalledAfter)
+        assertEquals(1, hook.errorCalled)
     }
 }

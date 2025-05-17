@@ -1,15 +1,16 @@
 package dev.openfeature.sdk
 
-import org.junit.Assert
-import org.junit.Test
 import java.util.Date
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class StructureTests {
 
     @Test
     fun testNoArgIsEmpty() {
         val structure = ImmutableContext()
-        Assert.assertTrue(structure.asMap().keys.isEmpty())
+        assertTrue(structure.asMap().keys.isEmpty())
     }
 
     @Test
@@ -17,13 +18,13 @@ class StructureTests {
         val map: MutableMap<String, Value> = mutableMapOf("key" to Value.String("test"))
         val structure = ImmutableStructure(map)
 
-        Assert.assertEquals("test", structure.getValue("key")?.asString())
+        assertEquals("test", structure.getValue("key")?.asString())
         // The structure should contain the same content as the input map, but not necessarily the same map reference
-        Assert.assertEquals(map.toMap(), structure.asMap())
+        assertEquals(map.toMap(), structure.asMap())
 
         // Verify that modifying the original map doesn't affect the structure
         map["key"] = Value.String("modified")
-        Assert.assertEquals("test", structure.getValue("key")?.asString())
+        assertEquals("test", structure.getValue("key")?.asString())
     }
 
     @Test
@@ -43,13 +44,13 @@ class StructureTests {
             )
         )
 
-        Assert.assertEquals(true, structure.getValue("bool")?.asBoolean())
-        Assert.assertEquals("val", structure.getValue("string")?.asString())
-        Assert.assertEquals(13, structure.getValue("int")?.asInteger())
-        Assert.assertEquals(0.5, structure.getValue("double")?.asDouble())
-        Assert.assertEquals(now, structure.getValue("date")?.asDate())
-        Assert.assertEquals(listOf<Value>(), structure.getValue("list")?.asList())
-        Assert.assertEquals(mapOf<String, Value>(), structure.getValue("structure")?.asStructure())
+        assertEquals(true, structure.getValue("bool")?.asBoolean())
+        assertEquals("val", structure.getValue("string")?.asString())
+        assertEquals(13, structure.getValue("int")?.asInteger())
+        assertEquals(0.5, structure.getValue("double")?.asDouble())
+        assertEquals(now, structure.getValue("date")?.asDate())
+        assertEquals(listOf<Value>(), structure.getValue("list")?.asList())
+        assertEquals(mapOf<String, Value>(), structure.getValue("structure")?.asStructure())
     }
 
     @Test
@@ -59,14 +60,14 @@ class StructureTests {
         val structure1 = ImmutableStructure(map)
         val structure2 = ImmutableStructure(map2)
 
-        Assert.assertEquals(structure1, structure2)
+        assertEquals(structure1, structure2)
 
         // Verify that modifying the original maps doesn't affect the structures
         map["key"] = Value.String("modified1")
         map2["key"] = Value.String("modified2")
 
-        Assert.assertEquals(structure1, structure2)
-        Assert.assertEquals("test", structure1.getValue("key")?.asString())
-        Assert.assertEquals("test", structure2.getValue("key")?.asString())
+        assertEquals(structure1, structure2)
+        assertEquals("test", structure1.getValue("key")?.asString())
+        assertEquals("test", structure2.getValue("key")?.asString())
     }
 }
