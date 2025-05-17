@@ -22,6 +22,16 @@ kotlin {
             }
         }
     }
+    jvm {
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(JvmTarget.JVM_11)
+                }
+            }
+        }
+    }
+    linuxX64 {}
 
     sourceSets {
         commonMain.dependencies {
