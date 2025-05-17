@@ -55,7 +55,7 @@ dependencies {
 ### Usage
 
 ```kotlin
-coroutineScope.launch(Dispatchers.IO) {
+coroutineScope.launch(Dispatchers.Default) {
   // configure a provider, wait for it to complete its initialization tasks
   OpenFeatureAPI.setProviderAndWait(customProvider)
   val client = OpenFeatureAPI.getClient()
@@ -90,7 +90,7 @@ If the provider you're looking for hasn't been created yet, see the [develop a p
 Once you've added a provider as a dependency, it can be registered with OpenFeature like this:
 
 ```kotlin
-coroutineScope.launch(Dispatchers.IO) {
+coroutineScope.launch(Dispatchers.Default) {
     OpenFeatureAPI.setProviderAndWait(MyProvider())
 }
 ```
@@ -195,7 +195,7 @@ viewModelScope.launch {
 viewModelScope.launch {
   OpenFeatureAPI.setProviderAndWait(
     MyFeatureProvider(),
-    Dispatchers.IO,
+    Dispatchers.Default,
     myEvaluationContext
   )
 }

@@ -32,6 +32,16 @@ kotlin {
         }
     }
     linuxX64 {}
+    js {
+        nodejs {}
+        browser {
+            testTask {
+                useKarma {
+                    useChromiumHeadless()
+                }
+            }
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
