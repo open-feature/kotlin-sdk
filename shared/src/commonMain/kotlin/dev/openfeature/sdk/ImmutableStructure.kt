@@ -1,5 +1,7 @@
 package dev.openfeature.sdk
 
+import kotlin.time.ExperimentalTime
+
 class ImmutableStructure(attributes: Map<String, Value> = mapOf()) : Structure {
     private val attributes: Map<String, Value> = attributes.toMap()
 
@@ -21,6 +23,7 @@ class ImmutableStructure(attributes: Map<String, Value> = mapOf()) : Structure {
         return attributes.mapValues { convertValue(it.value) }.toMap()
     }
 
+    @OptIn(ExperimentalTime::class)
     private fun convertValue(value: Value): Any? {
         return when (value) {
             is Value.List -> value.list.map { t -> convertValue(t) }.toList()
@@ -29,7 +32,7 @@ class ImmutableStructure(attributes: Map<String, Value> = mapOf()) : Structure {
             is Value.String -> value.asString()
             is Value.Boolean -> value.asBoolean()
             is Value.Integer -> value.asInteger()
-            is Value.Date -> value.asDate()?.clone()
+            is Value.Instant -> value.asInstant()
             is Value.Double -> value.asDouble()
         }
     }

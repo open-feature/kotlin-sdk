@@ -1,8 +1,12 @@
+@file:OptIn(ExperimentalTime::class)
+
 package dev.openfeature.sdk
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 class EvalContextTests {
 
@@ -17,14 +21,14 @@ class EvalContextTests {
 
     @Test
     fun testContextStoresPrimitiveValues() {
-        val now = Date()
+        val now = Clock.System.now()
         val ctx = ImmutableContext(
             attributes = mapOf(
                 "string" to Value.String("value"),
                 "bool" to Value.Boolean(true),
                 "int" to Value.Integer(3),
                 "double" to Value.Double(3.14),
-                "date" to Value.Date(now)
+                "date" to Value.Instant(now)
             )
         )
 
@@ -32,7 +36,7 @@ class EvalContextTests {
         assertEquals(true, ctx.getValue("bool")?.asBoolean())
         assertEquals(3, ctx.getValue("int")?.asInteger())
         assertEquals(3.14, ctx.getValue("double")?.asDouble())
-        assertEquals(now, ctx.getValue("date")?.asDate())
+        assertEquals(now, ctx.getValue("date")?.asInstant())
     }
 
     @Test
@@ -71,7 +75,7 @@ class EvalContextTests {
 
     @Test
     fun testContextCanConvertToMap() {
-        val now = Date()
+        val now = Clock.System.now()
         val ctx = ImmutableContext(
             attributes = mapOf(
                 "str1" to Value.String("test1"),
@@ -81,7 +85,7 @@ class EvalContextTests {
                 "int1" to Value.Integer(4),
                 "int2" to Value.Integer(2),
                 "double" to Value.Double(3.14),
-                "dt" to Value.Date(now),
+                "dt" to Value.Instant(now),
                 "obj" to Value.Structure(mapOf("val1" to Value.Integer(1), "val2" to Value.String("2")))
             )
         )
@@ -94,7 +98,7 @@ class EvalContextTests {
         assertEquals(false, map["bool2"]?.asBoolean())
         assertEquals(4, map["int1"]?.asInteger())
         assertEquals(2, map["int2"]?.asInteger())
-        assertEquals(now, map["dt"]?.asDate())
+        assertEquals(now, map["dt"]?.asInstant())
         assertEquals(1, structure?.get("val1")?.asInteger())
         assertEquals("2", structure?.get("val2")?.asString())
     }
@@ -125,7 +129,7 @@ class EvalContextTests {
     @Test
     fun testContextConvertsToObjectMap() {
         val key = "key1"
-        val now = Date()
+        val now = Clock.System.now()
         val ctx = ImmutableContext(
             key,
             mapOf(
@@ -133,7 +137,7 @@ class EvalContextTests {
                 "bool" to Value.Boolean(false),
                 "integer" to Value.Integer(1),
                 "double" to Value.Double(1.2),
-                "date" to Value.Date(now),
+                "date" to Value.Instant(now),
                 "null" to Value.Null,
                 "list" to Value.List(listOf(Value.String("item1"), Value.Boolean(true))),
                 "structure" to Value.Structure(

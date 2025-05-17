@@ -1,9 +1,12 @@
+@file:OptIn(ExperimentalTime::class)
+
 package dev.openfeature.sdk
 
-import java.util.Date
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 class StructureTests {
 
@@ -29,14 +32,14 @@ class StructureTests {
 
     @Test
     fun testAddAndGetReturnValues() {
-        val now = Date()
+        val now = Clock.System.now()
         val structure = ImmutableStructure(
             mapOf(
                 "string" to Value.String("val"),
                 "bool" to Value.Boolean(true),
                 "int" to Value.Integer(13),
                 "double" to Value.Double(0.5),
-                "date" to Value.Date(now),
+                "date" to Value.Instant(now),
                 "list" to Value.List(listOf()),
                 "structure" to Value.Structure(
                     mapOf()
@@ -48,7 +51,7 @@ class StructureTests {
         assertEquals("val", structure.getValue("string")?.asString())
         assertEquals(13, structure.getValue("int")?.asInteger())
         assertEquals(0.5, structure.getValue("double")?.asDouble())
-        assertEquals(now, structure.getValue("date")?.asDate())
+        assertEquals(now, structure.getValue("date")?.asInstant())
         assertEquals(listOf<Value>(), structure.getValue("list")?.asList())
         assertEquals(mapOf<String, Value>(), structure.getValue("structure")?.asStructure())
     }
