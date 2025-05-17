@@ -63,7 +63,7 @@ sealed interface Value {
         }
 
         override fun hashCode(): Int {
-            return javaClass.hashCode()
+            return 0
         }
     }
 }

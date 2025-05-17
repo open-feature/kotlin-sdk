@@ -40,9 +40,7 @@ class ImmutableStructure(attributes: Map<String, Value> = mapOf()) : Structure {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as ImmutableStructure
+        if (other !is ImmutableStructure) return false
 
         if (attributes != other.attributes) return false
 
