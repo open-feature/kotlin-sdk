@@ -1,7 +1,9 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 // ktlint-disable max-line-length
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.multiplatform")
     id("maven-publish")
     id("signing")
     id("org.jlleitschuh.gradle.ktlint")
@@ -9,6 +11,18 @@ plugins {
 }
 
 val releaseVersion = project.extra["version"].toString()
+
+kotlin {
+    androidTarget {
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(JvmTarget.JVM_11)
+                }
+            }
+        }
+    }
+}
 
 android {
     namespace = "dev.openfeature.sdk"
@@ -24,9 +38,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
     publishing {
