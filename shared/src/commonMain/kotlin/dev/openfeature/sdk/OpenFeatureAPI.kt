@@ -189,7 +189,7 @@ object OpenFeatureAPI {
             _statusFlow.emit(
                 OpenFeatureStatus.Error(
                     OpenFeatureError.GeneralError(
-                        e.message ?: e.javaClass.name
+                        e.message ?: e::class.qualifiedName ?: "Unknown error"
                     )
                 )
             )

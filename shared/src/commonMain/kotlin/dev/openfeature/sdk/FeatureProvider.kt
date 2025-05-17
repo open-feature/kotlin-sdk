@@ -4,7 +4,7 @@ import dev.openfeature.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlin.jvm.Throws
+import kotlin.coroutines.cancellation.CancellationException
 
 interface FeatureProvider {
     val hooks: List<Hook<*>>
@@ -15,7 +15,7 @@ interface FeatureProvider {
      * This function should block until ready and throw exceptions if it fails to initialize
      * @param initialContext any initial context to be set before the provider is ready
      */
-    @Throws(OpenFeatureError::class)
+    @Throws(OpenFeatureError::class, CancellationException::class)
     suspend fun initialize(initialContext: EvaluationContext?)
 
     /**
@@ -30,7 +30,7 @@ interface FeatureProvider {
      * @param newContext The new EvaluationContext
      * @throws OpenFeatureError if the provider cannot perform the task
      */
-    @Throws(OpenFeatureError::class)
+    @Throws(OpenFeatureError::class, CancellationException::class)
     suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext)
 
     fun getBooleanEvaluation(
