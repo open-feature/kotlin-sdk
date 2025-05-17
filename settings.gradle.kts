@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "OpenFeature"
-include(":android")
+include(":shared")
 include(":sampleapp")
