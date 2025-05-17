@@ -1,7 +1,6 @@
 package dev.openfeature.sdk
 
 import dev.openfeature.sdk.exceptions.ErrorCode
-import org.mockito.kotlin.mock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -23,7 +22,7 @@ class TelemetryTest {
             FlagValueType.STRING,
             "default",
             ctx,
-            mock(),
+            null,
             providerMetadata
         )
         val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
@@ -42,7 +41,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
@@ -60,7 +59,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 object : ProviderMetadata {
                     override val name: String?
                         get() = null
@@ -83,7 +82,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val flagEvaluationDetails = FlagEvaluationDetails.from(
@@ -107,7 +106,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val flagEvaluationDetails = FlagEvaluationDetails.from(
@@ -134,7 +133,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val contextId = "contextId metadata"
@@ -162,7 +161,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
@@ -182,7 +181,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val flagSetId = "flag set id"
@@ -208,7 +207,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
@@ -228,7 +227,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val version = "flag set id"
@@ -254,7 +253,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val flagEvaluationDetails = FlagEvaluationDetails.from(ProviderEvaluation("value"), flagKey)
@@ -275,7 +274,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val variant = "variant"
@@ -303,7 +302,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val variant = null
@@ -330,7 +329,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val variant = null
@@ -359,7 +358,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val errorCode = ErrorCode.PARSE_ERROR
@@ -389,7 +388,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val flagEvaluationDetails = FlagEvaluationDetails.from(
@@ -417,7 +416,7 @@ class TelemetryTest {
                 FlagValueType.STRING,
                 "default",
                 ctx,
-                mock(),
+                null,
                 providerMetadata
             )
             val flagEvaluationDetails = FlagEvaluationDetails.from(
