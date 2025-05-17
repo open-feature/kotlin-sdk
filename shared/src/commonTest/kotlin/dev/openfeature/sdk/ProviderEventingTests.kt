@@ -13,13 +13,14 @@ import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class ProviderEventingTests {
 
-    @Before
+    @BeforeTest
     fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
     }
@@ -63,7 +64,7 @@ class ProviderEventingTests {
         )
         testScheduler.advanceUntilIdle()
         waitAssert {
-            Assert.assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+            assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         }
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("new"))
         testScheduler.advanceUntilIdle()
@@ -71,13 +72,13 @@ class ProviderEventingTests {
         testScheduler.advanceUntilIdle()
         j.cancelAndJoin()
         waitAssert {
-            Assert.assertEquals(5, statusList.size)
+            assertEquals(5, statusList.size)
         }
-        Assert.assertEquals(OpenFeatureStatus.Ready, statusList[0])
-        Assert.assertEquals(OpenFeatureStatus.Reconciling, statusList[1])
-        Assert.assertTrue(statusList[2] is OpenFeatureStatus.Error)
-        Assert.assertEquals(OpenFeatureStatus.Ready, statusList[3])
-        Assert.assertEquals(OpenFeatureStatus.NotReady, statusList[4])
+        assertEquals(OpenFeatureStatus.Ready, statusList[0])
+        assertEquals(OpenFeatureStatus.Reconciling, statusList[1])
+        assertTrue(statusList[2] is OpenFeatureStatus.Error)
+        assertEquals(OpenFeatureStatus.Ready, statusList[3])
+        assertEquals(OpenFeatureStatus.NotReady, statusList[4])
     }
 
     @Test
@@ -100,7 +101,7 @@ class ProviderEventingTests {
         // emits ProviderStale + ProviderConfigurationChanged
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("first.v2"))
         testScheduler.advanceUntilIdle()
-        Assert.assertEquals(
+        assertEquals(
             listOf(
                 OpenFeatureProviderEvents.ProviderReady,
                 OpenFeatureProviderEvents.ProviderStale,
@@ -124,7 +125,7 @@ class ProviderEventingTests {
 
         OpenFeatureAPI.shutdown()
         job.cancelAndJoin()
-        Assert.assertEquals(
+        assertEquals(
             listOf(
                 OpenFeatureProviderEvents.ProviderReady,
                 OpenFeatureProviderEvents.ProviderStale,

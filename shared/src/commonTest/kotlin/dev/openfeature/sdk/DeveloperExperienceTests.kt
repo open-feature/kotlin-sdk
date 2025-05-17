@@ -19,24 +19,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DeveloperExperienceTests {
     @OptIn(ExperimentalCoroutinesApi::class)
-    @Before
+    @BeforeTest
     fun setup() {
         DebugProbes.install() // Install DebugProbes
         System.setProperty("kotlinx.coroutines.debug", "on") // Optional, but helpful
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    @Before
+    @AfterTest
     fun tearDown() = runTest {
         // It becomes important to clear the provider after each test since the SDK is a singleton
         OpenFeatureAPI.shutdown()
@@ -54,7 +49,7 @@ class DeveloperExperienceTests {
     fun testSimpleBooleanFlag() = runTest {
         OpenFeatureAPI.setProviderAndWait(NoOpProvider(), ImmutableContext())
         val booleanValue = OpenFeatureAPI.getClient().getBooleanValue("test", false)
-        Assert.assertFalse(booleanValue)
+        assertFalse(booleanValue)
     }
 
     @Test
@@ -67,8 +62,8 @@ class DeveloperExperienceTests {
         advanceUntilIdle()
         OpenFeatureAPI.statusFlow.firstOrNull { it is OpenFeatureStatus.Ready }
         val booleanDetails = OpenFeatureAPI.getClient().getBooleanDetails("test", false)
-        Assert.assertNull(booleanDetails.errorCode)
-        Assert.assertNull(booleanDetails.errorMessage)
+        assertNull(booleanDetails.errorCode)
+        assertNull(booleanDetails.errorMessage)
     }
 
     @Test
@@ -81,8 +76,8 @@ class DeveloperExperienceTests {
         )
         testScheduler.advanceUntilIdle() // Make sure coroutine in setProvider is called
         val booleanDetails = OpenFeatureAPI.getClient().getBooleanDetails("test", false)
-        Assert.assertNull(booleanDetails.errorCode)
-        Assert.assertNull(booleanDetails.errorMessage)
+        assertNull(booleanDetails.errorCode)
+        assertNull(booleanDetails.errorMessage)
     }
 
     @Test
@@ -165,7 +160,7 @@ class DeveloperExperienceTests {
         }
         testScheduler.advanceTimeBy(1) // Make sure setProviderAndWait is called
         val booleanValue1 = OpenFeatureAPI.getClient().getBooleanValue("test", false)
-        Assert.assertFalse(booleanValue1)
+        assertFalse(booleanValue1)
         testScheduler.advanceTimeBy(10000) // SlowProvider is now Ready
         val booleanValue2 = OpenFeatureAPI.getClient().getBooleanValue("test", false)
         assertTrue(booleanValue2)
@@ -176,7 +171,7 @@ class DeveloperExperienceTests {
     fun testSetProviderAndWaitError() = runTest {
         OpenFeatureAPI.setProviderAndWait(BrokenInitProvider(), ImmutableContext())
         val booleanValue = OpenFeatureAPI.getClient().getBooleanValue("test", false)
-        Assert.assertFalse(booleanValue)
+        assertFalse(booleanValue)
     }
 
     @Test
