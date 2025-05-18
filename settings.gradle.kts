@@ -12,5 +12,5 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "OpenFeature"
-include(":shared")
+include(":kotlin-sdk")
 include(":sampleapp")

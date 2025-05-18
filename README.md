@@ -48,7 +48,7 @@ Installation via Maven Central is preferred, using the following dependency:
 <!-- x-release-please-start-version -->
 ```kotlin
 dependencies {
-    api("dev.openfeature:android-sdk:0.5.3")
+    api("dev.openfeature:kotlin-sdk:0.5.3")
 }
 ```
 
