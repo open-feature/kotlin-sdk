@@ -12,6 +12,9 @@ plugins {
 
 val releaseVersion = project.extra["version"].toString()
 
+group = project.extra["groupId"].toString()
+version = releaseVersion
+
 kotlin {
     androidTarget {
         compilations.all {
@@ -80,9 +83,6 @@ android {
 publishing {
     publications {
         register<MavenPublication>("release") {
-            groupId = project.extra["groupId"].toString()
-            artifactId = "android-sdk"
-            version = releaseVersion
 
             pom {
                 name.set("OpenFeature Android SDK")
