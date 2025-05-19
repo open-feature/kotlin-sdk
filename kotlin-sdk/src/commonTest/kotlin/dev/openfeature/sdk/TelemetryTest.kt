@@ -118,7 +118,10 @@ class TelemetryTest {
             )
             val evaluationEvent = createEvaluationEvent(hookContext, flagEvaluationDetails)
 
-            assertEquals(EvaluationReason.TARGETING_MATCH.name.lowercase(), evaluationEvent.attributes[TELEMETRY_REASON])
+            assertEquals(
+                EvaluationReason.TARGETING_MATCH.name.lowercase(),
+                evaluationEvent.attributes[TELEMETRY_REASON]
+            )
         }
     }
 
