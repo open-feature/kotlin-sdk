@@ -6,13 +6,6 @@ public abstract interface class dev/openfeature/sdk/BaseEvaluation {
 	public abstract fun getVariant ()Ljava/lang/String;
 }
 
-public final class dev/openfeature/sdk/BuildConfig {
-	public static final field BUILD_TYPE Ljava/lang/String;
-	public static final field DEBUG Z
-	public static final field LIBRARY_PACKAGE_NAME Ljava/lang/String;
-	public fun <init> ()V
-}
-
 public final class dev/openfeature/sdk/Builder {
 	public fun <init> ()V
 	public final fun build ()Ldev/openfeature/sdk/EvaluationMetadata;
@@ -165,6 +158,7 @@ public final class dev/openfeature/sdk/FlagValueType : java/lang/Enum {
 	public static final field INTEGER Ldev/openfeature/sdk/FlagValueType;
 	public static final field OBJECT Ldev/openfeature/sdk/FlagValueType;
 	public static final field STRING Ldev/openfeature/sdk/FlagValueType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/openfeature/sdk/FlagValueType;
 	public static fun values ()[Ldev/openfeature/sdk/FlagValueType;
 }
@@ -400,6 +394,7 @@ public final class dev/openfeature/sdk/Reason : java/lang/Enum {
 	public static final field STATIC Ldev/openfeature/sdk/Reason;
 	public static final field TARGETING_MATCH Ldev/openfeature/sdk/Reason;
 	public static final field UNKNOWN Ldev/openfeature/sdk/Reason;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/openfeature/sdk/Reason;
 	public static fun values ()[Ldev/openfeature/sdk/Reason;
 }
@@ -460,8 +455,8 @@ public final class dev/openfeature/sdk/TrackingEventDetails : dev/openfeature/sd
 
 public abstract interface class dev/openfeature/sdk/Value {
 	public abstract fun asBoolean ()Ljava/lang/Boolean;
-	public abstract fun asDate ()Ljava/util/Date;
 	public abstract fun asDouble ()Ljava/lang/Double;
+	public abstract fun asInstant ()Lkotlin/time/Instant;
 	public abstract fun asInteger ()Ljava/lang/Integer;
 	public abstract fun asList ()Ljava/util/List;
 	public abstract fun asString ()Ljava/lang/String;
@@ -472,8 +467,8 @@ public abstract interface class dev/openfeature/sdk/Value {
 public final class dev/openfeature/sdk/Value$Boolean : dev/openfeature/sdk/Value {
 	public fun <init> (Z)V
 	public fun asBoolean ()Ljava/lang/Boolean;
-	public fun asDate ()Ljava/util/Date;
 	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
 	public fun asString ()Ljava/lang/String;
@@ -488,29 +483,10 @@ public final class dev/openfeature/sdk/Value$Boolean : dev/openfeature/sdk/Value
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class dev/openfeature/sdk/Value$Date : dev/openfeature/sdk/Value {
-	public fun <init> (Ljava/util/Date;)V
-	public fun asBoolean ()Ljava/lang/Boolean;
-	public fun asDate ()Ljava/util/Date;
-	public fun asDouble ()Ljava/lang/Double;
-	public fun asInteger ()Ljava/lang/Integer;
-	public fun asList ()Ljava/util/List;
-	public fun asString ()Ljava/lang/String;
-	public fun asStructure ()Ljava/util/Map;
-	public final fun component1 ()Ljava/util/Date;
-	public final fun copy (Ljava/util/Date;)Ldev/openfeature/sdk/Value$Date;
-	public static synthetic fun copy$default (Ldev/openfeature/sdk/Value$Date;Ljava/util/Date;ILjava/lang/Object;)Ldev/openfeature/sdk/Value$Date;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getDate ()Ljava/util/Date;
-	public fun hashCode ()I
-	public fun isNull ()Z
-	public fun toString ()Ljava/lang/String;
-}
-
 public final class dev/openfeature/sdk/Value$DefaultImpls {
 	public static fun asBoolean (Ldev/openfeature/sdk/Value;)Ljava/lang/Boolean;
-	public static fun asDate (Ldev/openfeature/sdk/Value;)Ljava/util/Date;
 	public static fun asDouble (Ldev/openfeature/sdk/Value;)Ljava/lang/Double;
+	public static fun asInstant (Ldev/openfeature/sdk/Value;)Lkotlin/time/Instant;
 	public static fun asInteger (Ldev/openfeature/sdk/Value;)Ljava/lang/Integer;
 	public static fun asList (Ldev/openfeature/sdk/Value;)Ljava/util/List;
 	public static fun asString (Ldev/openfeature/sdk/Value;)Ljava/lang/String;
@@ -521,8 +497,8 @@ public final class dev/openfeature/sdk/Value$DefaultImpls {
 public final class dev/openfeature/sdk/Value$Double : dev/openfeature/sdk/Value {
 	public fun <init> (D)V
 	public fun asBoolean ()Ljava/lang/Boolean;
-	public fun asDate ()Ljava/util/Date;
 	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
 	public fun asString ()Ljava/lang/String;
@@ -537,11 +513,30 @@ public final class dev/openfeature/sdk/Value$Double : dev/openfeature/sdk/Value 
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/openfeature/sdk/Value$Instant : dev/openfeature/sdk/Value {
+	public fun <init> (Lkotlin/time/Instant;)V
+	public fun asBoolean ()Ljava/lang/Boolean;
+	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
+	public fun asInteger ()Ljava/lang/Integer;
+	public fun asList ()Ljava/util/List;
+	public fun asString ()Ljava/lang/String;
+	public fun asStructure ()Ljava/util/Map;
+	public final fun component1 ()Lkotlin/time/Instant;
+	public final fun copy (Lkotlin/time/Instant;)Ldev/openfeature/sdk/Value$Instant;
+	public static synthetic fun copy$default (Ldev/openfeature/sdk/Value$Instant;Lkotlin/time/Instant;ILjava/lang/Object;)Ldev/openfeature/sdk/Value$Instant;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInstant ()Lkotlin/time/Instant;
+	public fun hashCode ()I
+	public fun isNull ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/openfeature/sdk/Value$Integer : dev/openfeature/sdk/Value {
 	public fun <init> (I)V
 	public fun asBoolean ()Ljava/lang/Boolean;
-	public fun asDate ()Ljava/util/Date;
 	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
 	public fun asString ()Ljava/lang/String;
@@ -557,11 +552,10 @@ public final class dev/openfeature/sdk/Value$Integer : dev/openfeature/sdk/Value
 }
 
 public final class dev/openfeature/sdk/Value$List : dev/openfeature/sdk/Value {
-	public static final field Companion Ldev/openfeature/sdk/Value$List$Companion;
-	public synthetic fun <init> (Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/List;)V
 	public fun asBoolean ()Ljava/lang/Boolean;
-	public fun asDate ()Ljava/util/Date;
 	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
 	public fun asString ()Ljava/lang/String;
@@ -576,15 +570,11 @@ public final class dev/openfeature/sdk/Value$List : dev/openfeature/sdk/Value {
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class dev/openfeature/sdk/Value$List$Companion {
-	public final fun invoke (Ljava/util/List;)Ldev/openfeature/sdk/Value$List;
-}
-
 public final class dev/openfeature/sdk/Value$Null : dev/openfeature/sdk/Value {
 	public static final field INSTANCE Ldev/openfeature/sdk/Value$Null;
 	public fun asBoolean ()Ljava/lang/Boolean;
-	public fun asDate ()Ljava/util/Date;
 	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
 	public fun asString ()Ljava/lang/String;
@@ -597,8 +587,8 @@ public final class dev/openfeature/sdk/Value$Null : dev/openfeature/sdk/Value {
 public final class dev/openfeature/sdk/Value$String : dev/openfeature/sdk/Value {
 	public fun <init> (Ljava/lang/String;)V
 	public fun asBoolean ()Ljava/lang/Boolean;
-	public fun asDate ()Ljava/util/Date;
 	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
 	public fun asString ()Ljava/lang/String;
@@ -614,11 +604,10 @@ public final class dev/openfeature/sdk/Value$String : dev/openfeature/sdk/Value 
 }
 
 public final class dev/openfeature/sdk/Value$Structure : dev/openfeature/sdk/Value {
-	public static final field Companion Ldev/openfeature/sdk/Value$Structure$Companion;
-	public synthetic fun <init> (Ljava/util/Map;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/Map;)V
 	public fun asBoolean ()Ljava/lang/Boolean;
-	public fun asDate ()Ljava/util/Date;
 	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
 	public fun asString ()Ljava/lang/String;
@@ -631,10 +620,6 @@ public final class dev/openfeature/sdk/Value$Structure : dev/openfeature/sdk/Val
 	public fun hashCode ()I
 	public fun isNull ()Z
 	public fun toString ()Ljava/lang/String;
-}
-
-public final class dev/openfeature/sdk/Value$Structure$Companion {
-	public final fun invoke (Ljava/util/Map;)Ldev/openfeature/sdk/Value$Structure;
 }
 
 public abstract interface class dev/openfeature/sdk/events/OpenFeatureProviderEvents {
@@ -676,6 +661,7 @@ public final class dev/openfeature/sdk/exceptions/ErrorCode : java/lang/Enum {
 	public static final field PROVIDER_NOT_READY Ldev/openfeature/sdk/exceptions/ErrorCode;
 	public static final field TARGETING_KEY_MISSING Ldev/openfeature/sdk/exceptions/ErrorCode;
 	public static final field TYPE_MISMATCH Ldev/openfeature/sdk/exceptions/ErrorCode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/openfeature/sdk/exceptions/ErrorCode;
 	public static fun values ()[Ldev/openfeature/sdk/exceptions/ErrorCode;
 }
