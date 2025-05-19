@@ -1,6 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
-// ktlint-disable max-line-length
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.multiplatform")

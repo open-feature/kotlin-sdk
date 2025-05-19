@@ -4,7 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-
 class EvaluationMetadataTest {
 
     private val metadata = EvaluationMetadata.builder()
