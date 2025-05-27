@@ -11,6 +11,6 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "OpenFeature"
+rootProject.name = "open-feature-kotlin-sdk"
 include(":kotlin-sdk")
 include(":sampleapp")
