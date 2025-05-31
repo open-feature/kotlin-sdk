@@ -16,6 +16,20 @@ Manual formatting is done by invoking
 ./gradlew ktlintFormat
 ```
 
+## Testing
+
+Prerequisite for browser tests: Install Google Chrome (or Google Chrome headless)
+
+To run tests on all supported platforms:
+```
+./gradlew allTests
+```
+
+To run all verifications:
+```
+./gradlew check
+```
+
 ## Releases
 
 This repo uses _Release Please_ to release packages. Release Please sets up a running PR that tracks all changes in the library, and maintains the versions according to [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/), generated when [PRs are merged](https://github.com/amannn/action-semantic-pull-request), based on the PR title. The semantics of the PR title are enforced by the `lint-pr.yml` workflow. When Release Please's running PR is merged, a new release is created, and the associated artifacts are published.
