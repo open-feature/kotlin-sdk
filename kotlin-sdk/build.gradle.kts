@@ -57,7 +57,7 @@ kotlin {
 }
 
 android {
-    namespace = "dev.openfeature.sdk"
+    namespace = "dev.openfeature.kotlin.sdk"
     compileSdk = 33
 
     defaultConfig {
