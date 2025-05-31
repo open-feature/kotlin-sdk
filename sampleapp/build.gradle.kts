@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "dev.openfeature.sdk.sampleapp"
+    namespace = "dev.openfeature.kotlin.sdk.sampleapp"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.openfeature.sdk.sampleapp"
+        applicationId = "dev.openfeature.kotlin.sdk.sampleapp"
         minSdk = 28
         targetSdk = 33
         versionCode = 1
