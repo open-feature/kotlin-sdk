@@ -35,22 +35,52 @@
 
 ### Requirements
 
-- The Android minSdk version supported is: `21`.
+The following [Kotlin Multiplatform Targets](https://www.jetbrains.com/help/kotlin-multiplatform-dev/multiplatform-dsl-reference.html#targets) are supported:
 
-Note that this library is intended to be used in a mobile context, and has not been evaluated for use in other types of applications (e.g. server applications).
+| Supported | Platform             | Supported versions                                                             |
+|-----------|----------------------|--------------------------------------------------------------------------------|
+| ✅         | Android              | SDK 21+                                                                        |
+| ✅         | JVM                  | JDK 11+                                                                        |
+| ✅         | Native               | Linux x64                                                                      |
+| ❌         | Native               | [Other native targets](https://kotlinlang.org/docs/native-target-support.html) |
+| ✅         | Javascript (Node.js) |                                                                                |
+| ✅         | Javascript (Browser) |                                                                                |
+| ❌         | Wasm                 |                                                                                |
 
-### Install
 
-#### Maven Central
+Note that this library adheres to the
+[Static Context Paradigm](https://openfeature.dev/docs/reference/concepts/sdk-paradigms), so it is
+intended to be used on the **client side** (i.e. mobile apps, web apps and desktop apps), and has
+not been evaluated for use in other types of applications (e.g. server applications).
 
-Installation via Maven Central is preferred, using the following dependency:
+### Installation
 
+Installation is preferred via Maven Central.
+
+#### In Android projects
 <!-- x-release-please-start-version -->
+
 ```kotlin
 dependencies {
     api("dev.openfeature:kotlin-sdk:0.5.3")
 }
 ```
+<!-- x-release-please-end -->
+
+#### In multiplatform projects
+
+<!-- x-release-please-start-version -->
+```kotlin
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            api("dev.openfeature:kotlin-sdk:0.4.1")
+        }
+    }
+}
+```
+<!-- x-release-please-end -->
+
 
 ### Usage
 
