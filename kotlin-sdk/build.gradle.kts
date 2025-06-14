@@ -15,6 +15,7 @@ version = releaseVersion
 
 kotlin {
     androidTarget {
+        publishLibraryVariants("release")
         compilations.all {
             compileTaskProvider.configure {
                 compilerOptions {
@@ -80,8 +81,7 @@ android {
 
 publishing {
     publications {
-        register<MavenPublication>("release") {
-
+        withType<MavenPublication>().configureEach {
             pom {
                 name.set("OpenFeature Android SDK")
                 description.set(
@@ -125,10 +125,6 @@ publishing {
                     )
                     url.set("https://github.com/open-feature/kotlin-sdk")
                 }
-            }
-
-            afterEvaluate {
-                from(components["release"])
             }
         }
     }
