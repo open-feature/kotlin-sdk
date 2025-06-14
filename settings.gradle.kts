@@ -6,12 +6,11 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
     }
 }
-rootProject.name = "OpenFeature"
-include(":android")
+rootProject.name = "open-feature-kotlin-sdk"
+include(":kotlin-sdk")
 include(":sampleapp")
