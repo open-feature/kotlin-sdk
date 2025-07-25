@@ -167,4 +167,23 @@ class EvalContextTests {
 
         Assert.assertEquals(ctx1, ctx2)
     }
+
+    @Test
+    fun testContextIsTrulyImmutable() {
+        val mutableAttributes = mutableMapOf("key1" to Value.String("value1"), "key2" to Value.Integer(42))
+        val context = ImmutableContext("targetingKey", mutableAttributes)
+
+        // Verify initial state
+        Assert.assertEquals("value1", context.getValue("key1")?.asString())
+        Assert.assertEquals(42, context.getValue("key2")?.asInteger())
+
+        // Modify the original mutable map
+        mutableAttributes["key1"] = Value.String("modified")
+        mutableAttributes["key3"] = Value.Boolean(true)
+
+        // Verify that the context is not affected by the modifications
+        Assert.assertEquals("value1", context.getValue("key1")?.asString())
+        Assert.assertEquals(42, context.getValue("key2")?.asInteger())
+        Assert.assertNull(context.getValue("key3"))
+    }
 }

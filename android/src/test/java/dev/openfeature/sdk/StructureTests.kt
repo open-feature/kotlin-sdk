@@ -18,7 +18,12 @@ class StructureTests {
         val structure = ImmutableStructure(map)
 
         Assert.assertEquals("test", structure.getValue("key")?.asString())
-        Assert.assertEquals(map, structure.asMap())
+        // The structure should contain the same content as the input map, but not necessarily the same map reference
+        Assert.assertEquals(map.toMap(), structure.asMap())
+
+        // Verify that modifying the original map doesn't affect the structure
+        map["key"] = Value.String("modified")
+        Assert.assertEquals("test", structure.getValue("key")?.asString())
     }
 
     @Test
@@ -55,5 +60,13 @@ class StructureTests {
         val structure2 = ImmutableStructure(map2)
 
         Assert.assertEquals(structure1, structure2)
+
+        // Verify that modifying the original maps doesn't affect the structures
+        map["key"] = Value.String("modified1")
+        map2["key"] = Value.String("modified2")
+
+        Assert.assertEquals(structure1, structure2)
+        Assert.assertEquals("test", structure1.getValue("key")?.asString())
+        Assert.assertEquals("test", structure2.getValue("key")?.asString())
     }
 }

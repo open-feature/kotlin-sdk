@@ -4,7 +4,7 @@ class ImmutableContext(
     private val targetingKey: String = "",
     attributes: Map<String, Value> = mapOf()
 ) : EvaluationContext {
-    private val structure: ImmutableStructure = ImmutableStructure(attributes)
+    private val structure: ImmutableStructure = ImmutableStructure(attributes.toMap())
     override fun getTargetingKey(): String {
         return targetingKey
     }

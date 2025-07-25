@@ -21,9 +21,41 @@ sealed interface Value {
 
     data class Date(val date: java.util.Date) : Value
 
-    data class Structure(val structure: Map<kotlin.String, Value>) : Value
+    data class Structure private constructor(val structure: Map<kotlin.String, Value>) : Value {
+        companion object {
+            private fun deepCopyValue(value: Value): Value {
+                return when (value) {
+                    is Structure -> Structure(value.structure.mapValues { (_, v) -> deepCopyValue(v) })
+                    is List -> List(value.list.map { deepCopyValue(it) })
+                    is Date -> Date(value.date.clone() as java.util.Date)
+                    else -> value
+                }
+            }
 
-    data class List(val list: kotlin.collections.List<Value>) : Value
+            operator fun invoke(structure: Map<kotlin.String, Value>): Structure {
+                val deepCopiedStructure = structure.mapValues { (_, value) -> deepCopyValue(value) }
+                return Structure(deepCopiedStructure)
+            }
+        }
+    }
+
+    data class List private constructor(val list: kotlin.collections.List<Value>) : Value {
+        companion object {
+            private fun deepCopyValue(value: Value): Value {
+                return when (value) {
+                    is Structure -> Structure(value.structure.mapValues { (_, v) -> deepCopyValue(v) })
+                    is List -> List(value.list.map { deepCopyValue(it) })
+                    is Date -> Date(value.date.clone() as java.util.Date)
+                    else -> value
+                }
+            }
+
+            operator fun invoke(list: kotlin.collections.List<Value>): List {
+                val deepCopiedList = list.map { value -> deepCopyValue(value) }
+                return List(deepCopiedList)
+            }
+        }
+    }
 
     object Null : Value {
         override fun equals(other: Any?): kotlin.Boolean {
