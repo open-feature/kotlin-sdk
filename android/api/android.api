@@ -557,7 +557,8 @@ public final class dev/openfeature/sdk/Value$Integer : dev/openfeature/sdk/Value
 }
 
 public final class dev/openfeature/sdk/Value$List : dev/openfeature/sdk/Value {
-	public fun <init> (Ljava/util/List;)V
+	public static final field Companion Ldev/openfeature/sdk/Value$List$Companion;
+	public synthetic fun <init> (Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun asBoolean ()Ljava/lang/Boolean;
 	public fun asDate ()Ljava/util/Date;
 	public fun asDouble ()Ljava/lang/Double;
@@ -573,6 +574,10 @@ public final class dev/openfeature/sdk/Value$List : dev/openfeature/sdk/Value {
 	public fun hashCode ()I
 	public fun isNull ()Z
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/sdk/Value$List$Companion {
+	public final fun invoke (Ljava/util/List;)Ldev/openfeature/sdk/Value$List;
 }
 
 public final class dev/openfeature/sdk/Value$Null : dev/openfeature/sdk/Value {
@@ -609,7 +614,8 @@ public final class dev/openfeature/sdk/Value$String : dev/openfeature/sdk/Value 
 }
 
 public final class dev/openfeature/sdk/Value$Structure : dev/openfeature/sdk/Value {
-	public fun <init> (Ljava/util/Map;)V
+	public static final field Companion Ldev/openfeature/sdk/Value$Structure$Companion;
+	public synthetic fun <init> (Ljava/util/Map;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun asBoolean ()Ljava/lang/Boolean;
 	public fun asDate ()Ljava/util/Date;
 	public fun asDouble ()Ljava/lang/Double;
@@ -625,6 +631,10 @@ public final class dev/openfeature/sdk/Value$Structure : dev/openfeature/sdk/Val
 	public fun hashCode ()I
 	public fun isNull ()Z
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/sdk/Value$Structure$Companion {
+	public final fun invoke (Ljava/util/Map;)Ldev/openfeature/sdk/Value$Structure;
 }
 
 public abstract interface class dev/openfeature/sdk/events/OpenFeatureProviderEvents {
