@@ -1,6 +1,8 @@
 package dev.openfeature.sdk
 
-class ImmutableStructure(private val attributes: Map<String, Value> = mapOf()) : Structure {
+class ImmutableStructure(attributes: Map<String, Value> = mapOf()) : Structure {
+    private val attributes: Map<String, Value> = attributes.toMap()
+
     constructor(vararg pairs: Pair<String, Value>) : this(pairs.toMap())
 
     override fun keySet(): Set<String> {
@@ -12,22 +14,22 @@ class ImmutableStructure(private val attributes: Map<String, Value> = mapOf()) :
     }
 
     override fun asMap(): Map<String, Value> {
-        return attributes
+        return attributes.toMap()
     }
 
     override fun asObjectMap(): Map<String, Any?> {
-        return attributes.mapValues { convertValue(it.value) }
+        return attributes.mapValues { convertValue(it.value) }.toMap()
     }
 
     private fun convertValue(value: Value): Any? {
         return when (value) {
-            is Value.List -> value.list.map { t -> convertValue(t) }
-            is Value.Structure -> value.structure.mapValues { t -> convertValue(t.value) }
+            is Value.List -> value.list.map { t -> convertValue(t) }.toList()
+            is Value.Structure -> value.structure.mapValues { t -> convertValue(t.value) }.toMap()
             is Value.Null -> return null
             is Value.String -> value.asString()
             is Value.Boolean -> value.asBoolean()
             is Value.Integer -> value.asInteger()
-            is Value.Date -> value.asDate()
+            is Value.Date -> value.asDate()?.clone()
             is Value.Double -> value.asDouble()
         }
     }
