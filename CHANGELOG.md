@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/open-feature/kotlin-sdk/compare/v0.5.1...v0.5.2) (2025-08-04)
+
+
+### 🐛 Bug Fixes
+
+* update SonarType Central credentials ([#155](https://github.com/open-feature/kotlin-sdk/issues/155)) ([3d648ec](https://github.com/open-feature/kotlin-sdk/commit/3d648ec6294efcca8fa3f7b9adb38c4dc15cc87b))
+
 ## [0.5.1](https://github.com/open-feature/kotlin-sdk/compare/v0.5.0...v0.5.1) (2025-08-04)
 
 
