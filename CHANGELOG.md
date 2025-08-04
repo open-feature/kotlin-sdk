@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/open-feature/kotlin-sdk/compare/v0.5.0...v0.5.1) (2025-08-04)
+
+
+### 🐛 Bug Fixes
+
+* update nexus publishing uris ([#153](https://github.com/open-feature/kotlin-sdk/issues/153)) ([53191d5](https://github.com/open-feature/kotlin-sdk/commit/53191d56a6c6c18e150e61281c6a983784dab809))
+
 ## [0.5.0](https://github.com/open-feature/kotlin-sdk/compare/v0.4.1...v0.5.0) (2025-07-29)
 
 
