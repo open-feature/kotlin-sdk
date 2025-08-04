@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/open-feature/kotlin-sdk/compare/v0.5.2...v0.5.3) (2025-08-04)
+
+
+### 🐛 Bug Fixes
+
+* sonatype publishing secrets ([#157](https://github.com/open-feature/kotlin-sdk/issues/157)) ([28dd643](https://github.com/open-feature/kotlin-sdk/commit/28dd643a5e5b39a82ab40d2cfb18e43c0e366327))
+
 ## [0.5.2](https://github.com/open-feature/kotlin-sdk/compare/v0.5.1...v0.5.2) (2025-08-04)
 
 

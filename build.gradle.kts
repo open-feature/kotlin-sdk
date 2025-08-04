@@ -10,7 +10,7 @@ plugins {
 allprojects {
     extra["groupId"] = "dev.openfeature"
 // x-release-please-start-version
-    ext["version"] = "0.5.2"
+    ext["version"] = "0.5.3"
 // x-release-please-end
 }
 group = project.extra["groupId"].toString()
