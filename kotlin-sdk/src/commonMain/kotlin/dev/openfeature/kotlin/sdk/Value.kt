@@ -10,6 +10,7 @@ sealed interface Value {
     fun asBoolean(): kotlin.Boolean? = if (this is Boolean) boolean else null
     fun asInteger(): Int? = if (this is Integer) integer else null
     fun asDouble(): kotlin.Double? = if (this is Double) double else null
+
     @OptIn(ExperimentalTime::class)
     fun asInstant(): kotlin.time.Instant? = if (this is Instant) instant else null
     fun asList(): kotlin.collections.List<Value>? = if (this is List) list else null

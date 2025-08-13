@@ -552,7 +552,8 @@ public final class dev/openfeature/kotlin/sdk/Value$Integer : dev/openfeature/ko
 }
 
 public final class dev/openfeature/kotlin/sdk/Value$List : dev/openfeature/kotlin/sdk/Value {
-	public fun <init> (Ljava/util/List;)V
+	public static final field Companion Ldev/openfeature/kotlin/sdk/Value$List$Companion;
+	public synthetic fun <init> (Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun asBoolean ()Ljava/lang/Boolean;
 	public fun asDouble ()Ljava/lang/Double;
 	public fun asInstant ()Lkotlin/time/Instant;
@@ -568,6 +569,10 @@ public final class dev/openfeature/kotlin/sdk/Value$List : dev/openfeature/kotli
 	public fun hashCode ()I
 	public fun isNull ()Z
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$List$Companion {
+	public final fun invoke (Ljava/util/List;)Ldev/openfeature/kotlin/sdk/Value$List;
 }
 
 public final class dev/openfeature/kotlin/sdk/Value$Null : dev/openfeature/kotlin/sdk/Value {
@@ -604,7 +609,8 @@ public final class dev/openfeature/kotlin/sdk/Value$String : dev/openfeature/kot
 }
 
 public final class dev/openfeature/kotlin/sdk/Value$Structure : dev/openfeature/kotlin/sdk/Value {
-	public fun <init> (Ljava/util/Map;)V
+	public static final field Companion Ldev/openfeature/kotlin/sdk/Value$Structure$Companion;
+	public synthetic fun <init> (Ljava/util/Map;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun asBoolean ()Ljava/lang/Boolean;
 	public fun asDouble ()Ljava/lang/Double;
 	public fun asInstant ()Lkotlin/time/Instant;
@@ -620,6 +626,10 @@ public final class dev/openfeature/kotlin/sdk/Value$Structure : dev/openfeature/
 	public fun hashCode ()I
 	public fun isNull ()Z
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$Structure$Companion {
+	public final fun invoke (Ljava/util/Map;)Ldev/openfeature/kotlin/sdk/Value$Structure;
 }
 
 public abstract interface class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {

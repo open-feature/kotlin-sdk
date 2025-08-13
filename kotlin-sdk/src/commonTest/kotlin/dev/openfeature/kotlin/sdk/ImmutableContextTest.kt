@@ -5,7 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.fail
 
-
 class ImmutableContextTest {
 
     @Test
