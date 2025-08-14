@@ -58,6 +58,11 @@ not been evaluated for use in other types of applications (e.g. server applicati
 Installation is preferred via Maven Central.
 
 #### In Android projects
+
+> [!IMPORTANT]
+> Before version 0.6.0 the Maven artifact's id was `android-sdk`. When upgrading to 0.6.0 or higher
+> please do make sure to use the new artifact id, which is `kotlin-sdk`.
+
 <!-- x-release-please-start-version -->
 
 ```kotlin
@@ -74,7 +79,7 @@ dependencies {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            api("dev.openfeature:kotlin-sdk:0.4.1")
+            api("dev.openfeature:kotlin-sdk:0.5.3")
         }
     }
 }
@@ -83,6 +88,14 @@ kotlin {
 
 
 ### Usage
+
+> [!NOTE]
+> In version 0.6.0 the base package name has changed from `dev.openfeature.sdk` to
+> `dev.openfeature.kotlin.sdk`. When upgrading to 0.6.0 or higher please update your imports
+> accordingly.
+> 
+> **Example:** `import dev.openfeature.sdk.EvaluationContext` ->
+> `import dev.openfeature.kotlin.sdk.EvaluationContext`.
 
 ```kotlin
 coroutineScope.launch(Dispatchers.Default) {
