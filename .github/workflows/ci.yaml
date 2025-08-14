@@ -14,5 +14,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # For browser tests
+      - uses: browser-actions/setup-chrome@v1
+
       - name: Run checks
         run: ./gradlew check --no-daemon --stacktrace
