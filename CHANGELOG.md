@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.0](https://github.com/open-feature/kotlin-sdk/compare/v0.5.3...v0.6.0) (2025-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* Kotlin Multiplatform support ([#148](https://github.com/open-feature/kotlin-sdk/issues/148))
+
+### ✨ New Features
+
+* Kotlin Multiplatform support ([#148](https://github.com/open-feature/kotlin-sdk/issues/148)) ([8eba3d7](https://github.com/open-feature/kotlin-sdk/commit/8eba3d772636877307eb955f566a01e311d74761))
+
 ## [0.5.3](https://github.com/open-feature/kotlin-sdk/compare/v0.5.2...v0.5.3) (2025-08-04)
 
 
