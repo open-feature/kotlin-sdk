@@ -84,9 +84,9 @@ publishing {
         register<MavenPublication>("release") {
 
             pom {
-                name.set("OpenFeature Android SDK")
+                name.set("OpenFeature Kotlin SDK")
                 description.set(
-                    "This is the Android implementation of OpenFeature, a vendor-agnostic abstraction library for evaluating feature flags."
+                    "This is the Kotlin implementation of OpenFeature, a vendor-agnostic abstraction library for evaluating feature flags."
                 )
                 url.set("https://openfeature.dev")
                 licenses {
