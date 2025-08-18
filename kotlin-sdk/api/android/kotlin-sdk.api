@@ -1,0 +1,740 @@
+public abstract interface class dev/openfeature/kotlin/sdk/BaseEvaluation {
+	public abstract fun getErrorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public abstract fun getErrorMessage ()Ljava/lang/String;
+	public abstract fun getReason ()Ljava/lang/String;
+	public abstract fun getValue ()Ljava/lang/Object;
+	public abstract fun getVariant ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Builder {
+	public fun <init> ()V
+	public final fun build ()Ldev/openfeature/kotlin/sdk/EvaluationMetadata;
+	public final fun putBoolean (Ljava/lang/String;Z)Ldev/openfeature/kotlin/sdk/Builder;
+	public final fun putDouble (Ljava/lang/String;D)Ldev/openfeature/kotlin/sdk/Builder;
+	public final fun putInt (Ljava/lang/String;I)Ldev/openfeature/kotlin/sdk/Builder;
+	public final fun putString (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/Builder;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/Client : dev/openfeature/kotlin/sdk/Features, dev/openfeature/kotlin/sdk/Tracking {
+	public abstract fun addHooks (Ljava/util/List;)V
+	public abstract fun getHooks ()Ljava/util/List;
+	public abstract fun getMetadata ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/ClientMetadata {
+	public abstract fun getName ()Ljava/lang/String;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/EvaluationContext : dev/openfeature/kotlin/sdk/Structure {
+	public abstract fun equals (Ljava/lang/Object;)Z
+	public abstract fun getTargetingKey ()Ljava/lang/String;
+	public abstract fun hashCode ()I
+	public abstract fun withTargetingKey (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/EvaluationContext;
+}
+
+public final class dev/openfeature/kotlin/sdk/EvaluationEvent {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;)Ldev/openfeature/kotlin/sdk/EvaluationEvent;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/EvaluationEvent;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/EvaluationEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAttributes ()Ljava/util/Map;
+	public final fun getBody ()Ljava/util/Map;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/EvaluationMetadata {
+	public static final field Companion Ldev/openfeature/kotlin/sdk/EvaluationMetadata$Companion;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBoolean (Ljava/lang/String;)Ljava/lang/Boolean;
+	public final fun getDouble (Ljava/lang/String;)Ljava/lang/Double;
+	public final fun getInt (Ljava/lang/String;)Ljava/lang/Integer;
+	public final fun getString (Ljava/lang/String;)Ljava/lang/String;
+	public fun hashCode ()I
+}
+
+public final class dev/openfeature/kotlin/sdk/EvaluationMetadata$Companion {
+	public final fun builder ()Ldev/openfeature/kotlin/sdk/Builder;
+	public final fun getEMPTY ()Ldev/openfeature/kotlin/sdk/EvaluationMetadata;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/FeatureProvider {
+	public abstract fun getBooleanEvaluation (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public abstract fun getDoubleEvaluation (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public abstract fun getHooks ()Ljava/util/List;
+	public abstract fun getIntegerEvaluation (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public abstract fun getMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
+	public abstract fun getObjectEvaluation (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public abstract fun getStringEvaluation (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public abstract fun initialize (Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun observe ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun onContextSet (Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun shutdown ()V
+	public abstract fun track (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/TrackingEventDetails;)V
+}
+
+public final class dev/openfeature/kotlin/sdk/FeatureProvider$DefaultImpls {
+	public static fun observe (Ldev/openfeature/kotlin/sdk/FeatureProvider;)Lkotlinx/coroutines/flow/Flow;
+	public static fun track (Ldev/openfeature/kotlin/sdk/FeatureProvider;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/TrackingEventDetails;)V
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/Features {
+	public abstract fun getBooleanDetails (Ljava/lang/String;Z)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getBooleanDetails (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getBooleanValue (Ljava/lang/String;Z)Z
+	public abstract fun getBooleanValue (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Z
+	public abstract fun getDoubleDetails (Ljava/lang/String;D)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getDoubleDetails (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getDoubleValue (Ljava/lang/String;D)D
+	public abstract fun getDoubleValue (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)D
+	public abstract fun getIntegerDetails (Ljava/lang/String;I)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getIntegerDetails (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getIntegerValue (Ljava/lang/String;I)I
+	public abstract fun getIntegerValue (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)I
+	public abstract fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/Value;
+	public abstract fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/Value;
+	public abstract fun getStringDetails (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getStringDetails (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getStringValue (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+	public abstract fun getStringValue (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/FlagEvaluationDetails {
+	public static final field Companion Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationMetadata;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationMetadata;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/Object;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ldev/openfeature/kotlin/sdk/EvaluationMetadata;
+	public final fun copy (Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationMetadata;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationMetadata;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getErrorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public final fun getErrorMessage ()Ljava/lang/String;
+	public final fun getFlagKey ()Ljava/lang/String;
+	public final fun getMetadata ()Ldev/openfeature/kotlin/sdk/EvaluationMetadata;
+	public final fun getReason ()Ljava/lang/String;
+	public final fun getValue ()Ljava/lang/Object;
+	public final fun getVariant ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/FlagEvaluationDetails$Companion {
+}
+
+public final class dev/openfeature/kotlin/sdk/FlagEvaluationDetailsKt {
+	public static final fun from (Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails$Companion;Ldev/openfeature/kotlin/sdk/ProviderEvaluation;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+}
+
+public final class dev/openfeature/kotlin/sdk/FlagEvaluationOptions {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy (Ljava/util/List;Ljava/util/Map;)Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ljava/util/List;Ljava/util/Map;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHookHints ()Ljava/util/Map;
+	public final fun getHooks ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/FlagValueType : java/lang/Enum {
+	public static final field BOOLEAN Ldev/openfeature/kotlin/sdk/FlagValueType;
+	public static final field DOUBLE Ldev/openfeature/kotlin/sdk/FlagValueType;
+	public static final field INTEGER Ldev/openfeature/kotlin/sdk/FlagValueType;
+	public static final field OBJECT Ldev/openfeature/kotlin/sdk/FlagValueType;
+	public static final field STRING Ldev/openfeature/kotlin/sdk/FlagValueType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/FlagValueType;
+	public static fun values ()[Ldev/openfeature/kotlin/sdk/FlagValueType;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/Hook {
+	public abstract fun after (Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
+	public abstract fun before (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/util/Map;)V
+	public abstract fun error (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/lang/Exception;Ljava/util/Map;)V
+	public abstract fun finallyAfter (Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
+	public abstract fun supportsFlagValueType (Ldev/openfeature/kotlin/sdk/FlagValueType;)Z
+}
+
+public final class dev/openfeature/kotlin/sdk/Hook$DefaultImpls {
+	public static fun after (Ldev/openfeature/kotlin/sdk/Hook;Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
+	public static fun before (Ldev/openfeature/kotlin/sdk/Hook;Ldev/openfeature/kotlin/sdk/HookContext;Ljava/util/Map;)V
+	public static fun error (Ldev/openfeature/kotlin/sdk/Hook;Ldev/openfeature/kotlin/sdk/HookContext;Ljava/lang/Exception;Ljava/util/Map;)V
+	public static fun finallyAfter (Ldev/openfeature/kotlin/sdk/Hook;Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
+	public static fun supportsFlagValueType (Ldev/openfeature/kotlin/sdk/Hook;Ldev/openfeature/kotlin/sdk/FlagValueType;)Z
+}
+
+public final class dev/openfeature/kotlin/sdk/HookContext {
+	public fun <init> (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagValueType;Ljava/lang/Object;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/ClientMetadata;Ldev/openfeature/kotlin/sdk/ProviderMetadata;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ldev/openfeature/kotlin/sdk/FlagValueType;
+	public final fun component3 ()Ljava/lang/Object;
+	public final fun component4 ()Ldev/openfeature/kotlin/sdk/EvaluationContext;
+	public final fun component5 ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
+	public final fun component6 ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
+	public final fun copy (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagValueType;Ljava/lang/Object;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/ClientMetadata;Ldev/openfeature/kotlin/sdk/ProviderMetadata;)Ldev/openfeature/kotlin/sdk/HookContext;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagValueType;Ljava/lang/Object;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/ClientMetadata;Ldev/openfeature/kotlin/sdk/ProviderMetadata;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/HookContext;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClientMetadata ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
+	public final fun getCtx ()Ldev/openfeature/kotlin/sdk/EvaluationContext;
+	public final fun getDefaultValue ()Ljava/lang/Object;
+	public final fun getFlagKey ()Ljava/lang/String;
+	public final fun getProviderMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
+	public final fun getType ()Ldev/openfeature/kotlin/sdk/FlagValueType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/HookSupport {
+	public fun <init> ()V
+	public final fun afterAllHooks (Ldev/openfeature/kotlin/sdk/FlagValueType;Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/List;Ljava/util/Map;)V
+	public final fun afterHooks (Ldev/openfeature/kotlin/sdk/FlagValueType;Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/List;Ljava/util/Map;)V
+	public final fun beforeHooks (Ldev/openfeature/kotlin/sdk/FlagValueType;Ldev/openfeature/kotlin/sdk/HookContext;Ljava/util/List;Ljava/util/Map;)V
+	public final fun errorHooks (Ldev/openfeature/kotlin/sdk/FlagValueType;Ldev/openfeature/kotlin/sdk/HookContext;Ljava/lang/Exception;Ljava/util/List;Ljava/util/Map;)V
+}
+
+public final class dev/openfeature/kotlin/sdk/ImmutableContext : dev/openfeature/kotlin/sdk/EvaluationContext {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun asMap ()Ljava/util/Map;
+	public fun asObjectMap ()Ljava/util/Map;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTargetingKey ()Ljava/lang/String;
+	public fun getValue (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/Value;
+	public fun hashCode ()I
+	public fun keySet ()Ljava/util/Set;
+	public synthetic fun withTargetingKey (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/EvaluationContext;
+	public fun withTargetingKey (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/ImmutableContext;
+}
+
+public final class dev/openfeature/kotlin/sdk/ImmutableStructure : dev/openfeature/kotlin/sdk/Structure {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> ([Lkotlin/Pair;)V
+	public fun asMap ()Ljava/util/Map;
+	public fun asObjectMap ()Ljava/util/Map;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getValue (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/Value;
+	public fun hashCode ()I
+	public fun keySet ()Ljava/util/Set;
+}
+
+public class dev/openfeature/kotlin/sdk/NoOpProvider : dev/openfeature/kotlin/sdk/FeatureProvider {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getBooleanEvaluation (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public fun getDoubleEvaluation (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public fun getHooks ()Ljava/util/List;
+	public fun getIntegerEvaluation (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public fun getMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
+	public fun getObjectEvaluation (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public fun getStringEvaluation (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public fun initialize (Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun observe ()Lkotlinx/coroutines/flow/Flow;
+	public fun onContextSet (Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun shutdown ()V
+	public fun track (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/TrackingEventDetails;)V
+}
+
+public final class dev/openfeature/kotlin/sdk/NoOpProvider$NoOpProviderMetadata : dev/openfeature/kotlin/sdk/ProviderMetadata {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/NoOpProvider$NoOpProviderMetadata;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/NoOpProvider$NoOpProviderMetadata;Ljava/lang/String;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/NoOpProvider$NoOpProviderMetadata;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/OpenFeatureAPI {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;
+	public final fun addHooks (Ljava/util/List;)V
+	public final fun clearHooks ()V
+	public final fun clearProvider (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getClient (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/Client;
+	public static synthetic fun getClient$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Client;
+	public final fun getEvaluationContext ()Ldev/openfeature/kotlin/sdk/EvaluationContext;
+	public final fun getHooks ()Ljava/util/List;
+	public final fun getProvider ()Ldev/openfeature/kotlin/sdk/FeatureProvider;
+	public final fun getProviderMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
+	public final fun getProvidersFlow ()Lkotlinx/coroutines/flow/MutableStateFlow;
+	public final fun getStatus ()Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;
+	public final fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
+	public final fun setEvaluationContext (Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;)V
+	public static synthetic fun setEvaluationContext$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;ILjava/lang/Object;)V
+	public final fun setEvaluationContextAndWait (Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setProvider (Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;)V
+	public static synthetic fun setProvider$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)V
+	public final fun setProviderAndWait (Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setProviderAndWait$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun shutdown (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/openfeature/kotlin/sdk/OpenFeatureClient : dev/openfeature/kotlin/sdk/Client {
+	public fun <init> (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public synthetic fun <init> (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun addHooks (Ljava/util/List;)V
+	public fun getBooleanDetails (Ljava/lang/String;Z)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getBooleanDetails (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getBooleanValue (Ljava/lang/String;Z)Z
+	public fun getBooleanValue (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Z
+	public fun getDoubleDetails (Ljava/lang/String;D)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getDoubleDetails (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getDoubleValue (Ljava/lang/String;D)D
+	public fun getDoubleValue (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)D
+	public fun getHooks ()Ljava/util/List;
+	public fun getIntegerDetails (Ljava/lang/String;I)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getIntegerDetails (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getIntegerValue (Ljava/lang/String;I)I
+	public fun getIntegerValue (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)I
+	public fun getMetadata ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
+	public fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/Value;
+	public fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/Value;
+	public fun getStringDetails (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getStringDetails (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getStringValue (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+	public fun getStringValue (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ljava/lang/String;
+	public fun track (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/TrackingEventDetails;)V
+}
+
+public final class dev/openfeature/kotlin/sdk/OpenFeatureClient$Metadata : dev/openfeature/kotlin/sdk/ClientMetadata {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/OpenFeatureClient$Metadata;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/OpenFeatureClient$Metadata;Ljava/lang/String;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/OpenFeatureClient$Metadata;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/OpenFeatureStatus {
+}
+
+public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Error : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
+	public fun <init> (Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;)V
+	public final fun getError ()Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;
+}
+
+public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Fatal : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
+	public fun <init> (Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;)V
+	public final fun getError ()Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;
+}
+
+public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$NotReady : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$NotReady;
+}
+
+public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Ready : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$Ready;
+}
+
+public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Reconciling : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$Reconciling;
+}
+
+public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Stale : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$Stale;
+}
+
+public final class dev/openfeature/kotlin/sdk/ProviderEvaluation {
+	public fun <init> (Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationMetadata;)V
+	public synthetic fun <init> (Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationMetadata;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ldev/openfeature/kotlin/sdk/EvaluationMetadata;
+	public final fun copy (Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationMetadata;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/ProviderEvaluation;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationMetadata;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getErrorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public final fun getErrorMessage ()Ljava/lang/String;
+	public final fun getMetadata ()Ldev/openfeature/kotlin/sdk/EvaluationMetadata;
+	public final fun getReason ()Ljava/lang/String;
+	public final fun getValue ()Ljava/lang/Object;
+	public final fun getVariant ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/ProviderMetadata {
+	public abstract fun getName ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Reason : java/lang/Enum {
+	public static final field CACHED Ldev/openfeature/kotlin/sdk/Reason;
+	public static final field DEFAULT Ldev/openfeature/kotlin/sdk/Reason;
+	public static final field DISABLED Ldev/openfeature/kotlin/sdk/Reason;
+	public static final field ERROR Ldev/openfeature/kotlin/sdk/Reason;
+	public static final field SPLIT Ldev/openfeature/kotlin/sdk/Reason;
+	public static final field STALE Ldev/openfeature/kotlin/sdk/Reason;
+	public static final field STATIC Ldev/openfeature/kotlin/sdk/Reason;
+	public static final field TARGETING_MATCH Ldev/openfeature/kotlin/sdk/Reason;
+	public static final field UNKNOWN Ldev/openfeature/kotlin/sdk/Reason;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/Reason;
+	public static fun values ()[Ldev/openfeature/kotlin/sdk/Reason;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/Structure {
+	public abstract fun asMap ()Ljava/util/Map;
+	public abstract fun asObjectMap ()Ljava/util/Map;
+	public abstract fun equals (Ljava/lang/Object;)Z
+	public abstract fun getValue (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/Value;
+	public abstract fun hashCode ()I
+	public abstract fun keySet ()Ljava/util/Set;
+}
+
+public final class dev/openfeature/kotlin/sdk/TelemetryKt {
+	public static final field FLAG_EVALUATION_EVENT_NAME Ljava/lang/String;
+	public static final field TELEMETRY_BODY Ljava/lang/String;
+	public static final field TELEMETRY_CONTEXT_ID Ljava/lang/String;
+	public static final field TELEMETRY_ERROR_CODE Ljava/lang/String;
+	public static final field TELEMETRY_ERROR_MSG Ljava/lang/String;
+	public static final field TELEMETRY_FLAG_META_CONTEXT_ID Ljava/lang/String;
+	public static final field TELEMETRY_FLAG_META_FLAG_SET_ID Ljava/lang/String;
+	public static final field TELEMETRY_FLAG_META_VERSION Ljava/lang/String;
+	public static final field TELEMETRY_FLAG_SET_ID Ljava/lang/String;
+	public static final field TELEMETRY_KEY Ljava/lang/String;
+	public static final field TELEMETRY_PROVIDER Ljava/lang/String;
+	public static final field TELEMETRY_REASON Ljava/lang/String;
+	public static final field TELEMETRY_VARIANT Ljava/lang/String;
+	public static final field TELEMETRY_VERSION Ljava/lang/String;
+	public static final fun createEvaluationEvent (Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;)Ldev/openfeature/kotlin/sdk/EvaluationEvent;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/Tracking {
+	public abstract fun track (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/TrackingEventDetails;)V
+}
+
+public final class dev/openfeature/kotlin/sdk/Tracking$DefaultImpls {
+	public static synthetic fun track$default (Ldev/openfeature/kotlin/sdk/Tracking;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/TrackingEventDetails;ILjava/lang/Object;)V
+}
+
+public final class dev/openfeature/kotlin/sdk/TrackingEventDetails : dev/openfeature/kotlin/sdk/Structure {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/Number;Ldev/openfeature/kotlin/sdk/Structure;)V
+	public synthetic fun <init> (Ljava/lang/Number;Ldev/openfeature/kotlin/sdk/Structure;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun asMap ()Ljava/util/Map;
+	public fun asObjectMap ()Ljava/util/Map;
+	public final fun component1 ()Ljava/lang/Number;
+	public final fun component2 ()Ldev/openfeature/kotlin/sdk/Structure;
+	public final fun copy (Ljava/lang/Number;Ldev/openfeature/kotlin/sdk/Structure;)Ldev/openfeature/kotlin/sdk/TrackingEventDetails;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/TrackingEventDetails;Ljava/lang/Number;Ldev/openfeature/kotlin/sdk/Structure;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/TrackingEventDetails;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getStructure ()Ldev/openfeature/kotlin/sdk/Structure;
+	public final fun getValue ()Ljava/lang/Number;
+	public fun getValue (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/Value;
+	public fun hashCode ()I
+	public fun keySet ()Ljava/util/Set;
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/Value {
+	public abstract fun asBoolean ()Ljava/lang/Boolean;
+	public abstract fun asDouble ()Ljava/lang/Double;
+	public abstract fun asInstant ()Lkotlin/time/Instant;
+	public abstract fun asInteger ()Ljava/lang/Integer;
+	public abstract fun asList ()Ljava/util/List;
+	public abstract fun asString ()Ljava/lang/String;
+	public abstract fun asStructure ()Ljava/util/Map;
+	public abstract fun isNull ()Z
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$Boolean : dev/openfeature/kotlin/sdk/Value {
+	public fun <init> (Z)V
+	public fun asBoolean ()Ljava/lang/Boolean;
+	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
+	public fun asInteger ()Ljava/lang/Integer;
+	public fun asList ()Ljava/util/List;
+	public fun asString ()Ljava/lang/String;
+	public fun asStructure ()Ljava/util/Map;
+	public final fun component1 ()Z
+	public final fun copy (Z)Ldev/openfeature/kotlin/sdk/Value$Boolean;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/Value$Boolean;ZILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Value$Boolean;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBoolean ()Z
+	public fun hashCode ()I
+	public fun isNull ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$DefaultImpls {
+	public static fun asBoolean (Ldev/openfeature/kotlin/sdk/Value;)Ljava/lang/Boolean;
+	public static fun asDouble (Ldev/openfeature/kotlin/sdk/Value;)Ljava/lang/Double;
+	public static fun asInstant (Ldev/openfeature/kotlin/sdk/Value;)Lkotlin/time/Instant;
+	public static fun asInteger (Ldev/openfeature/kotlin/sdk/Value;)Ljava/lang/Integer;
+	public static fun asList (Ldev/openfeature/kotlin/sdk/Value;)Ljava/util/List;
+	public static fun asString (Ldev/openfeature/kotlin/sdk/Value;)Ljava/lang/String;
+	public static fun asStructure (Ldev/openfeature/kotlin/sdk/Value;)Ljava/util/Map;
+	public static fun isNull (Ldev/openfeature/kotlin/sdk/Value;)Z
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$Double : dev/openfeature/kotlin/sdk/Value {
+	public fun <init> (D)V
+	public fun asBoolean ()Ljava/lang/Boolean;
+	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
+	public fun asInteger ()Ljava/lang/Integer;
+	public fun asList ()Ljava/util/List;
+	public fun asString ()Ljava/lang/String;
+	public fun asStructure ()Ljava/util/Map;
+	public final fun component1 ()D
+	public final fun copy (D)Ldev/openfeature/kotlin/sdk/Value$Double;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/Value$Double;DILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Value$Double;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDouble ()D
+	public fun hashCode ()I
+	public fun isNull ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$Instant : dev/openfeature/kotlin/sdk/Value {
+	public fun <init> (Lkotlin/time/Instant;)V
+	public fun asBoolean ()Ljava/lang/Boolean;
+	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
+	public fun asInteger ()Ljava/lang/Integer;
+	public fun asList ()Ljava/util/List;
+	public fun asString ()Ljava/lang/String;
+	public fun asStructure ()Ljava/util/Map;
+	public final fun component1 ()Lkotlin/time/Instant;
+	public final fun copy (Lkotlin/time/Instant;)Ldev/openfeature/kotlin/sdk/Value$Instant;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/Value$Instant;Lkotlin/time/Instant;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Value$Instant;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInstant ()Lkotlin/time/Instant;
+	public fun hashCode ()I
+	public fun isNull ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$Integer : dev/openfeature/kotlin/sdk/Value {
+	public fun <init> (I)V
+	public fun asBoolean ()Ljava/lang/Boolean;
+	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
+	public fun asInteger ()Ljava/lang/Integer;
+	public fun asList ()Ljava/util/List;
+	public fun asString ()Ljava/lang/String;
+	public fun asStructure ()Ljava/util/Map;
+	public final fun component1 ()I
+	public final fun copy (I)Ldev/openfeature/kotlin/sdk/Value$Integer;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/Value$Integer;IILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Value$Integer;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInteger ()I
+	public fun hashCode ()I
+	public fun isNull ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$List : dev/openfeature/kotlin/sdk/Value {
+	public static final field Companion Ldev/openfeature/kotlin/sdk/Value$List$Companion;
+	public synthetic fun <init> (Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun asBoolean ()Ljava/lang/Boolean;
+	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
+	public fun asInteger ()Ljava/lang/Integer;
+	public fun asList ()Ljava/util/List;
+	public fun asString ()Ljava/lang/String;
+	public fun asStructure ()Ljava/util/Map;
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Ldev/openfeature/kotlin/sdk/Value$List;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/Value$List;Ljava/util/List;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Value$List;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getList ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun isNull ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$List$Companion {
+	public final fun invoke (Ljava/util/List;)Ldev/openfeature/kotlin/sdk/Value$List;
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$Null : dev/openfeature/kotlin/sdk/Value {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/Value$Null;
+	public fun asBoolean ()Ljava/lang/Boolean;
+	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
+	public fun asInteger ()Ljava/lang/Integer;
+	public fun asList ()Ljava/util/List;
+	public fun asString ()Ljava/lang/String;
+	public fun asStructure ()Ljava/util/Map;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun isNull ()Z
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$String : dev/openfeature/kotlin/sdk/Value {
+	public fun <init> (Ljava/lang/String;)V
+	public fun asBoolean ()Ljava/lang/Boolean;
+	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
+	public fun asInteger ()Ljava/lang/Integer;
+	public fun asList ()Ljava/util/List;
+	public fun asString ()Ljava/lang/String;
+	public fun asStructure ()Ljava/util/Map;
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/Value$String;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/Value$String;Ljava/lang/String;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Value$String;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getString ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun isNull ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$Structure : dev/openfeature/kotlin/sdk/Value {
+	public static final field Companion Ldev/openfeature/kotlin/sdk/Value$Structure$Companion;
+	public synthetic fun <init> (Ljava/util/Map;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun asBoolean ()Ljava/lang/Boolean;
+	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
+	public fun asInteger ()Ljava/lang/Integer;
+	public fun asList ()Ljava/util/List;
+	public fun asString ()Ljava/lang/String;
+	public fun asStructure ()Ljava/util/Map;
+	public final fun component1 ()Ljava/util/Map;
+	public final fun copy (Ljava/util/Map;)Ldev/openfeature/kotlin/sdk/Value$Structure;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/Value$Structure;Ljava/util/Map;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Value$Structure;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getStructure ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun isNull ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Value$Structure$Companion {
+	public final fun invoke (Ljava/util/Map;)Ldev/openfeature/kotlin/sdk/Value$Structure;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
+}
+
+public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderConfigurationChanged : dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderConfigurationChanged;
+}
+
+public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderError : dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
+	public fun <init> (Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;)V
+	public final fun component1 ()Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;
+	public final fun copy (Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderError;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderError;Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderError;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderNotReady : dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderNotReady;
+}
+
+public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderReady : dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderReady;
+}
+
+public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderStale : dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderStale;
+}
+
+public final class dev/openfeature/kotlin/sdk/exceptions/ErrorCode : java/lang/Enum {
+	public static final field FLAG_NOT_FOUND Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public static final field GENERAL Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public static final field INVALID_CONTEXT Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public static final field PARSE_ERROR Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public static final field PROVIDER_FATAL Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public static final field PROVIDER_NOT_READY Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public static final field TARGETING_KEY_MISSING Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public static final field TYPE_MISMATCH Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public static fun values ()[Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+}
+
+public abstract class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError : java/lang/Exception {
+	public abstract fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+}
+
+public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$FlagNotFoundError : dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError {
+	public fun <init> (Ljava/lang/String;)V
+	public fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public fun getMessage ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$GeneralError : dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError {
+	public fun <init> (Ljava/lang/String;)V
+	public fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public fun getMessage ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$InvalidContextError : dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public fun getMessage ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$ParseError : dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError {
+	public fun <init> (Ljava/lang/String;)V
+	public fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public fun getMessage ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$ProviderFatalError : dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public fun getMessage ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$ProviderNotReadyError : dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public fun getMessage ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$TargetingKeyMissingError : dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public fun getMessage ()Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$TypeMismatchError : dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+	public fun getMessage ()Ljava/lang/String;
+}
+
