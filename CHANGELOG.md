@@ -5,6 +5,18 @@
 
 ### ⚠ BREAKING CHANGES
 
+> [!IMPORTANT]
+> Before version 0.6.0 the Maven artifact's id was `android-sdk`. When upgrading to 0.6.0 or higher
+> please do make sure to use the new artifact id, which is `kotlin-sdk`.
+> 
+> In version 0.6.0 the base package name has changed from `dev.openfeature.sdk` to
+> `dev.openfeature.kotlin.sdk`. When upgrading to 0.6.0 or higher please update your imports
+> accordingly.
+> 
+> **Example:** `import dev.openfeature.sdk.EvaluationContext` ->
+> `import dev.openfeature.kotlin.sdk.EvaluationContext`.
+
+
 * Kotlin Multiplatform support ([#148](https://github.com/open-feature/kotlin-sdk/issues/148))
 
 ### ✨ New Features
