@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/open-feature/kotlin-sdk/compare/v0.6.0...v0.6.1) (2025-08-18)
+
+
+### 🐛 Bug Fixes
+
+* setup java17 for release please ([#164](https://github.com/open-feature/kotlin-sdk/issues/164)) ([d84bd2a](https://github.com/open-feature/kotlin-sdk/commit/d84bd2a9838aa75e6ed7bd6240d2039ee774b5dd))
+
 ## [0.6.0](https://github.com/open-feature/kotlin-sdk/compare/v0.5.3...v0.6.0) (2025-08-18)
 
 
