@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/open-feature/kotlin-sdk/compare/v0.6.1...v0.6.2) (2025-08-19)
+
+
+### 🐛 Bug Fixes
+
+* fix publication ([#166](https://github.com/open-feature/kotlin-sdk/issues/166)) ([c1284aa](https://github.com/open-feature/kotlin-sdk/commit/c1284aa1aa4c3e677b612735cd6830442884e193))
+
 ## [0.6.1](https://github.com/open-feature/kotlin-sdk/compare/v0.6.0...v0.6.1) (2025-08-18)
 
 

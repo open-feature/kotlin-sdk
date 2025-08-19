@@ -16,8 +16,8 @@
     <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.8.0&color=yellow&style=for-the-badge" />
   </a>
   <!-- x-release-please-start-version -->
-  <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.6.1">
-    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.6.1&color=blue&style=for-the-badge" />
+  <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.6.2">
+    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.6.2&color=blue&style=for-the-badge" />
   </a>
   <!-- x-release-please-end -->
   <br/>
@@ -67,7 +67,7 @@ Installation is preferred via Maven Central.
 
 ```kotlin
 dependencies {
-    api("dev.openfeature:kotlin-sdk:0.6.1")
+    api("dev.openfeature:kotlin-sdk:0.6.2")
 }
 ```
 <!-- x-release-please-end -->
@@ -79,7 +79,7 @@ dependencies {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            api("dev.openfeature:kotlin-sdk:0.6.1")
+            api("dev.openfeature:kotlin-sdk:0.6.2")
         }
     }
 }
