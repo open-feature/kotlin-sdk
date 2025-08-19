@@ -43,7 +43,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Configure GPG Key
         run: |
