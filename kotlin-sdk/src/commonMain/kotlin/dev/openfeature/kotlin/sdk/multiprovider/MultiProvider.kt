@@ -7,15 +7,12 @@ import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -47,9 +44,7 @@ class MultiProvider(
 
     // Shared flow because we don't want the distinct operator since it would break consecutive emits of
     // ProviderConfigurationChanged
-    private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5).apply {
-        tryEmit(OpenFeatureProviderEvents.ProviderError(OpenFeatureError.ProviderNotReadyError()))
-    }
+    private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
 
     // Track individual provider statuses
     private val providerStatuses = mutableMapOf<FeatureProvider, OpenFeatureProviderEvents>()
@@ -121,7 +116,9 @@ class MultiProvider(
 
         // If the status has been updated, calculate what our new event should be
         if (hasStatusUpdated) {
-            val currPrecedenceVal = eventFlow.first().run { eventPrecedence[this::class] } ?: 0
+            // Utilize the replay cache to get the current event with the highest precedence since the
+            // eventFlow may be empty if no events have been emitted yet.
+            val currPrecedenceVal = eventFlow.replayCache.firstOrNull()?.run { eventPrecedence[this::class] } ?: 0
             val updatedPrecedenceVal = eventPrecedence[event::class] ?: 0
 
             if (updatedPrecedenceVal > currPrecedenceVal) {
