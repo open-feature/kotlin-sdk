@@ -12,7 +12,8 @@ import dev.openfeature.kotlin.sdk.ProviderEvaluation
  * - evaluationContext: Optional context for the evaluation
  * Returns a ProviderEvaluation containing the result
  */
-typealias FlagEval<T> = FeatureProvider.(key: String, defaultValue: T, evaluationContext: EvaluationContext?) -> ProviderEvaluation<T>
+typealias FlagEval<T> =
+    FeatureProvider.(key: String, defaultValue: T, evaluationContext: EvaluationContext?) -> ProviderEvaluation<T>
 
 /**
  * Strategy interface defines how multiple feature providers should be evaluated
@@ -23,8 +24,7 @@ typealias FlagEval<T> = FeatureProvider.(key: String, defaultValue: T, evaluatio
 interface Strategy {
     /**
      * Evaluates a feature flag across multiple providers using the strategy's logic.
-     * 
-     * @param providers List of FeatureProvider instances to evaluate against
+     * * @param providers List of FeatureProvider instances to evaluate against
      * @param key The feature flag key to evaluate
      * @param defaultValue The default value to use if evaluation fails or no providers match
      * @param evaluationContext Optional context containing additional data for evaluation
@@ -36,6 +36,6 @@ interface Strategy {
         key: String,
         defaultValue: T,
         evaluationContext: EvaluationContext?,
-        flagEval: FlagEval<T>,
+        flagEval: FlagEval<T>
     ): ProviderEvaluation<T>
 }

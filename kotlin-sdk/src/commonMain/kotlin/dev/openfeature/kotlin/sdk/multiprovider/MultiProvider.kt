@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.onEach
  */
 class MultiProvider(
     providers: List<FeatureProvider>,
-    private val strategy: Strategy = FirstMatchStrategy(),
+    private val strategy: Strategy = FirstMatchStrategy()
 ) : FeatureProvider {
     // Metadata identifying this as a multiprovider
     override val metadata: ProviderMetadata = object : ProviderMetadata {
@@ -163,7 +163,7 @@ class MultiProvider(
             key,
             defaultValue,
             context,
-            FeatureProvider::getBooleanEvaluation,
+            FeatureProvider::getBooleanEvaluation
         )
     }
 
@@ -177,7 +177,7 @@ class MultiProvider(
             key,
             defaultValue,
             context,
-            FeatureProvider::getStringEvaluation,
+            FeatureProvider::getStringEvaluation
         )
     }
 
@@ -191,7 +191,7 @@ class MultiProvider(
             key,
             defaultValue,
             context,
-            FeatureProvider::getIntegerEvaluation,
+            FeatureProvider::getIntegerEvaluation
         )
     }
 
@@ -205,7 +205,7 @@ class MultiProvider(
             key,
             defaultValue,
             context,
-            FeatureProvider::getDoubleEvaluation,
+            FeatureProvider::getDoubleEvaluation
         )
     }
 
@@ -219,7 +219,7 @@ class MultiProvider(
             key,
             defaultValue,
             context,
-            FeatureProvider::getObjectEvaluation,
+            FeatureProvider::getObjectEvaluation
         )
     }
 }
