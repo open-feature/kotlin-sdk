@@ -44,7 +44,10 @@ class MultiProvider(
 
     // Shared flow because we don't want the distinct operator since it would break consecutive emits of
     // ProviderConfigurationChanged
-    private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+    private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(
+        replay = 1,
+        extraBufferCapacity = 5,
+    )
 
     // Track individual provider statuses
     private val providerStatuses = mutableMapOf<FeatureProvider, OpenFeatureProviderEvents>()
@@ -116,13 +119,16 @@ class MultiProvider(
 
         // If the status has been updated, calculate what our new event should be
         if (hasStatusUpdated) {
-            // Utilize the replay cache to get the current event with the highest precedence since the
-            // eventFlow may be empty if no events have been emitted yet.
-            val currPrecedenceVal = eventFlow.replayCache.firstOrNull()?.run { eventPrecedence[this::class] } ?: 0
-            val updatedPrecedenceVal = eventPrecedence[event::class] ?: 0
+            // Determine the highest-precedence status among all providers
+            val highestEvent = providerStatuses.values
+                .filter { it !is OpenFeatureProviderEvents.ProviderConfigurationChanged }
+                .maxByOrNull { eventPrecedence[it::class] ?: 0 }
 
-            if (updatedPrecedenceVal > currPrecedenceVal) {
-                eventFlow.emit(event)
+            // Only emit if there's a change in overall status
+            val currentOverall = eventFlow.replayCache.lastOrNull()
+
+            if (highestEvent != null && highestEvent != currentOverall) {
+                eventFlow.emit(highestEvent)
             }
         }
     }
