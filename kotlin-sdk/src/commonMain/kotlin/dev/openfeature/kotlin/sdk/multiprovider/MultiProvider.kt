@@ -46,7 +46,7 @@ class MultiProvider(
     // Shared flow because we don't want the distinct operator since it would break consecutive emits of
     // ProviderConfigurationChanged
     private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5).apply {
-        OpenFeatureProviderEvents.ProviderError(OpenFeatureError.ProviderNotReadyError())
+        tryEmit(OpenFeatureProviderEvents.ProviderError(OpenFeatureError.ProviderNotReadyError()))
     }
 
     // Track individual provider statuses
