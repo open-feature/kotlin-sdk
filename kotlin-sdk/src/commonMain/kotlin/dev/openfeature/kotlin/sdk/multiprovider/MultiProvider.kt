@@ -7,6 +7,7 @@ import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -15,6 +16,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 
 /**
  * MultiProvider is a FeatureProvider implementation that delegates flag evaluations
@@ -33,20 +37,46 @@ class MultiProvider(
     providers: List<FeatureProvider>,
     private val strategy: Strategy = FirstMatchStrategy()
 ) : FeatureProvider {
-    // Metadata identifying this as a multiprovider
-    override val metadata: ProviderMetadata = object : ProviderMetadata {
-        override val name: String? = "multiprovider"
-    }
+    private class ProviderShutdownException(
+        providerName: String,
+        cause: Throwable
+    ) : RuntimeException("Provider '$providerName' shutdown failed: ${cause.message}", cause)
 
     // TODO: Support hooks
     override val hooks: List<Hook<*>> = emptyList()
     private val uniqueProviders = getUniqueSetOfProviders(providers)
 
+    // Metadata identifying this as a multiprovider
+    override val metadata: ProviderMetadata = object : ProviderMetadata {
+        override val name: String?
+            get() = constructName()
+
+        /**
+         * Constructs the metadata for our MultiProvider according to
+         * https://openfeature.dev/specification/appendix-a#metadata
+         */
+        private fun constructName(): String {
+            var unprovidedNameCounter = 1
+            val multiproviderMetadataJson = buildJsonObject {
+                put("name", MULTIPROVIDER_NAME)
+                putJsonObject("originalMetadata") {
+                    uniqueProviders.forEach {
+                        putJsonObject(it.metadata.name ?: "$UNDEFINED_PROVIDER_NAME-${unprovidedNameCounter++}") {
+                            put("name", it.metadata.name.orEmpty())
+                        }
+                    }
+                }
+            }
+
+            return multiproviderMetadataJson.toString()
+        }
+    }
+
     // Shared flow because we don't want the distinct operator since it would break consecutive emits of
     // ProviderConfigurationChanged
     private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(
         replay = 1,
-        extraBufferCapacity = 5,
+        extraBufferCapacity = 5
     )
 
     // Track individual provider statuses
@@ -148,7 +178,31 @@ class MultiProvider(
      * This allows providers to clean up resources and complete any pending operations.
      */
     override fun shutdown() {
-        uniqueProviders.forEach { it.shutdown() }
+        val shutdownErrors = mutableListOf<Pair<String, Throwable>>()
+        uniqueProviders.forEach { provider ->
+            try {
+                provider.shutdown()
+            } catch (t: Throwable) {
+                shutdownErrors += provider.metadata.getSafeName() to t
+            }
+        }
+
+        if (shutdownErrors.isNotEmpty()) {
+            val message = buildString {
+                append("One or more providers failed to shutdown: ")
+                append(
+                    shutdownErrors.joinToString(separator = "\n") { (name, err) ->
+                        "$name: ${err.message}"
+                    }
+                )
+            }
+
+            val aggregate = OpenFeatureError.GeneralError(message)
+            shutdownErrors.forEach { (name, err) ->
+                aggregate.addSuppressed(ProviderShutdownException(name, err))
+            }
+            throw aggregate
+        }
     }
 
     override suspend fun onContextSet(
@@ -226,5 +280,17 @@ class MultiProvider(
             context,
             FeatureProvider::getObjectEvaluation
         )
+    }
+
+    /**
+     * Helps us have a consistent way to handle when providers don't provide a name
+     */
+    private fun ProviderMetadata.getSafeName(): String {
+        return name ?: UNDEFINED_PROVIDER_NAME
+    }
+
+    companion object {
+        private const val MULTIPROVIDER_NAME = "multiprovider"
+        private const val UNDEFINED_PROVIDER_NAME = "<unnamed>"
     }
 }
