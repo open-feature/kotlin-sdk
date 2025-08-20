@@ -14,6 +14,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -119,7 +121,7 @@ class MultiProvider(
 
         // If the status has been updated, calculate what our new event should be
         if (hasStatusUpdated) {
-            val currPrecedenceVal = eventFlow.replayCache.firstOrNull()?.run { eventPrecedence[this::class] } ?: 0
+            val currPrecedenceVal = eventFlow.first().run { eventPrecedence[this::class] } ?: 0
             val updatedPrecedenceVal = eventPrecedence[event::class] ?: 0
 
             if (updatedPrecedenceVal > currPrecedenceVal) {
