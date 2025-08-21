@@ -3,6 +3,7 @@ package dev.openfeature.kotlin.sdk.multiprovider
 import dev.openfeature.kotlin.sdk.EvaluationContext
 import dev.openfeature.kotlin.sdk.FeatureProvider
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
+import dev.openfeature.kotlin.sdk.Reason
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 
@@ -52,6 +53,10 @@ class FirstMatchStrategy : Strategy {
         }
 
         // No provider knew about the flag, return default value with DEFAULT reason
-        return ProviderEvaluation(defaultValue, errorCode = ErrorCode.FLAG_NOT_FOUND)
+        return ProviderEvaluation(
+            defaultValue,
+            reason = Reason.DEFAULT.toString(),
+            errorCode = ErrorCode.FLAG_NOT_FOUND
+        )
     }
 }
