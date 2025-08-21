@@ -16,9 +16,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
 
 /**
  * MultiProvider is a FeatureProvider implementation that delegates flag evaluations
@@ -48,27 +45,29 @@ class MultiProvider(
 
     // Metadata identifying this as a multiprovider
     override val metadata: ProviderMetadata = object : ProviderMetadata {
-        override val name: String?
-            get() = constructName()
+        override val name: String? = MULTIPROVIDER_NAME
+        override val originalMetadata: Map<String, ProviderMetadata> = constructOriginalMetadata()
 
-        /**
-         * Constructs the metadata for our MultiProvider according to
-         * https://openfeature.dev/specification/appendix-a#metadata
-         */
-        private fun constructName(): String {
+        private fun constructOriginalMetadata(): Map<String, ProviderMetadata> {
             var unprovidedNameCounter = 1
-            val multiproviderMetadataJson = buildJsonObject {
-                put("name", MULTIPROVIDER_NAME)
-                putJsonObject("originalMetadata") {
-                    uniqueProviders.forEach {
-                        putJsonObject(it.metadata.name ?: "$UNDEFINED_PROVIDER_NAME-${unprovidedNameCounter++}") {
-                            put("name", it.metadata.name.orEmpty())
-                        }
-                    }
+            val originalMetadata = mutableMapOf<String, ProviderMetadata>()
+            uniqueProviders.forEach {
+                val providerName = it.metadata.name
+                if (providerName != null) {
+                    originalMetadata[providerName] = it.metadata
+                } else {
+                    originalMetadata["${it.metadata.getSafeName()}_$unprovidedNameCounter"] = it.metadata
                 }
             }
 
-            return multiproviderMetadataJson.toString()
+            return originalMetadata
+        }
+
+        override fun toString(): String {
+            return mapOf(
+                "name" to name,
+                "originalMetadata" to originalMetadata
+            ).toString()
         }
     }
 

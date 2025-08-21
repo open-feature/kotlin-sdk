@@ -21,6 +21,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -135,15 +136,15 @@ class MultiProviderTests {
 
         val multi = MultiProvider(listOf(named, unnamed))
 
-        val metadataString = multi.metadata.name ?: error("metadata.name should not be null")
+        val original = multi.metadata.originalMetadata
 
-        // Simple substring assertions to validate structure without full JSON parsing
-        assertTrue(metadataString.contains("\"name\":\"multiprovider\""))
-        assertTrue(metadataString.contains("\"originalMetadata\""))
-        // Contains the named provider key
-        assertTrue(metadataString.contains("\"A\""))
+        // Contains the named provider key mapping to some metadata
+        assertTrue(original.containsKey("A"))
+        assertNotNull(original["A"], "Original metadata should include entry for named provider")
+
         // Contains at least one generated key for unnamed providers
-        assertTrue(metadataString.contains("\"<unnamed>-"))
+        val unnamedKey = original.keys.firstOrNull { it.startsWith("<unnamed>") }
+        assertNotNull(original[unnamedKey], "Original metadata should include entry for unnamed provider")
     }
 
     @Test
