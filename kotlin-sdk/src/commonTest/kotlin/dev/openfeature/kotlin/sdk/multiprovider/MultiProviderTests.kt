@@ -296,7 +296,10 @@ class MultiProviderTests {
 
         val nonConfig = collected.filter { it !is OpenFeatureProviderEvents.ProviderConfigurationChanged }
         // Should only emit Ready once (transition) and Stale once (transition)
-        assertEquals(listOf(OpenFeatureProviderEvents.ProviderReady, OpenFeatureProviderEvents.ProviderStale), nonConfig)
+        assertEquals(
+            listOf(OpenFeatureProviderEvents.ProviderReady, OpenFeatureProviderEvents.ProviderStale),
+            nonConfig
+        )
     }
 
     @Test

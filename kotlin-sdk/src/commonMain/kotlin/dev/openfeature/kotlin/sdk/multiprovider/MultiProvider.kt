@@ -48,8 +48,8 @@ class MultiProvider(
      */
     class ChildFeatureProvider(
         implementation: FeatureProvider,
-        val name: String, // Maybe there's a better variable name for this?
-    ): FeatureProvider by implementation
+        val name: String // Maybe there's a better variable name for this?
+    ) : FeatureProvider by implementation
 
     // TODO: Support hooks
     override val hooks: List<Hook<*>> = emptyList()
@@ -80,7 +80,7 @@ class MultiProvider(
     private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
 
     // Track individual provider statuses, initial state of all providers is NotReady
-    private val childProviderStatuses: MutableMap<ChildFeatureProvider, OpenFeatureStatus> = 
+    private val childProviderStatuses: MutableMap<ChildFeatureProvider, OpenFeatureStatus> =
         childFeatureProviders.associateWithTo(mutableMapOf()) { OpenFeatureStatus.NotReady }
 
     private fun List<FeatureProvider>.toChildFeatureProviders(): List<ChildFeatureProvider> {
@@ -100,7 +100,7 @@ class MultiProvider(
             val uniqueChildName = if (occurrencesForBase > 1) {
                 val nextIndex = (baseNameToNextIndex[baseName] ?: 0) + 1
                 baseNameToNextIndex[baseName] = nextIndex
-                "${baseName}_${nextIndex}"
+                "${baseName}_$nextIndex"
             } else {
                 baseName
             }
