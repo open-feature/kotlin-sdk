@@ -3,6 +3,7 @@ package dev.openfeature.kotlin.sdk.multiprovider
 import dev.openfeature.kotlin.sdk.EvaluationContext
 import dev.openfeature.kotlin.sdk.FeatureProvider
 import dev.openfeature.kotlin.sdk.Hook
+import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.Value
@@ -13,9 +14,12 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 
 /**
  * MultiProvider is a FeatureProvider implementation that delegates flag evaluations
@@ -39,9 +43,17 @@ class MultiProvider(
         cause: Throwable
     ) : RuntimeException("Provider '$providerName' shutdown failed: ${cause.message}", cause)
 
+    /**
+     * @property name The unique name of the [FeatureProvider] according to this MultiProvider
+     */
+    class ChildFeatureProvider(
+        implementation: FeatureProvider,
+        val name: String, // Maybe there's a better variable name for this?
+    ): FeatureProvider by implementation
+
     // TODO: Support hooks
     override val hooks: List<Hook<*>> = emptyList()
-    private val uniqueProviders = getUniqueSetOfProviders(providers)
+    private val childFeatureProviders: List<ChildFeatureProvider> = providers.toChildFeatureProviders()
 
     // Metadata identifying this as a multiprovider
     override val metadata: ProviderMetadata = object : ProviderMetadata {
@@ -49,18 +61,7 @@ class MultiProvider(
         override val originalMetadata: Map<String, ProviderMetadata> = constructOriginalMetadata()
 
         private fun constructOriginalMetadata(): Map<String, ProviderMetadata> {
-            var unprovidedNameCounter = 1
-            val originalMetadata = mutableMapOf<String, ProviderMetadata>()
-            uniqueProviders.forEach {
-                val providerName = it.metadata.name
-                if (providerName != null) {
-                    originalMetadata[providerName] = it.metadata
-                } else {
-                    originalMetadata["${it.metadata.getSafeName()}_$unprovidedNameCounter"] = it.metadata
-                }
-            }
-
-            return originalMetadata
+            return childFeatureProviders.associate { it.name to it.metadata }
         }
 
         override fun toString(): String {
@@ -71,44 +72,47 @@ class MultiProvider(
         }
     }
 
+    private val _statusFlow = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
+    val statusFlow = _statusFlow.asStateFlow()
+
     // Shared flow because we don't want the distinct operator since it would break consecutive emits of
     // ProviderConfigurationChanged
-    private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(
-        replay = 1,
-        extraBufferCapacity = 5
-    )
+    private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
 
-    // Track individual provider statuses
-    private val providerStatuses = mutableMapOf<FeatureProvider, OpenFeatureProviderEvents>()
+    // Track individual provider statuses, initial state of all providers is NotReady
+    private val childProviderStatuses: MutableMap<ChildFeatureProvider, OpenFeatureStatus> = 
+        childFeatureProviders.associateWithTo(mutableMapOf()) { OpenFeatureStatus.NotReady }
 
-    // Event precedence (highest to lowest priority) - based on the specifications
-    private val eventPrecedence = mapOf(
-        OpenFeatureProviderEvents.ProviderError::class to 4, // FATAL/ERROR
-        OpenFeatureProviderEvents.ProviderNotReady::class to 3, // NOT READY, Deprecated but still supporting
-        OpenFeatureProviderEvents.ProviderStale::class to 2, // STALE
-        OpenFeatureProviderEvents.ProviderReady::class to 1 // READY
-        // ProviderConfigurationChanged doesn't affect status, so not included
-    )
+    private fun List<FeatureProvider>.toChildFeatureProviders(): List<ChildFeatureProvider> {
+        // Extract a stable base name per provider, falling back for unnamed providers
+        val providerBaseNames: List<String> = this.map { it.metadata.name ?: UNDEFINED_PROVIDER_NAME }
 
-    private fun getUniqueSetOfProviders(providers: List<FeatureProvider>): List<FeatureProvider> {
-        val setOfProviderNames = mutableSetOf<String>()
-        val uniqueProviders = mutableListOf<FeatureProvider>()
-        providers.forEach { currProvider ->
-            val providerName = currProvider.metadata.name
-            if (setOfProviderNames.add(providerName.orEmpty())) {
-                uniqueProviders.add(currProvider)
+        // How many times each base name occurs in the inputs
+        val baseNameToTotalCount: Map<String, Int> = providerBaseNames.groupingBy { it }.eachCount()
+
+        // Running index per base name used to generate suffixed unique names in order
+        val baseNameToNextIndex = mutableMapOf<String, Int>()
+
+        return this.mapIndexed { providerIndex, provider ->
+            val baseName = providerBaseNames[providerIndex]
+            val occurrencesForBase = baseNameToTotalCount[baseName] ?: 0
+
+            val uniqueChildName = if (occurrencesForBase > 1) {
+                val nextIndex = (baseNameToNextIndex[baseName] ?: 0) + 1
+                baseNameToNextIndex[baseName] = nextIndex
+                "${baseName}_${nextIndex}"
             } else {
-                println("Duplicate provider with name $providerName found") // Log error, no logging tool
+                baseName
             }
-        }
 
-        return uniqueProviders
+            ChildFeatureProvider(provider, uniqueChildName)
+        }
     }
 
     /**
      * @return Number of unique providers
      */
-    fun getProviderCount(): Int = uniqueProviders.size
+    fun getProviderCount(): Int = childFeatureProviders.size
 
     override fun observe(): Flow<OpenFeatureProviderEvents> = eventFlow.asSharedFlow()
 
@@ -122,7 +126,7 @@ class MultiProvider(
         coroutineScope {
             // Listen to events emitted by providers to emit our own set of events
             // according to https://openfeature.dev/specification/appendix-a/#status-and-event-handling
-            uniqueProviders.forEach { provider ->
+            childFeatureProviders.forEach { provider ->
                 provider.observe()
                     .onEach { event ->
                         handleProviderEvent(provider, event)
@@ -131,45 +135,56 @@ class MultiProvider(
             }
 
             // State updates captured by observing individual Feature Flag providers
-            uniqueProviders
+            childFeatureProviders
                 .map { async { it.initialize(initialContext) } }
                 .awaitAll()
         }
     }
 
-    private suspend fun handleProviderEvent(provider: FeatureProvider, event: OpenFeatureProviderEvents) {
-        val hasStatusUpdated = updateProviderStatus(provider, event)
-
-        // This event should be re-emitted any time it occurs from any provider.
+    private suspend fun handleProviderEvent(provider: ChildFeatureProvider, event: OpenFeatureProviderEvents) {
         if (event is OpenFeatureProviderEvents.ProviderConfigurationChanged) {
             eventFlow.emit(event)
             return
         }
 
-        // If the status has been updated, calculate what our new event should be
-        if (hasStatusUpdated) {
-            // Determine the highest-precedence status among all providers
-            val highestEvent = providerStatuses.values
-                .filter { it !is OpenFeatureProviderEvents.ProviderConfigurationChanged }
-                .maxByOrNull { eventPrecedence[it::class] ?: 0 }
+        val newChildStatus = when (event) {
+            is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
+            is OpenFeatureProviderEvents.ProviderNotReady -> OpenFeatureStatus.NotReady
+            is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
+            is OpenFeatureProviderEvents.ProviderError ->
+                if (event.error is OpenFeatureError.ProviderFatalError) {
+                    OpenFeatureStatus.Fatal(event.error)
+                } else {
+                    OpenFeatureStatus.Error(event.error)
+                }
+            else -> error("Unexpected event $event")
+        }
 
-            // Only emit if there's a change in overall status
-            val currentOverall = eventFlow.replayCache.lastOrNull()
+        val previousStatus = _statusFlow.value
+        childProviderStatuses[provider] = newChildStatus
+        val newStatus = calculateAggregateStatus()
 
-            if (highestEvent != null && highestEvent != currentOverall) {
-                eventFlow.emit(highestEvent)
-            }
+        if (previousStatus != newStatus) {
+            _statusFlow.update { newStatus }
+            // Re-emit the original event that triggered the aggregate status change
+            eventFlow.emit(event)
         }
     }
 
-    /**
-     * @return true if the status has been updated to a different value, false otherwise
-     */
-    private fun updateProviderStatus(provider: FeatureProvider, newStatus: OpenFeatureProviderEvents): Boolean {
-        val oldStatus = providerStatuses[provider]
-        providerStatuses[provider] = newStatus
+    private fun calculateAggregateStatus(): OpenFeatureStatus {
+        val highestPrecedenceStatus = childProviderStatuses.values.maxBy(::precedence)
+        return highestPrecedenceStatus
+    }
 
-        return oldStatus != newStatus
+    private fun precedence(status: OpenFeatureStatus): Int {
+        return when (status) {
+            is OpenFeatureStatus.Fatal -> 5
+            is OpenFeatureStatus.NotReady -> 4
+            is OpenFeatureStatus.Error -> 3
+            is OpenFeatureStatus.Reconciling -> 2 // Not specified in precedence; treat similar to Stale
+            is OpenFeatureStatus.Stale -> 2
+            is OpenFeatureStatus.Ready -> 1
+        }
     }
 
     /**
@@ -178,11 +193,11 @@ class MultiProvider(
      */
     override fun shutdown() {
         val shutdownErrors = mutableListOf<Pair<String, Throwable>>()
-        uniqueProviders.forEach { provider ->
+        childFeatureProviders.forEach { provider ->
             try {
                 provider.shutdown()
             } catch (t: Throwable) {
-                shutdownErrors += provider.metadata.getSafeName() to t
+                shutdownErrors += provider.name to t
             }
         }
 
@@ -208,7 +223,13 @@ class MultiProvider(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
-        uniqueProviders.forEach { it.onContextSet(oldContext, newContext) }
+        coroutineScope {
+            // If any of these fail, they should individually bubble up their fail
+            // event and that is handled by handleProviderEvent()
+            childFeatureProviders
+                .map { async { it.onContextSet(oldContext, newContext) } }
+                .awaitAll()
+        }
     }
 
     override fun getBooleanEvaluation(
@@ -217,7 +238,7 @@ class MultiProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<Boolean> {
         return strategy.evaluate(
-            uniqueProviders,
+            childFeatureProviders,
             key,
             defaultValue,
             context,
@@ -231,7 +252,7 @@ class MultiProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<String> {
         return strategy.evaluate(
-            uniqueProviders,
+            childFeatureProviders,
             key,
             defaultValue,
             context,
@@ -245,7 +266,7 @@ class MultiProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<Int> {
         return strategy.evaluate(
-            uniqueProviders,
+            childFeatureProviders,
             key,
             defaultValue,
             context,
@@ -259,7 +280,7 @@ class MultiProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<Double> {
         return strategy.evaluate(
-            uniqueProviders,
+            childFeatureProviders,
             key,
             defaultValue,
             context,
@@ -273,19 +294,12 @@ class MultiProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<Value> {
         return strategy.evaluate(
-            uniqueProviders,
+            childFeatureProviders,
             key,
             defaultValue,
             context,
             FeatureProvider::getObjectEvaluation
         )
-    }
-
-    /**
-     * Helps us have a consistent way to handle when providers don't provide a name
-     */
-    private fun ProviderMetadata.getSafeName(): String {
-        return name ?: UNDEFINED_PROVIDER_NAME
     }
 
     companion object {

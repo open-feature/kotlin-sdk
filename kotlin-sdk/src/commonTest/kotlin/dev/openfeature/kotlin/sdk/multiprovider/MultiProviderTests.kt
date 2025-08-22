@@ -4,6 +4,7 @@ import dev.openfeature.kotlin.sdk.EvaluationContext
 import dev.openfeature.kotlin.sdk.FeatureProvider
 import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.ImmutableContext
+import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.Value
@@ -28,14 +29,57 @@ import kotlin.test.assertTrue
 class MultiProviderTests {
 
     @Test
-    fun deduplicates_providers_by_name() {
-        val p1 = FakeEventProvider(name = "dup")
-        val p2 = FakeEventProvider(name = "dup")
-        val p3 = FakeEventProvider(name = "unique")
+    fun unique_child_names_are_assigned_for_duplicates() {
+        val p1 = FakeEventProvider(name = "Provider")
+        val p2 = FakeEventProvider(name = "Provider")
+        val p3 = FakeEventProvider(name = "ProviderNew")
 
         val multi = MultiProvider(listOf(p1, p2, p3))
 
-        assertEquals(2, multi.getProviderCount())
+        // All providers should be present as children
+        assertEquals(3, multi.getProviderCount())
+
+        // Original metadata should be keyed by unique child names
+        val keys = multi.metadata.originalMetadata.keys
+        assertTrue(keys.contains("Provider_1"))
+        assertTrue(keys.contains("Provider_2"))
+        assertTrue(keys.contains("ProviderNew"))
+    }
+
+    @Test
+    fun metadata_includes_original_metadata_and_handles_unnamed_providers() {
+        val named = FakeEventProvider(name = "A")
+        val unnamed = FakeEventProvider(name = null)
+
+        val multi = MultiProvider(listOf(named, unnamed))
+
+        val original = multi.metadata.originalMetadata
+
+        // Contains the named provider key mapping to some metadata
+        assertTrue(original.containsKey("A"))
+        assertNotNull(original["A"], "Original metadata should include entry for named provider")
+
+        // Contains at least one generated key for unnamed providers
+        val unnamedKey = original.keys.firstOrNull { it.startsWith("<unnamed>") }
+        assertNotNull(original[unnamedKey], "Original metadata should include entry for unnamed provider")
+    }
+
+    @Test
+    fun child_provider_naming_is_stable_and_suffixed_per_base_name_in_order() {
+        val unnamed1 = FakeEventProvider(name = null)
+        val x1 = FakeEventProvider(name = "X")
+        val unnamed2 = FakeEventProvider(name = null)
+        val x2 = FakeEventProvider(name = "X")
+        val y = FakeEventProvider(name = "Y")
+
+        val multi = MultiProvider(listOf(unnamed1, x1, unnamed2, x2, y))
+
+        val keysInOrder = multi.metadata.originalMetadata.keys.toList()
+
+        // Unnamed providers get "<unnamed>_1", "<unnamed>_2" in order of appearance
+        // Duplicate named providers get suffixed per base name in order
+        // Singletons keep their base name without suffix
+        assertEquals(listOf("<unnamed>_1", "X_1", "<unnamed>_2", "X_2", "Y"), keysInOrder)
     }
 
     @Test
@@ -79,7 +123,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun uses_strategy_for_evaluations_and_preserves_unique_order() {
+    fun uses_strategy_for_evaluations_and_preserves_order_including_duplicates() {
         val p1 = FakeEventProvider(name = "A")
         val dup = FakeEventProvider(name = "A")
         val p2 = FakeEventProvider(name = "B")
@@ -90,7 +134,8 @@ class MultiProviderTests {
         val eval = multi.getBooleanEvaluation("flag", false, null)
 
         assertEquals(true, eval.value)
-        assertEquals(listOf("A", "B"), recorder.lastProviderNames)
+        // The strategy receives all providers in order; duplicates are preserved
+        assertEquals(listOf("A", "A", "B"), recorder.lastProviderNames)
     }
 
     @Test
@@ -115,7 +160,7 @@ class MultiProviderTests {
                 OpenFeatureProviderEvents.ProviderConfigurationChanged,
                 OpenFeatureProviderEvents.ProviderNotReady,
                 OpenFeatureProviderEvents.ProviderError(
-                    dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.GeneralError("boom")
+                    OpenFeatureError.GeneralError("boom")
                 )
             )
         )
@@ -124,27 +169,159 @@ class MultiProviderTests {
         val initJob = launch { multi.initialize(null) }
         advanceUntilIdle()
 
-        val last = multi.observe().first()
-        assertIs<OpenFeatureProviderEvents.ProviderError>(last)
+        // Final aggregate status should be ERROR (no providers remain NOT_READY)
+        val finalStatus = multi.statusFlow.value
+        assertIs<OpenFeatureStatus.Error>(finalStatus)
         initJob.cancelAndJoin()
     }
 
     @Test
-    fun metadata_includes_original_metadata_and_handles_unnamed_providers() {
-        val named = FakeEventProvider(name = "A")
-        val unnamed = FakeEventProvider(name = null)
+    fun emits_provider_error_when_fatal_overrides_all() = runTest {
+        val a = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderConfigurationChanged,
+                OpenFeatureProviderEvents.ProviderReady
+            )
+        )
+        val b = FakeEventProvider(
+            name = "B",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderConfigurationChanged,
+                OpenFeatureProviderEvents.ProviderError(
+                    OpenFeatureError.ProviderFatalError("fatal")
+                )
+            )
+        )
+        val multi = MultiProvider(listOf(a, b))
 
-        val multi = MultiProvider(listOf(named, unnamed))
+        val initJob = launch { multi.initialize(null) }
+        advanceUntilIdle()
 
-        val original = multi.metadata.originalMetadata
+        val finalStatus = multi.statusFlow.value
+        val errStatus = assertIs<OpenFeatureStatus.Fatal>(finalStatus)
+        assertIs<OpenFeatureError.ProviderFatalError>(errStatus.error)
+        initJob.cancelAndJoin()
+    }
 
-        // Contains the named provider key mapping to some metadata
-        assertTrue(original.containsKey("A"))
-        assertNotNull(original["A"], "Original metadata should include entry for named provider")
+    @Test
+    fun error_overrides_ready_but_stale_does_not_override_error() = runTest {
+        val a = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderConfigurationChanged,
+                OpenFeatureProviderEvents.ProviderReady
+            )
+        )
+        val b = FakeEventProvider(
+            name = "B",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderConfigurationChanged,
+                OpenFeatureProviderEvents.ProviderError(
+                    OpenFeatureError.GeneralError("oops")
+                )
+            )
+        )
+        val c = FakeEventProvider(
+            name = "C",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderConfigurationChanged,
+                OpenFeatureProviderEvents.ProviderStale
+            )
+        )
 
-        // Contains at least one generated key for unnamed providers
-        val unnamedKey = original.keys.firstOrNull { it.startsWith("<unnamed>") }
-        assertNotNull(original[unnamedKey], "Original metadata should include entry for unnamed provider")
+        val multi = MultiProvider(listOf(a, b, c))
+
+        val initJob = launch { multi.initialize(null) }
+        advanceUntilIdle()
+
+        val finalStatus = multi.statusFlow.value
+        assertIs<OpenFeatureStatus.Error>(finalStatus)
+        initJob.cancelAndJoin()
+    }
+
+    @Test
+    fun not_ready_out_ranks_error_and_stale() = runTest {
+        val a = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderConfigurationChanged,
+                OpenFeatureProviderEvents.ProviderNotReady
+            )
+        )
+        val b = FakeEventProvider(
+            name = "B",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderConfigurationChanged,
+                OpenFeatureProviderEvents.ProviderError(OpenFeatureError.GeneralError("e"))
+            )
+        )
+        val c = FakeEventProvider(
+            name = "C",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderConfigurationChanged,
+                OpenFeatureProviderEvents.ProviderStale
+            )
+        )
+        val multi = MultiProvider(listOf(a, b, c))
+
+        val initJob = launch { multi.initialize(null) }
+        advanceUntilIdle()
+
+        val finalStatus = multi.statusFlow.value
+        assertIs<OpenFeatureStatus.NotReady>(finalStatus)
+        initJob.cancelAndJoin()
+    }
+
+    @Test
+    fun emits_events_only_on_status_change() = runTest {
+        val provider = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderReady,
+                OpenFeatureProviderEvents.ProviderReady,
+                OpenFeatureProviderEvents.ProviderStale
+            )
+        )
+        val multi = MultiProvider(listOf(provider))
+
+        val collected = mutableListOf<OpenFeatureProviderEvents>()
+        val collectJob = launch { multi.observe().collect { collected.add(it) } }
+
+        val initJob = launch { multi.initialize(null) }
+        advanceUntilIdle()
+
+        collectJob.cancelAndJoin()
+        initJob.cancelAndJoin()
+
+        val nonConfig = collected.filter { it !is OpenFeatureProviderEvents.ProviderConfigurationChanged }
+        // Should only emit Ready once (transition) and Stale once (transition)
+        assertEquals(listOf(OpenFeatureProviderEvents.ProviderReady, OpenFeatureProviderEvents.ProviderStale), nonConfig)
+    }
+
+    @Test
+    fun configuration_changed_is_always_emitted() = runTest {
+        val provider = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderConfigurationChanged,
+                OpenFeatureProviderEvents.ProviderConfigurationChanged
+            )
+        )
+        val multi = MultiProvider(listOf(provider))
+
+        val collected = mutableListOf<OpenFeatureProviderEvents>()
+        val collectJob = launch { multi.observe().collect { collected.add(it) } }
+
+        val initJob = launch { multi.initialize(null) }
+        advanceUntilIdle()
+
+        collectJob.cancelAndJoin()
+        initJob.cancelAndJoin()
+
+        // Only configuration changed events should have been emitted
+        assertEquals(2, collected.size)
+        assertTrue(collected.all { it is OpenFeatureProviderEvents.ProviderConfigurationChanged })
     }
 
     @Test

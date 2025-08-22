@@ -43,38 +43,69 @@ import dev.openfeature.kotlin.sdk.ImmutableContext
 import dev.openfeature.kotlin.sdk.OpenFeatureAPI
 import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.Value
+import dev.openfeature.kotlin.sdk.multiprovider.MultiProvider
 import dev.openfeature.kotlin.sdk.sampleapp.ui.theme.OpenFeatureTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
-    private val exampleProvider = ExampleProvider()
+    private val exampleProvider1 = ExampleProvider(
+        "ExampleProvider1",
+        flags = mapOf(
+            "stringFlag" to "this is a string",
+            "intFlag" to 1337,
+            "doubleFlag" to 42.0
+        )
+    )
+    private val exampleProvider2 = ExampleProvider(
+        "ExampleProvider2",
+        flags = mapOf(
+            "booleanFlag" to true,
+            "objectFlag" to Value.Structure(
+                mapOf("key1" to Value.String("value"), "key2" to Value.Integer(10))
+            )
+        )
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        lifecycleScope.launch {
-            OpenFeatureAPI.setProviderAndWait(exampleProvider)
+
+        val multiProvider = MultiProvider(listOf(exampleProvider1, exampleProvider2))
+        lifecycleScope.launch(Dispatchers.IO) {
+            OpenFeatureAPI.setProviderAndWait(multiProvider)
             OpenFeatureAPI.statusFlow.collect {
                 Log.i("OpenFeature", "Status: $it")
             }
         }
+
         val statusFlow = OpenFeatureAPI.statusFlow.map {
             if (it is OpenFeatureStatus.Error) {
                 "Error: ${it.error.errorCode()} - ${it.error.message}"
             } else it.javaClass.simpleName
         }
+
+        val multiProviderEventFlow = multiProvider.statusFlow.map {
+            it.javaClass.simpleName
+        }
+
         setContent {
             OpenFeatureTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     MainPage(
                         modifier = Modifier.padding(innerPadding),
-                        setDelay = { exampleProvider.delayTime = it },
+                        setDelay = {
+                            exampleProvider1.delayTime = it
+                            exampleProvider2.delayTime = it
+                        },
                         statusFlow = statusFlow,
+                        multiProviderStatusFlow = multiProviderEventFlow,
                         toggleDefaults = {
-                            exampleProvider.returnDefaults = !exampleProvider.returnDefaults
+                            exampleProvider1.returnDefaults = !exampleProvider1.returnDefaults
+                            exampleProvider2.returnDefaults = !exampleProvider2.returnDefaults
                         }
                     )
                 }
@@ -88,6 +119,7 @@ fun MainPage(
     modifier: Modifier = Modifier,
     setDelay: (Long) -> Unit,
     statusFlow: Flow<String>,
+    multiProviderStatusFlow: Flow<String>,
     defaultTab: Int = 0,
     toggleDefaults: () -> Unit
 ) {
@@ -121,7 +153,11 @@ fun MainPage(
 
             // Content for the currently selected tab
             when (selectedTabIndex) {
-                0 -> ProviderAndStatus(setDelay = setDelay, statusFlow = statusFlow)
+                0 -> ProviderAndStatus(
+                    setDelay = setDelay,
+                    statusFlow = statusFlow,
+                    multiProviderStatusFlow = multiProviderStatusFlow,
+                )
                 1 -> Evaluations(toggleDefaults = toggleDefaults)
                 2 -> Hooks()
             }
@@ -185,8 +221,14 @@ fun Evaluations(toggleDefaults: () -> Unit) {
 }
 
 @Composable
-fun ProviderAndStatus(statusFlow: Flow<String>, setDelay: (Long) -> Unit) {
+fun ProviderAndStatus(
+    statusFlow: Flow<String>,
+    multiProviderStatusFlow: Flow<String>,
+    setDelay: (Long) -> Unit,
+) {
     val statusState by statusFlow.collectAsState(initial = "initial")
+    val multiProviderState by multiProviderStatusFlow.collectAsState(initial = "initial")
+
     val coroutineScope = rememberCoroutineScope()
     Column(modifier = Modifier.fillMaxSize()) {
         var sliderValue by remember { mutableStateOf(0.1f) }
@@ -247,6 +289,10 @@ fun ProviderAndStatus(statusFlow: Flow<String>, setDelay: (Long) -> Unit) {
         )
         Row(Modifier.padding(top = 8.dp)) {
             Text(text = "Current SDK status: $statusState")
+        }
+
+        Row(Modifier.padding(top = 8.dp)) {
+            Text(text = "MultiProvider Latest event: $multiProviderState")
         }
     }
 }
@@ -323,7 +369,8 @@ fun MainPagePreview() {
     OpenFeatureTheme {
         MainPage(
             setDelay = { },
-            statusFlow = emptyFlow(),
+            statusFlow = flowOf("initial"),
+            multiProviderStatusFlow = flowOf("initial"),
             defaultTab = 0,
             toggleDefaults = { }
         )
