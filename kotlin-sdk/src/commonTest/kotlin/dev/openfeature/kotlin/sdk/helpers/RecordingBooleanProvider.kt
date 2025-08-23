@@ -40,19 +40,35 @@ class RecordingBooleanProvider(
         return behavior()
     }
 
-    override fun getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?): ProviderEvaluation<String> {
+    override fun getStringEvaluation(
+        key: String,
+        defaultValue: String,
+        context: EvaluationContext?
+    ): ProviderEvaluation<String> {
         throw UnsupportedOperationException()
     }
 
-    override fun getIntegerEvaluation(key: String, defaultValue: Int, context: EvaluationContext?): ProviderEvaluation<Int> {
+    override fun getIntegerEvaluation(
+        key: String,
+        defaultValue: Int,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Int> {
         throw UnsupportedOperationException()
     }
 
-    override fun getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?): ProviderEvaluation<Double> {
+    override fun getDoubleEvaluation(
+        key: String,
+        defaultValue: Double,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Double> {
         throw UnsupportedOperationException()
     }
 
-    override fun getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?): ProviderEvaluation<Value> {
+    override fun getObjectEvaluation(
+        key: String,
+        defaultValue: Value,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Value> {
         throw UnsupportedOperationException()
     }
 }

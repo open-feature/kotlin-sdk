@@ -53,12 +53,16 @@ class MultiProvider(
 
     // TODO: Support hooks
     override val hooks: List<Hook<*>> = emptyList()
-    private val childFeatureProviders: List<ChildFeatureProvider> = providers.toChildFeatureProviders()
+    private val childFeatureProviders: List<ChildFeatureProvider> by lazy {
+        providers.toChildFeatureProviders()
+    }
 
     // Metadata identifying this as a multiprovider
     override val metadata: ProviderMetadata = object : ProviderMetadata {
         override val name: String? = MULTIPROVIDER_NAME
-        override val originalMetadata: Map<String, ProviderMetadata> = constructOriginalMetadata()
+        override val originalMetadata: Map<String, ProviderMetadata> by lazy {
+            constructOriginalMetadata()
+        }
 
         private fun constructOriginalMetadata(): Map<String, ProviderMetadata> {
             return childFeatureProviders.associate { it.name to it.metadata }
@@ -157,6 +161,7 @@ class MultiProvider(
                 } else {
                     OpenFeatureStatus.Error(event.error)
                 }
+
             else -> error("Unexpected event $event")
         }
 
