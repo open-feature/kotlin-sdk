@@ -16,8 +16,13 @@ allprojects {
     ext["version"] = "0.6.2"
 // x-release-please-end
 }
-group = project.extra["groupId"].toString()
-version = project.extra["version"].toString()
+
+// Allow JitPack (or callers) to override group and version with -Pgroup/-Pversion
+val overriddenGroup: String? = if (project.hasProperty("group")) project.property("group").toString() else null
+val overriddenVersion: String? = if (project.hasProperty("version")) project.property("version").toString() else null
+
+group = overriddenGroup ?: project.extra["groupId"].toString()
+version = overriddenVersion ?: project.extra["version"].toString()
 
 nexusPublishing {
     this.repositories {

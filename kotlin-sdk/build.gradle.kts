@@ -13,10 +13,16 @@ plugins {
     id("com.vanniktech.maven.publish")
 }
 
-val releaseVersion = project.extra["version"].toString()
+// Resolve group/version allowing overrides from -Pgroup/-Pversion (used by JitPack)
+val overriddenGroup: String? = if (project.hasProperty("group")) project.property("group").toString() else null
+val overriddenVersion: String? = if (project.hasProperty("version")) project.property("version").toString() else null
+val resolvedGroup = overriddenGroup ?: project.extra["groupId"].toString()
+val resolvedVersion = overriddenVersion ?: project.extra["version"].toString()
 
-group = project.extra["groupId"].toString()
-version = releaseVersion
+group = resolvedGroup
+version = resolvedVersion
+
+val isJitpack = System.getenv("JITPACK") == "true" || project.hasProperty("jitpack")
 
 kotlin {
     androidTarget {
@@ -70,7 +76,7 @@ android {
 
     defaultConfig {
         minSdk = 21
-        version = releaseVersion
+        version = resolvedVersion
     }
 
     compileOptions {
@@ -102,7 +108,9 @@ mavenPublishing {
             androidVariantsToPublish = listOf("release")
         )
     )
-    signAllPublications()
+    if (!isJitpack) {
+        signAllPublications()
+    }
 
     pom {
         name.set("OpenFeature Kotlin SDK")
