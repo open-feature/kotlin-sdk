@@ -7,7 +7,6 @@ import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import dev.openfeature.kotlin.sdk.helpers.RecordingBooleanProvider
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 
 class FirstMatchStrategyTests {
 
@@ -121,22 +120,21 @@ class FirstMatchStrategyTests {
     }
 
     @Test
-    fun bubblesUpNonNotFoundExceptions() {
+    fun returnsErrorResultForNonNotFoundExceptions() {
         val strategy = FirstMatchStrategy()
         val throwsGeneral = RecordingBooleanProvider(
             name = "throws-general",
             behavior = { throw OpenFeatureError.GeneralError("fail") }
         )
-
-        assertFailsWith<OpenFeatureError.GeneralError> {
-            strategy.evaluate(
-                listOf(throwsGeneral),
-                key = "flag",
-                defaultValue = false,
-                evaluationContext = null,
-                flagEval = FeatureProvider::getBooleanEvaluation
-            )
-        }
+        val result = strategy.evaluate(
+            listOf(throwsGeneral),
+            key = "flag",
+            defaultValue = false,
+            evaluationContext = null,
+            flagEval = FeatureProvider::getBooleanEvaluation
+        )
+        assertEquals(false, result.value)
+        assertEquals(ErrorCode.GENERAL, result.errorCode)
         assertEquals(1, throwsGeneral.booleanEvalCalls)
     }
 
