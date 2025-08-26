@@ -35,12 +35,17 @@ class FirstMatchStrategy : MultiProvider.Strategy {
                 if (eval.errorCode != ErrorCode.FLAG_NOT_FOUND) {
                     return eval
                 }
-                // Continue to next provider if error is FLAG_NOT_FOUND
             } catch (_: OpenFeatureError.FlagNotFoundError) {
                 // Handle FLAG_NOT_FOUND exception - continue to next provider
                 continue
+            } catch (error: OpenFeatureError) {
+                return ProviderEvaluation(
+                    defaultValue,
+                    reason = Reason.ERROR.toString(),
+                    errorCode = error.errorCode(),
+                    errorMessage = error.message,
+                )
             }
-            // We don't catch any other exception, but rather, bubble up the exceptions
         }
 
         // No provider knew about the flag, return default value with DEFAULT reason
