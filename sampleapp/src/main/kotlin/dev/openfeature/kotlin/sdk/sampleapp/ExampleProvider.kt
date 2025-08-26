@@ -1,39 +1,38 @@
 package dev.openfeature.kotlin.sdk.sampleapp
 
 import dev.openfeature.kotlin.sdk.*
-import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 
-class ExampleProvider(
-    providerName: String,
-    private val flags: Map<String, Any>,
-    override val hooks: List<Hook<*>> = listOf()
-) : FeatureProvider {
+class ExampleProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureProvider {
+
     private var currentContext: EvaluationContext? = ImmutableContext()
     var delayTime = 1000L
     var returnDefaults = false
-    private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>()
-
-    override val metadata: ProviderMetadata = object : ProviderMetadata {
-        override val name: String = providerName
+    val flags = mutableMapOf<String, Any>().apply {
+        put("booleanFlag", true)
+        put("stringFlag", "this is a string")
+        put("intFlag", 1337)
+        put("doubleFlag", 42.0)
+        put(
+            "objectFlag",
+            Value.Structure(mapOf("key1" to Value.String("value"), "key2" to Value.Integer(10)))
+        )
     }
+
+    override val metadata: ProviderMetadata
+        get() = object : ProviderMetadata {
+            override val name: String = "ExampleProvider"
+        }
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         currentContext = initialContext
         // Simulate a delay in the provider initialization
         delay(delayTime)
-        eventFlow.emit(OpenFeatureProviderEvents.ProviderReady)
     }
 
     override fun shutdown() {
 
     }
-
-    override fun observe(): Flow<OpenFeatureProviderEvents> = eventFlow.asSharedFlow()
 
     override suspend fun onContextSet(
         oldContext: EvaluationContext?,
@@ -86,7 +85,7 @@ class ExampleProvider(
             } else if (containsKey(key)) {
                 ProviderEvaluation(defaultValue, null, reason = "invalid type")
             } else {
-                ProviderEvaluation(defaultValue, null, reason = "notfound", errorCode = ErrorCode.FLAG_NOT_FOUND)
+                ProviderEvaluation(defaultValue, null, reason = "notfound")
             }
         }
     }
