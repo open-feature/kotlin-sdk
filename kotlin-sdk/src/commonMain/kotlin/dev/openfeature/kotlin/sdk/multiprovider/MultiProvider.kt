@@ -79,8 +79,6 @@ class MultiProvider(
     private val _statusFlow = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
     val statusFlow = _statusFlow.asStateFlow()
 
-    // Shared flow because we don't want the distinct operator since it would break consecutive emits of
-    // ProviderConfigurationChanged
     private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
 
     // Track individual provider statuses, initial state of all providers is NotReady
@@ -118,6 +116,7 @@ class MultiProvider(
      */
     fun getProviderCount(): Int = childFeatureProviders.size
 
+    // TODO Add distinctUntilChanged operator once EventDetails have been added
     override fun observe(): Flow<OpenFeatureProviderEvents> = eventFlow.asSharedFlow()
 
     /**
