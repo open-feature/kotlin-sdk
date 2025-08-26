@@ -3,13 +3,15 @@ package dev.openfeature.kotlin.sdk.multiprovider
 import dev.openfeature.kotlin.sdk.EvaluationContext
 import dev.openfeature.kotlin.sdk.FeatureProvider
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
+import dev.openfeature.kotlin.sdk.Reason
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 
 /**
  * A [MultiProvider.Strategy] similar to the [FirstMatchStrategy], except that errors from evaluated
  * providers do not halt execution.
  *
- * If no provider successfully responds, it throws an error result.
+ * If no provider successfully responds, it returns an error result.
  */
 class FirstSuccessfulStrategy : MultiProvider.Strategy {
     override fun <T> evaluate(
@@ -40,6 +42,11 @@ class FirstSuccessfulStrategy : MultiProvider.Strategy {
 
         // No provider returned a successful result, throw an error
         // This indicates that all providers either failed or had errors
-        throw OpenFeatureError.GeneralError("No provider returned a successful evaluation for the requested flag.")
+        return ProviderEvaluation(
+            value = defaultValue,
+            reason = Reason.DEFAULT.toString(),
+            errorCode = ErrorCode.FLAG_NOT_FOUND,
+            errorMessage = "No provider returned a successful evaluation for the requested flag."
+        )
     }
 }
