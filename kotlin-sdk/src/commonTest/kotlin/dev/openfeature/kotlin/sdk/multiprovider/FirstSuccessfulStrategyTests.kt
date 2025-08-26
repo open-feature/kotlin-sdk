@@ -11,7 +11,7 @@ import kotlin.test.assertFailsWith
 class FirstSuccessfulStrategyTests {
 
     @Test
-    fun returns_first_success_ignoring_prior_errors() {
+    fun returnsFirstSuccessIgnoringPriorErrors() {
         val strategy = FirstSuccessfulStrategy()
         val error1 = RecordingBooleanProvider("e1") {
             throw OpenFeatureError.GeneralError("boom1")
@@ -43,7 +43,7 @@ class FirstSuccessfulStrategyTests {
     }
 
     @Test
-    fun skips_flag_not_found_error_and_result_until_success() {
+    fun skipsFlagNotFoundErrorAndResultUntilSuccess() {
         val strategy = FirstSuccessfulStrategy()
         val notFoundThrow = RecordingBooleanProvider("nf-throw") {
             throw OpenFeatureError.FlagNotFoundError("flag")
@@ -70,7 +70,7 @@ class FirstSuccessfulStrategyTests {
     }
 
     @Test
-    fun throws_when_no_provider_returns_success() {
+    fun throwsWhenNoProviderReturnsSuccess() {
         val strategy = FirstSuccessfulStrategy()
         val error1 = RecordingBooleanProvider("e1") {
             throw OpenFeatureError.GeneralError("boom1")

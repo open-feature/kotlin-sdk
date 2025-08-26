@@ -22,6 +22,17 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 
 /**
+ * Type alias for a function that evaluates a feature flag using a FeatureProvider.
+ * This represents an extension function on FeatureProvider that takes:
+ * - key: The feature flag key to evaluate
+ * - defaultValue: The default value to return if evaluation fails
+ * - evaluationContext: Optional context for the evaluation
+ * Returns a ProviderEvaluation containing the result
+ */
+typealias FlagEval<T> =
+    FeatureProvider.(key: String, defaultValue: T, evaluationContext: EvaluationContext?) -> ProviderEvaluation<T>
+
+/**
  * MultiProvider is a FeatureProvider implementation that delegates flag evaluations
  * to multiple underlying providers using a configurable strategy.
  *
@@ -51,6 +62,41 @@ class MultiProvider(
         val name: String // Maybe there's a better variable name for this?
     ) : FeatureProvider by implementation
 
+    /**
+     * Strategy interface defines how multiple feature providers should be evaluated
+     * to determine the final result for a feature flag evaluation.
+     * Different strategies can implement different logic for combining or selecting
+     * results from multiple providers.
+     */
+    interface Strategy {
+        /**
+         * Evaluates a feature flag across multiple providers using the strategy's logic.
+         * @param providers List of FeatureProvider instances to evaluate against
+         * @param key The feature flag key to evaluate
+         * @param defaultValue The default value to use if evaluation fails or no providers match
+         * @param evaluationContext Optional context containing additional data for evaluation
+         * @param flagEval Function reference to the specific evaluation method to call on each provider
+         * @return ProviderEvaluation<T> containing the final evaluation result
+         */
+        fun <T> evaluate(
+            providers: List<FeatureProvider>,
+            key: String,
+            defaultValue: T,
+            evaluationContext: EvaluationContext?,
+            flagEval: FlagEval<T>
+        ): ProviderEvaluation<T>
+    }
+
+    private val OpenFeatureStatus.precedence: Int
+        get() = when (this) {
+            is OpenFeatureStatus.Fatal -> 5
+            is OpenFeatureStatus.NotReady -> 4
+            is OpenFeatureStatus.Error -> 3
+            is OpenFeatureStatus.Reconciling -> 2 // Not specified in precedence; treat similar to Stale
+            is OpenFeatureStatus.Stale -> 2
+            is OpenFeatureStatus.Ready -> 1
+        }
+
     // TODO: Support hooks
     override val hooks: List<Hook<*>> = emptyList()
     private val childFeatureProviders: List<ChildFeatureProvider> by lazy {
@@ -61,11 +107,7 @@ class MultiProvider(
     override val metadata: ProviderMetadata = object : ProviderMetadata {
         override val name: String? = MULTIPROVIDER_NAME
         override val originalMetadata: Map<String, ProviderMetadata> by lazy {
-            constructOriginalMetadata()
-        }
-
-        private fun constructOriginalMetadata(): Map<String, ProviderMetadata> {
-            return childFeatureProviders.associate { it.name to it.metadata }
+            childFeatureProviders.associate { it.name to it.metadata }
         }
 
         override fun toString(): String {
@@ -114,7 +156,7 @@ class MultiProvider(
     /**
      * @return Number of unique providers
      */
-    fun getProviderCount(): Int = childFeatureProviders.size
+    internal fun getProviderCount(): Int = childFeatureProviders.size
 
     // TODO Add distinctUntilChanged operator once EventDetails have been added
     override fun observe(): Flow<OpenFeatureProviderEvents> = eventFlow.asSharedFlow()
@@ -145,12 +187,13 @@ class MultiProvider(
     }
 
     private suspend fun handleProviderEvent(provider: ChildFeatureProvider, event: OpenFeatureProviderEvents) {
-        if (event is OpenFeatureProviderEvents.ProviderConfigurationChanged) {
-            eventFlow.emit(event)
-            return
-        }
-
         val newChildStatus = when (event) {
+            // ProviderConfigurationChanged events should always re-emit
+            is OpenFeatureProviderEvents.ProviderConfigurationChanged -> {
+                eventFlow.emit(event)
+                return
+            }
+
             is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
             is OpenFeatureProviderEvents.ProviderNotReady -> OpenFeatureStatus.NotReady
             is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
@@ -160,8 +203,6 @@ class MultiProvider(
                 } else {
                     OpenFeatureStatus.Error(event.error)
                 }
-
-            else -> error("Unexpected event $event")
         }
 
         val previousStatus = _statusFlow.value
@@ -176,19 +217,8 @@ class MultiProvider(
     }
 
     private fun calculateAggregateStatus(): OpenFeatureStatus {
-        val highestPrecedenceStatus = childProviderStatuses.values.maxBy(::precedence)
+        val highestPrecedenceStatus = childProviderStatuses.values.maxBy { it.precedence }
         return highestPrecedenceStatus
-    }
-
-    private fun precedence(status: OpenFeatureStatus): Int {
-        return when (status) {
-            is OpenFeatureStatus.Fatal -> 5
-            is OpenFeatureStatus.NotReady -> 4
-            is OpenFeatureStatus.Error -> 3
-            is OpenFeatureStatus.Reconciling -> 2 // Not specified in precedence; treat similar to Stale
-            is OpenFeatureStatus.Stale -> 2
-            is OpenFeatureStatus.Ready -> 1
-        }
     }
 
     /**

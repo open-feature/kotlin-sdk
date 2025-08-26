@@ -12,7 +12,7 @@ import kotlin.test.assertFailsWith
 class FirstMatchStrategyTests {
 
     @Test
-    fun returns_first_success_without_calling_next_providers() {
+    fun returnsFirstSuccessWithoutCallingNextProviders() {
         val strategy = FirstMatchStrategy()
         val first = RecordingBooleanProvider(
             name = "first",
@@ -38,7 +38,7 @@ class FirstMatchStrategyTests {
     }
 
     @Test
-    fun skips_flag_not_found_and_returns_next_match() {
+    fun skipsFlagNotFoundAndReturnsNextMatch() {
         val strategy = FirstMatchStrategy()
         val notFoundProvider = RecordingBooleanProvider(
             name = "not-found",
@@ -70,7 +70,7 @@ class FirstMatchStrategyTests {
     }
 
     @Test
-    fun treats_FlagNotFound_exception_as_not_found_and_continues() {
+    fun treatsFlagNotFoundExceptionAsNotFoundAndContinues() {
         val strategy = FirstMatchStrategy()
         val throwsNotFound = RecordingBooleanProvider(
             name = "throws-not-found",
@@ -95,7 +95,7 @@ class FirstMatchStrategyTests {
     }
 
     @Test
-    fun returns_error_result_other_than_not_found_and_short_circuits() {
+    fun returnsErrorResultOtherThanNotFoundAndShortCircuits() {
         val strategy = FirstMatchStrategy()
         val errorProvider = RecordingBooleanProvider(
             name = "error",
@@ -121,7 +121,7 @@ class FirstMatchStrategyTests {
     }
 
     @Test
-    fun bubbles_up_non_not_found_exceptions() {
+    fun bubblesUpNonNotFoundExceptions() {
         val strategy = FirstMatchStrategy()
         val throwsGeneral = RecordingBooleanProvider(
             name = "throws-general",
@@ -141,7 +141,7 @@ class FirstMatchStrategyTests {
     }
 
     @Test
-    fun returns_default_with_not_found_when_no_provider_matches() {
+    fun returnsDefaultWithNotFoundWhenNoProviderMatches() {
         val strategy = FirstMatchStrategy()
         val p1 = RecordingBooleanProvider(
             name = "p1",

@@ -29,7 +29,7 @@ import kotlin.test.assertTrue
 class MultiProviderTests {
 
     @Test
-    fun unique_child_names_are_assigned_for_duplicates() {
+    fun uniqueChildNamesAreAssignedForDuplicates() {
         val p1 = FakeEventProvider(name = "Provider")
         val p2 = FakeEventProvider(name = "Provider")
         val p3 = FakeEventProvider(name = "ProviderNew")
@@ -47,7 +47,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun metadata_includes_original_metadata_and_handles_unnamed_providers() {
+    fun metadataIncludesOriginalMetadataAndHandlesUnnamedProviders() {
         val named = FakeEventProvider(name = "A")
         val unnamed = FakeEventProvider(name = null)
 
@@ -65,7 +65,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun child_provider_naming_is_stable_and_suffixed_per_base_name_in_order() {
+    fun childProviderNamingIsStableAndSuffixedPerBaseNameInOrder() {
         val unnamed1 = FakeEventProvider(name = null)
         val x1 = FakeEventProvider(name = "X")
         val unnamed2 = FakeEventProvider(name = null)
@@ -83,7 +83,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun forwards_lifecycle_calls_to_underlying_providers() = runTest {
+    fun forwardsLifecycleCallsToUnderlyingProviders() = runTest {
         val provider = FakeEventProvider(name = "p")
         val multi = MultiProvider(listOf(provider))
 
@@ -101,7 +101,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun observes_events_and_applies_precedence_after_configuration_change() = runTest {
+    fun observesEventsAndAppliesPrecedenceAfterConfigurationChange() = runTest {
         // Including ProviderConfigurationChanged first allows subsequent lower-precedence READY to emit
         val provider = FakeEventProvider(
             name = "p",
@@ -123,7 +123,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun uses_strategy_for_evaluations_and_preserves_order_including_duplicates() {
+    fun usesStrategyForEvaluationsAndPreservesOrderIncludingDuplicates() {
         val p1 = FakeEventProvider(name = "A")
         val dup = FakeEventProvider(name = "A")
         val p2 = FakeEventProvider(name = "B")
@@ -139,7 +139,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun aggregates_event_precedence_across_multiple_providers() = runTest {
+    fun aggregatesEventPrecedenceAcrossMultipleProviders() = runTest {
         val a = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
@@ -176,7 +176,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun emits_provider_error_when_fatal_overrides_all() = runTest {
+    fun emitsProviderErrorWhenFatalOverridesAll() = runTest {
         val a = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
@@ -205,7 +205,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun error_overrides_ready_but_stale_does_not_override_error() = runTest {
+    fun errorOverridesReadyButStaleDoesNotOverrideError() = runTest {
         val a = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
@@ -241,7 +241,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun not_ready_out_ranks_error_and_stale() = runTest {
+    fun notReadyOutRanksErrorAndStale() = runTest {
         val a = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
@@ -274,7 +274,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun emits_events_only_on_status_change() = runTest {
+    fun emitsEventsOnlyOnStatusChange() = runTest {
         val provider = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
@@ -303,7 +303,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun configuration_changed_is_always_emitted() = runTest {
+    fun configurationChangedIsAlwaysEmitted() = runTest {
         val provider = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
@@ -328,7 +328,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun shutdown_aggregates_errors_and_reports_provider_names() {
+    fun shutdownAggregatesErrorsAndReportsProviderNames() {
         val ok = FakeEventProvider(name = "ok")
         val bad1 = FakeEventProvider(name = "bad1", shutdownThrowable = IllegalStateException("oops1"))
         val bad2 = FakeEventProvider(name = null, shutdownThrowable = RuntimeException("oops2"))
@@ -434,7 +434,7 @@ private class FakeEventProvider(
 
 private class RecordingStrategy(
     private val returnValue: ProviderEvaluation<Boolean>
-) : Strategy {
+) : MultiProvider.Strategy {
     var lastProviderNames: List<String> = emptyList()
         private set
 

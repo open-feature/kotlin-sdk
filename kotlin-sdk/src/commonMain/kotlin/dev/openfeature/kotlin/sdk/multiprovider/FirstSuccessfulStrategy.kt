@@ -6,23 +6,12 @@ import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 
 /**
- * Similar to "First Match", except that errors from evaluated providers do not halt execution.
- * Instead, it will return the first successful result from a provider.
+ * A [MultiProvider.Strategy] similar to the [FirstMatchStrategy], except that errors from evaluated
+ * providers do not halt execution.
  *
- * If no provider successfully responds, it will throw an error result.
+ * If no provider successfully responds, it throws an error result.
  */
-class FirstSuccessfulStrategy : Strategy {
-    /**
-     * Evaluates providers in sequence until finding one that returns a successful result.
-     *
-     * @param providers List of providers to evaluate in order
-     * @param key The feature flag key to evaluate
-     * @param defaultValue Value to use in provider evaluations
-     * @param evaluationContext Optional context for evaluation
-     * @param flagEval The specific evaluation method to call on each provider
-     * @return ProviderEvaluation with the first successful result
-     * @throws OpenFeatureError.GeneralError if no provider returns a successful evaluation
-     */
+class FirstSuccessfulStrategy : MultiProvider.Strategy {
     override fun <T> evaluate(
         providers: List<FeatureProvider>,
         key: String,

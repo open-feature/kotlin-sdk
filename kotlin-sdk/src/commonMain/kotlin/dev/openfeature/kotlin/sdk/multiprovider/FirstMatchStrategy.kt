@@ -8,24 +8,15 @@ import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 
 /**
- * Return the first result returned by a provider. Skip providers that indicate they had no value due to FLAG_NOT_FOUND.
- * In all other cases, use the value returned by the provider. If any provider returns an error result other than
- * FLAG_NOT_FOUND, the whole evaluation should error and "bubble up" the individual provider's error in the result.
+ * A [MultiProvider.Strategy] that returns the first result returned by a [FeatureProvider].
  *
- * As soon as a value is returned by a provider, the rest of the operation should short-circuit and not call the
- * rest of the providers.
+ * It skips providers that indicate they had no value due to [ErrorCode.FLAG_NOT_FOUND].
+ * In all other cases, it uses the value returned by the provider.
+ *
+ * If any provider returns an error result other than [ErrorCode.FLAG_NOT_FOUND], the whole evaluation
+ * returns the provider's error.
  */
-class FirstMatchStrategy : Strategy {
-    /**
-     * Evaluates providers in sequence until finding one that has knowledge of the flag.
-     *
-     * @param providers List of providers to evaluate in order
-     * @param key The feature flag key to look up
-     * @param defaultValue Value to return if no provider knows about the flag
-     * @param evaluationContext Optional context for evaluation
-     * @param flagEval The specific evaluation method to call on each provider
-     * @return ProviderEvaluation with the first match or default value
-     */
+class FirstMatchStrategy : MultiProvider.Strategy {
     override fun <T> evaluate(
         providers: List<FeatureProvider>,
         key: String,
