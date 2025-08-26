@@ -9,8 +9,10 @@ sealed class OpenFeatureError : Exception() {
         }
     }
 
-    class FlagNotFoundError(flagKey: String) : OpenFeatureError() {
+    class FlagNotFoundError(
+        flagKey: String?,
         override val message: String = "Could not find flag named: $flagKey"
+    ) : OpenFeatureError() {
         override fun errorCode(): ErrorCode {
             return ErrorCode.FLAG_NOT_FOUND
         }

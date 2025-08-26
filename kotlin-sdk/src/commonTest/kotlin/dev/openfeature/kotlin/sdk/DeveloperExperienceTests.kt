@@ -211,6 +211,7 @@ class DeveloperExperienceTests {
         val emittedStatuses = mutableListOf<OpenFeatureStatus>()
         val job = launch {
             OpenFeatureAPI.statusFlow.collect {
+                println(it)
                 emittedStatuses.add(it)
             }
         }
@@ -350,10 +351,10 @@ class DeveloperExperienceTests {
         job.cancelAndJoin()
         assertEquals(
             listOf<OpenFeatureProviderEvents>(
-                OpenFeatureProviderEvents.ProviderStale,
-                OpenFeatureProviderEvents.ProviderStale,
-                OpenFeatureProviderEvents.ProviderStale,
-                OpenFeatureProviderEvents.ProviderStale
+                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails())
             ),
             staleEvents
         )

@@ -1,7 +1,16 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.FlagNotFoundError
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.GeneralError
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.InvalidContextError
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.ParseError
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.ProviderFatalError
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.ProviderNotReadyError
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.TargetingKeyMissingError
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.TypeMismatchError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +49,9 @@ object OpenFeatureAPI {
 
     /**
      * A flow of [OpenFeatureStatus] that emits the current status of the SDK.
+     *
+     * Deprecated because calls to this should move to OpenFeatureClient according to
+     * https://openfeature.dev/specification/sections/flag-evaluation#17-provider-lifecycle-management
      */
     val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
 
@@ -261,32 +273,62 @@ object OpenFeatureAPI {
     inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> = providersFlow
         .flatMapLatest { it.observe() }.filterIsInstance()
 
-    private val handleProviderEvents: FlowCollector<OpenFeatureProviderEvents> = FlowCollector {
-        when (it) {
-            OpenFeatureProviderEvents.ProviderReady -> {
+    /**
+     * Aligning the state management to
+     * https://openfeature.dev/specification/sections/events#requirement-535
+     */
+    private val handleProviderEvents: FlowCollector<OpenFeatureProviderEvents> = FlowCollector { providerEvent ->
+        when (providerEvent) {
+            is OpenFeatureProviderEvents.ProviderReady -> {
                 _statusFlow.emit(OpenFeatureStatus.Ready)
             }
 
-            is OpenFeatureProviderEvents.ProviderError -> {
-                val status = if (it.error is OpenFeatureError.ProviderFatalError) {
-                    OpenFeatureStatus.Fatal(it.error)
-                } else {
-                    OpenFeatureStatus.Error(it.error)
-                }
-                _statusFlow.emit(status)
-            }
-
-            OpenFeatureProviderEvents.ProviderNotReady -> {
-                _statusFlow.emit(OpenFeatureStatus.NotReady)
-            }
-
-            OpenFeatureProviderEvents.ProviderStale -> {
+            is OpenFeatureProviderEvents.ProviderStale -> {
                 _statusFlow.emit(OpenFeatureStatus.Stale)
             }
 
-            OpenFeatureProviderEvents.ProviderConfigurationChanged -> {
-                _statusFlow.emit(OpenFeatureStatus.Ready)
+            is OpenFeatureProviderEvents.ProviderError -> {
+                val eventDetails = providerEvent.eventDetails
+                if (eventDetails.errorCode != null) { // priority if EventDetails error has been provided
+                    val openFeatureError = constructOpenFeatureError(
+                        eventDetails.message ?: "Provider did not supply an error message",
+                        errorCode = eventDetails.errorCode
+                    )
+                    val status = if (eventDetails.errorCode == ErrorCode.PROVIDER_FATAL) {
+                        OpenFeatureStatus.Fatal(openFeatureError)
+                    } else {
+                        OpenFeatureStatus.Error(openFeatureError)
+                    }
+                    _statusFlow.emit(status)
+                } else if (providerEvent.error != null) { // Deprecated impl
+                    val status = if (providerEvent.error is ProviderFatalError) {
+                        OpenFeatureStatus.Fatal(providerEvent.error)
+                    } else {
+                        OpenFeatureStatus.Error(providerEvent.error)
+                    }
+                    _statusFlow.emit(status)
+                } else {
+                    _statusFlow.emit(
+                        OpenFeatureStatus.Error(GeneralError("Unknown error"))
+                    )
+                }
             }
+
+            else -> { // All other states should not be emitted from here
+            }
+        }
+    }
+
+    private fun constructOpenFeatureError(errorMessage: String, errorCode: ErrorCode): OpenFeatureError {
+        return when (errorCode) {
+            ErrorCode.PROVIDER_NOT_READY -> ProviderNotReadyError()
+            ErrorCode.FLAG_NOT_FOUND -> FlagNotFoundError(flagKey = null, errorMessage)
+            ErrorCode.PARSE_ERROR -> ParseError(errorMessage)
+            ErrorCode.TYPE_MISMATCH -> TypeMismatchError(errorMessage)
+            ErrorCode.TARGETING_KEY_MISSING -> TargetingKeyMissingError(errorMessage)
+            ErrorCode.INVALID_CONTEXT -> InvalidContextError(errorMessage)
+            ErrorCode.GENERAL -> GeneralError(errorMessage)
+            ErrorCode.PROVIDER_FATAL -> ProviderFatalError(errorMessage)
         }
     }
 }
