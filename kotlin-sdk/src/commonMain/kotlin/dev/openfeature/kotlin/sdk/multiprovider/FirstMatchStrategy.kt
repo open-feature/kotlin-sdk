@@ -43,7 +43,7 @@ class FirstMatchStrategy : MultiProvider.Strategy {
                     defaultValue,
                     reason = Reason.ERROR.toString(),
                     errorCode = error.errorCode(),
-                    errorMessage = error.message,
+                    errorMessage = error.message
                 )
             }
         }
