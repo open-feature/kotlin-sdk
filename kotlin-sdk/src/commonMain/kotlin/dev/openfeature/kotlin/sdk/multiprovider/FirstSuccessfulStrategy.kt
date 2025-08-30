@@ -11,7 +11,7 @@ import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
  * A [MultiProvider.Strategy] similar to the [FirstMatchStrategy], except that errors from evaluated
  * providers do not halt execution.
  *
- * If no provider successfully responds, it returns an error result.
+ * If no provider responds successfully, it returns an error result.
  */
 class FirstSuccessfulStrategy : MultiProvider.Strategy {
     override fun <T> evaluate(
