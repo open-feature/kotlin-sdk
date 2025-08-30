@@ -26,9 +26,8 @@ val multi = MultiProvider(
     strategy = FirstMatchStrategy() // default; FirstSuccessfulStrategy() also available
 )
 
-// 3) Set the SDK provider and wait until ready (or observe status)
-OpenFeatureAPI.setProvider(multi)
-// Optionally await readiness via OpenFeatureAPI.statusFlow.
+// 3) Set the SDK provider and wait until ready
+OpenFeatureAPI.setProviderAndWait()
 
 // 4) Use the client as usual
 val client = OpenFeatureAPI.getClient("my-app")
