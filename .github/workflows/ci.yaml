@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # For browser tests
-      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-chrome@v2
 
       - name: Run checks
         run: ./gradlew check --no-daemon --stacktrace
