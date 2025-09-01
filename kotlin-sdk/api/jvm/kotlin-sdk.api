@@ -383,7 +383,7 @@ public final class dev/openfeature/kotlin/sdk/ProviderEvaluation {
 
 public abstract interface class dev/openfeature/kotlin/sdk/ProviderMetadata {
 	public abstract fun getName ()Ljava/lang/String;
-	public abstract fun getOriginalMetadata ()Ljava/util/Map;
+	public fun getOriginalMetadata ()Ljava/util/Map;
 }
 
 public final class dev/openfeature/kotlin/sdk/ProviderMetadata$DefaultImpls {
