@@ -1,0 +1,7 @@
+jdk:
+  - openjdk17
+
+install:
+  - ./gradlew -Pjitpack -Pgroup=${GROUP:-com.github.penguindan} -Pversion=${VERSION:-Jitpack-${GIT_COMMIT:-local}-1} :kotlin-sdk:publishToMavenLocal
+
+
