@@ -674,17 +674,6 @@ public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$P
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderContextChanged : dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
-	public fun <init> (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;)V
-	public final fun component1 ()Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
-	public final fun copy (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderContextChanged;
-	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderContextChanged;Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderContextChanged;
-	public fun equals (Ljava/lang/Object;)Z
-	public fun getEventDetails ()Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
 public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderError : dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
 	public fun <init> ()V
 	public fun <init> (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;)V
@@ -719,17 +708,6 @@ public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$P
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderReconciling : dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
-	public fun <init> (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;)V
-	public final fun component1 ()Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
-	public final fun copy (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderReconciling;
-	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderReconciling;Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderReconciling;
-	public fun equals (Ljava/lang/Object;)Z
-	public fun getEventDetails ()Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
 public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderStale : dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
 	public fun <init> (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;)V
 	public final fun component1 ()Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
@@ -756,7 +734,11 @@ public final class dev/openfeature/kotlin/sdk/exceptions/ErrorCode : java/lang/E
 }
 
 public abstract class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError : java/lang/Exception {
+	public static final field Companion Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$Companion;
 	public abstract fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
+}
+
+public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$Companion {
 }
 
 public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$FlagNotFoundError : dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError {

@@ -59,4 +59,19 @@ sealed class OpenFeatureError : Exception() {
             return ErrorCode.PROVIDER_FATAL
         }
     }
+
+    companion object {
+        internal fun fromMessageAndErrorCode(errorMessage: String, errorCode: ErrorCode): OpenFeatureError {
+            return when (errorCode) {
+                ErrorCode.PROVIDER_NOT_READY -> ProviderNotReadyError()
+                ErrorCode.FLAG_NOT_FOUND -> FlagNotFoundError(flagKey = null, errorMessage)
+                ErrorCode.PARSE_ERROR -> ParseError(errorMessage)
+                ErrorCode.TYPE_MISMATCH -> TypeMismatchError(errorMessage)
+                ErrorCode.TARGETING_KEY_MISSING -> TargetingKeyMissingError(errorMessage)
+                ErrorCode.INVALID_CONTEXT -> InvalidContextError(errorMessage)
+                ErrorCode.GENERAL -> GeneralError(errorMessage)
+                ErrorCode.PROVIDER_FATAL -> ProviderFatalError(errorMessage)
+            }
+        }
+    }
 }

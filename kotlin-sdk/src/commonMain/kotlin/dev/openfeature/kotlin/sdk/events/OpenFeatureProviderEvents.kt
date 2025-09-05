@@ -1,7 +1,9 @@
 package dev.openfeature.kotlin.sdk.events
 
+import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.ProviderFatalError
 
 sealed class OpenFeatureProviderEvents {
     data class EventDetails(
@@ -39,22 +41,34 @@ sealed class OpenFeatureProviderEvents {
         override val eventDetails: EventDetails
     ) : OpenFeatureProviderEvents()
 
-    /**
-     * The context associated with the provider has changed, and the provider has not yet reconciled its associated state.
-     */
-    data class ProviderReconciling(
-        override val eventDetails: EventDetails
-    ) : OpenFeatureProviderEvents()
-
-    /**
-     * The context associated with the provider has changed, and the provider has reconciled its associated state.
-     */
-    data class ProviderContextChanged(
-        override val eventDetails: EventDetails
-    ) : OpenFeatureProviderEvents()
-
     @Deprecated("Use ProviderError instead", ReplaceWith("ProviderError"))
     data object ProviderNotReady : OpenFeatureProviderEvents() {
         override val eventDetails = EventDetails()
+    }
+}
+
+internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError(): OpenFeatureStatus {
+    return when {
+        eventDetails.errorCode != null -> {
+            val openFeatureError = OpenFeatureError.fromMessageAndErrorCode(
+                errorMessage = eventDetails.message ?: "Provider did not supply an error message",
+                errorCode = eventDetails.errorCode
+            )
+            if (eventDetails.errorCode == ErrorCode.PROVIDER_FATAL) {
+                OpenFeatureStatus.Fatal(openFeatureError)
+            } else {
+                OpenFeatureStatus.Error(openFeatureError)
+            }
+        }
+
+        error != null -> { // Deprecated implementation
+            if (error is ProviderFatalError) {
+                OpenFeatureStatus.Fatal(error)
+            } else {
+                OpenFeatureStatus.Error(error)
+            }
+        }
+
+        else -> OpenFeatureStatus.Error(OpenFeatureError.GeneralError("Unspecified error"))
     }
 }
