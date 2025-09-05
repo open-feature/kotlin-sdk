@@ -9,8 +9,10 @@ sealed class OpenFeatureError : Exception() {
         }
     }
 
-    class FlagNotFoundError(flagKey: String) : OpenFeatureError() {
+    class FlagNotFoundError(
+        flagKey: String?,
         override val message: String = "Could not find flag named: $flagKey"
+    ) : OpenFeatureError() {
         override fun errorCode(): ErrorCode {
             return ErrorCode.FLAG_NOT_FOUND
         }
@@ -55,6 +57,21 @@ sealed class OpenFeatureError : Exception() {
         OpenFeatureError() {
         override fun errorCode(): ErrorCode {
             return ErrorCode.PROVIDER_FATAL
+        }
+    }
+
+    companion object {
+        internal fun fromMessageAndErrorCode(errorMessage: String, errorCode: ErrorCode): OpenFeatureError {
+            return when (errorCode) {
+                ErrorCode.PROVIDER_NOT_READY -> ProviderNotReadyError()
+                ErrorCode.FLAG_NOT_FOUND -> FlagNotFoundError(flagKey = null, errorMessage)
+                ErrorCode.PARSE_ERROR -> ParseError(errorMessage)
+                ErrorCode.TYPE_MISMATCH -> TypeMismatchError(errorMessage)
+                ErrorCode.TARGETING_KEY_MISSING -> TargetingKeyMissingError(errorMessage)
+                ErrorCode.INVALID_CONTEXT -> InvalidContextError(errorMessage)
+                ErrorCode.GENERAL -> GeneralError(errorMessage)
+                ErrorCode.PROVIDER_FATAL -> ProviderFatalError(errorMessage)
+            }
         }
     }
 }

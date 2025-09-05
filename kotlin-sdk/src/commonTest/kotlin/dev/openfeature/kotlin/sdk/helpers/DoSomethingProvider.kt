@@ -27,7 +27,7 @@ open class DoSomethingProvider(
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         delay(1000)
-        events.emit(OpenFeatureProviderEvents.ProviderReady)
+        events.emit(OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()))
     }
 
     override fun shutdown() {
@@ -39,7 +39,7 @@ open class DoSomethingProvider(
         newContext: EvaluationContext
     ) {
         delay(500)
-        events.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged)
+        events.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()))
     }
 
     override fun getBooleanEvaluation(
@@ -101,8 +101,8 @@ class OverlyEmittingProvider(name: String) : DoSomethingProvider(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
-        events.emit(OpenFeatureProviderEvents.ProviderStale)
-        events.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged)
+        events.emit(OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()))
+        events.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()))
     }
 
     override fun track(
@@ -111,8 +111,8 @@ class OverlyEmittingProvider(name: String) : DoSomethingProvider(
         details: TrackingEventDetails?
     ) {
         super.track(trackingEventName, context, details)
-        events.tryEmit(OpenFeatureProviderEvents.ProviderStale)
-        events.tryEmit(OpenFeatureProviderEvents.ProviderStale)
-        events.tryEmit(OpenFeatureProviderEvents.ProviderStale)
+        events.tryEmit(OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()))
+        events.tryEmit(OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()))
+        events.tryEmit(OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()))
     }
 }

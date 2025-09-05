@@ -41,13 +41,17 @@ class ProviderEventingTests {
             ) {
                 flow.emit(
                     OpenFeatureProviderEvents.ProviderError(
-                        OpenFeatureError.ProviderNotReadyError(
+                        error = OpenFeatureError.ProviderNotReadyError(
                             "test error"
                         )
                     )
                 )
                 delay(healDelayMillis)
-                flow.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged)
+                flow.emit(
+                    OpenFeatureProviderEvents.ProviderConfigurationChanged(
+                        OpenFeatureProviderEvents.EventDetails()
+                    )
+                )
             }
 
             override fun observe(): Flow<OpenFeatureProviderEvents> = flow
@@ -103,9 +107,9 @@ class ProviderEventingTests {
         testScheduler.advanceUntilIdle()
         assertEquals(
             listOf(
-                OpenFeatureProviderEvents.ProviderReady,
-                OpenFeatureProviderEvents.ProviderStale,
-                OpenFeatureProviderEvents.ProviderConfigurationChanged
+                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails())
             ),
             emittedEvents
         )
@@ -127,15 +131,15 @@ class ProviderEventingTests {
         job.cancelAndJoin()
         assertEquals(
             listOf(
-                OpenFeatureProviderEvents.ProviderReady,
-                OpenFeatureProviderEvents.ProviderStale,
-                OpenFeatureProviderEvents.ProviderConfigurationChanged,
-                OpenFeatureProviderEvents.ProviderReady,
-                OpenFeatureProviderEvents.ProviderStale,
-                OpenFeatureProviderEvents.ProviderStale,
-                OpenFeatureProviderEvents.ProviderStale,
-                OpenFeatureProviderEvents.ProviderStale,
-                OpenFeatureProviderEvents.ProviderConfigurationChanged
+                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails())
             ),
             emittedEvents
         )
