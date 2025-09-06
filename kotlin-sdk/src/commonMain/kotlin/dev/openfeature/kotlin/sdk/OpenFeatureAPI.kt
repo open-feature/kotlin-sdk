@@ -1,6 +1,7 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -40,7 +41,11 @@ object OpenFeatureAPI {
 
     /**
      * A flow of [OpenFeatureStatus] that emits the current status of the SDK.
+     *
+     * Deprecated because calls to this should move to OpenFeatureClient according to
+     * https://openfeature.dev/specification/sections/flag-evaluation#17-provider-lifecycle-management
      */
+    @Deprecated("Please use OpenFeatureClient.providerStatusFlow instead")
     val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
 
     var hooks: List<Hook<*>> = listOf()
@@ -261,31 +266,25 @@ object OpenFeatureAPI {
     inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> = providersFlow
         .flatMapLatest { it.observe() }.filterIsInstance()
 
-    private val handleProviderEvents: FlowCollector<OpenFeatureProviderEvents> = FlowCollector {
-        when (it) {
-            OpenFeatureProviderEvents.ProviderReady -> {
+    /**
+     * Aligning the state management to
+     * https://openfeature.dev/specification/sections/events#requirement-535
+     */
+    private val handleProviderEvents: FlowCollector<OpenFeatureProviderEvents> = FlowCollector { providerEvent ->
+        when (providerEvent) {
+            is OpenFeatureProviderEvents.ProviderReady -> {
                 _statusFlow.emit(OpenFeatureStatus.Ready)
             }
 
-            is OpenFeatureProviderEvents.ProviderError -> {
-                val status = if (it.error is OpenFeatureError.ProviderFatalError) {
-                    OpenFeatureStatus.Fatal(it.error)
-                } else {
-                    OpenFeatureStatus.Error(it.error)
-                }
-                _statusFlow.emit(status)
-            }
-
-            OpenFeatureProviderEvents.ProviderNotReady -> {
-                _statusFlow.emit(OpenFeatureStatus.NotReady)
-            }
-
-            OpenFeatureProviderEvents.ProviderStale -> {
+            is OpenFeatureProviderEvents.ProviderStale -> {
                 _statusFlow.emit(OpenFeatureStatus.Stale)
             }
 
-            OpenFeatureProviderEvents.ProviderConfigurationChanged -> {
-                _statusFlow.emit(OpenFeatureStatus.Ready)
+            is OpenFeatureProviderEvents.ProviderError -> {
+                _statusFlow.emit(providerEvent.toOpenFeatureStatusError())
+            }
+
+            else -> { // All other states should not be emitted from here
             }
         }
     }

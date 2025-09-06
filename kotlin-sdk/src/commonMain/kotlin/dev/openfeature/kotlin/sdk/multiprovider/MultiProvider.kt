@@ -8,6 +8,7 @@ import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -158,7 +159,6 @@ class MultiProvider(
      */
     internal fun getProviderCount(): Int = childFeatureProviders.size
 
-    // TODO Add distinctUntilChanged operator once EventDetails have been added
     override fun observe(): Flow<OpenFeatureProviderEvents> = eventFlow.asSharedFlow()
 
     /**
@@ -197,12 +197,7 @@ class MultiProvider(
             is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
             is OpenFeatureProviderEvents.ProviderNotReady -> OpenFeatureStatus.NotReady
             is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
-            is OpenFeatureProviderEvents.ProviderError ->
-                if (event.error is OpenFeatureError.ProviderFatalError) {
-                    OpenFeatureStatus.Fatal(event.error)
-                } else {
-                    OpenFeatureStatus.Error(event.error)
-                }
+            is OpenFeatureProviderEvents.ProviderError -> event.toOpenFeatureStatusError()
         }
 
         val previousStatus = _statusFlow.value

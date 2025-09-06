@@ -24,6 +24,13 @@ class OpenFeatureClient(
         this.hooks += hooks
     }
 
+    /**
+     * Calls from OpenFeatureAPI.statusFlow should move to this client according to
+     * https://openfeature.dev/specification/sections/flag-evaluation#17-provider-lifecycle-management
+     */
+    @Suppress("DEPRECATION")
+    val providerStatusFlow = openFeatureAPI.statusFlow
+
     override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
         return getBooleanDetails(key, defaultValue).value
     }
@@ -175,8 +182,7 @@ class OpenFeatureClient(
         val hints = options.hookHints
         var details = FlagEvaluationDetails(key, defaultValue)
         val provider = openFeatureAPI.getProvider()
-        val mergedHooks: List<Hook<*>> =
-            provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
+        val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
         val context = openFeatureAPI.getEvaluationContext()
         val hookCtx: HookContext<T> = HookContext(
             key,
