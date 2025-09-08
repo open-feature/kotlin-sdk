@@ -646,18 +646,18 @@ public abstract class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvent
 
 public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails {
 	public fun <init> ()V
-	public fun <init> (Ljava/util/List;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/util/Map;)V
-	public synthetic fun <init> (Ljava/util/List;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/util/List;
+	public fun <init> (Ljava/util/Set;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Set;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/Set;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
 	public final fun component4 ()Ljava/util/Map;
-	public final fun copy (Ljava/util/List;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/util/Map;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
-	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;Ljava/util/List;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/util/Map;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
+	public final fun copy (Ljava/util/Set;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/util/Map;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;Ljava/util/Set;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;Ljava/util/Map;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getErrorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
 	public final fun getEventMetadata ()Ljava/util/Map;
-	public final fun getFlagsChanged ()Ljava/util/List;
+	public final fun getFlagsChanged ()Ljava/util/Set;
 	public final fun getMessage ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
