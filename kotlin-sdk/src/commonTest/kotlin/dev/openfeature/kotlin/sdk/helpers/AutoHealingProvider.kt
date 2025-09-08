@@ -31,7 +31,7 @@ class AutoHealingProvider(
             )
         )
         delay(healDelay)
-        _events.emit(OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()))
+        _events.emit(OpenFeatureProviderEvents.ProviderReady())
         ready = true
     }
 

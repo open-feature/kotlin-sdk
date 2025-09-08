@@ -106,9 +106,9 @@ class MultiProviderTests {
         val provider = FakeEventProvider(
             name = "p",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                OpenFeatureProviderEvents.ProviderReady(),
+                OpenFeatureProviderEvents.ProviderStale()
             )
         )
         val multi = MultiProvider(listOf(provider))
@@ -118,7 +118,7 @@ class MultiProviderTests {
 
         // The last emitted event should be STALE given the sequence above
         val last = multi.observe().first()
-        assertEquals(OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()), last)
+        assertEquals(OpenFeatureProviderEvents.ProviderStale(), last)
         initJob.cancelAndJoin()
     }
 
@@ -143,21 +143,21 @@ class MultiProviderTests {
         val a = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                OpenFeatureProviderEvents.ProviderReady()
             )
         )
         val b = FakeEventProvider(
             name = "B",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                OpenFeatureProviderEvents.ProviderStale()
             )
         )
         val c = FakeEventProvider(
             name = "C",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
                 OpenFeatureProviderEvents.ProviderNotReady,
                 OpenFeatureProviderEvents.ProviderError(
                     OpenFeatureProviderEvents.EventDetails(
@@ -183,14 +183,14 @@ class MultiProviderTests {
         val a = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                OpenFeatureProviderEvents.ProviderReady()
             )
         )
         val b = FakeEventProvider(
             name = "B",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
                 OpenFeatureProviderEvents.ProviderError(
                     OpenFeatureProviderEvents.EventDetails(
                         message = "fatal",
@@ -215,14 +215,14 @@ class MultiProviderTests {
         val a = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                OpenFeatureProviderEvents.ProviderReady()
             )
         )
         val b = FakeEventProvider(
             name = "B",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
                 OpenFeatureProviderEvents.ProviderError(
                     OpenFeatureProviderEvents.EventDetails(
                         message = "oops",
@@ -234,8 +234,8 @@ class MultiProviderTests {
         val c = FakeEventProvider(
             name = "C",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                OpenFeatureProviderEvents.ProviderStale()
             )
         )
 
@@ -254,14 +254,14 @@ class MultiProviderTests {
         val a = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
                 OpenFeatureProviderEvents.ProviderNotReady
             )
         )
         val b = FakeEventProvider(
             name = "B",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
                 OpenFeatureProviderEvents.ProviderError(
                     OpenFeatureProviderEvents.EventDetails(
                         message = "e",
@@ -273,8 +273,8 @@ class MultiProviderTests {
         val c = FakeEventProvider(
             name = "C",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                OpenFeatureProviderEvents.ProviderStale()
             )
         )
         val multi = MultiProvider(listOf(a, b, c))
@@ -292,9 +292,9 @@ class MultiProviderTests {
         val provider = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderReady(),
+                OpenFeatureProviderEvents.ProviderReady(),
+                OpenFeatureProviderEvents.ProviderStale()
             )
         )
         val multi = MultiProvider(listOf(provider))
@@ -312,8 +312,8 @@ class MultiProviderTests {
         // Should only emit Ready once (transition) and Stale once (transition)
         assertEquals(
             listOf(
-                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderReady(),
+                OpenFeatureProviderEvents.ProviderStale()
             ),
             nonConfig
         )
@@ -324,8 +324,8 @@ class MultiProviderTests {
         val provider = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged()
             )
         )
         val multi = MultiProvider(listOf(provider))

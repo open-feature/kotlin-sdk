@@ -13,43 +13,43 @@ sealed class OpenFeatureProviderEvents {
         val eventMetadata: Map<String, Any> = emptyMap()
     )
 
-    abstract val eventDetails: EventDetails
+    abstract val eventDetails: EventDetails?
 
     /**
      * The provider is ready to perform flag evaluations.
      */
     data class ProviderReady(
-        override val eventDetails: EventDetails
+        override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
 
     /**
      * The provider signaled an error.
      */
     data class ProviderError(
-        override val eventDetails: EventDetails = EventDetails(),
+        override val eventDetails: EventDetails? = null,
         @Deprecated("Please use eventDetails instead.") val error: OpenFeatureError? = null
     ) : OpenFeatureProviderEvents()
 
     data class ProviderConfigurationChanged(
-        override val eventDetails: EventDetails
+        override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
 
     /**
      * The provider's cached state is no longer valid and may not be up-to-date with the source of truth.
      */
     data class ProviderStale(
-        override val eventDetails: EventDetails
+        override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
 
     @Deprecated("Use ProviderError instead", ReplaceWith("ProviderError"))
     data object ProviderNotReady : OpenFeatureProviderEvents() {
-        override val eventDetails = EventDetails()
+        override val eventDetails = null
     }
 }
 
 internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError(): OpenFeatureStatus {
     return when {
-        eventDetails.errorCode != null -> {
+        eventDetails?.errorCode != null -> {
             val openFeatureError = OpenFeatureError.fromMessageAndErrorCode(
                 errorMessage = eventDetails.message ?: "Provider did not supply an error message",
                 errorCode = eventDetails.errorCode

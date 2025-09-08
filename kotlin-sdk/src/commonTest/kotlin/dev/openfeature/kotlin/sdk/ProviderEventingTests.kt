@@ -48,9 +48,7 @@ class ProviderEventingTests {
                 )
                 delay(healDelayMillis)
                 flow.emit(
-                    OpenFeatureProviderEvents.ProviderConfigurationChanged(
-                        OpenFeatureProviderEvents.EventDetails()
-                    )
+                    OpenFeatureProviderEvents.ProviderConfigurationChanged()
                 )
             }
 
@@ -107,9 +105,9 @@ class ProviderEventingTests {
         testScheduler.advanceUntilIdle()
         assertEquals(
             listOf(
-                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderReady(),
+                OpenFeatureProviderEvents.ProviderStale(),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged()
             ),
             emittedEvents
         )
@@ -131,15 +129,15 @@ class ProviderEventingTests {
         job.cancelAndJoin()
         assertEquals(
             listOf(
-                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderReady(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderReady(),
+                OpenFeatureProviderEvents.ProviderStale(),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                OpenFeatureProviderEvents.ProviderReady(),
+                OpenFeatureProviderEvents.ProviderStale(),
+                OpenFeatureProviderEvents.ProviderStale(),
+                OpenFeatureProviderEvents.ProviderStale(),
+                OpenFeatureProviderEvents.ProviderStale(),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged()
             ),
             emittedEvents
         )

@@ -351,10 +351,10 @@ class DeveloperExperienceTests {
         job.cancelAndJoin()
         assertEquals(
             listOf<OpenFeatureProviderEvents>(
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails()),
-                OpenFeatureProviderEvents.ProviderStale(OpenFeatureProviderEvents.EventDetails())
+                OpenFeatureProviderEvents.ProviderStale(),
+                OpenFeatureProviderEvents.ProviderStale(),
+                OpenFeatureProviderEvents.ProviderStale(),
+                OpenFeatureProviderEvents.ProviderStale()
             ),
             staleEvents
         )
