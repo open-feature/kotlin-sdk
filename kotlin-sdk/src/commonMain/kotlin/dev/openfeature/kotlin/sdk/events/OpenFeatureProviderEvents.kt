@@ -7,7 +7,7 @@ import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.ProviderFatalError
 
 sealed class OpenFeatureProviderEvents {
     data class EventDetails(
-        val flagsChanged: List<String> = emptyList(),
+        val flagsChanged: Set<String> = emptySet(),
         val message: String? = null,
         val errorCode: ErrorCode? = null,
         val eventMetadata: Map<String, Any> = emptyMap()
