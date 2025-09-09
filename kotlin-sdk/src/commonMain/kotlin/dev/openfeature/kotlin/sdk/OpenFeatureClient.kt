@@ -29,7 +29,7 @@ class OpenFeatureClient(
      * https://openfeature.dev/specification/sections/flag-evaluation#17-provider-lifecycle-management
      */
     @Suppress("DEPRECATION")
-    val providerStatusFlow = openFeatureAPI.statusFlow
+    override val providerStatusFlow = openFeatureAPI.statusFlow
 
     override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
         return getBooleanDetails(key, defaultValue).value
