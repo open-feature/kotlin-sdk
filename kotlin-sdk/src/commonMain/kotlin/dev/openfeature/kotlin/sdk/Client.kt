@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 interface Client : Features, Tracking {
     val metadata: ClientMetadata
     val hooks: List<Hook<*>>
-    val providerStatusFlow: Flow<OpenFeatureStatus>
+    val statusFlow: Flow<OpenFeatureStatus>
 
     fun addHooks(hooks: List<Hook<*>>)
 }

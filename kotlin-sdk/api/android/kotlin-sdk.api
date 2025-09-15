@@ -19,7 +19,7 @@ public abstract interface class dev/openfeature/kotlin/sdk/Client : dev/openfeat
 	public abstract fun addHooks (Ljava/util/List;)V
 	public abstract fun getHooks ()Ljava/util/List;
 	public abstract fun getMetadata ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
-	public abstract fun getProviderStatusFlow ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
 }
 
 public abstract interface class dev/openfeature/kotlin/sdk/ClientMetadata {
@@ -313,7 +313,7 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureClient : dev/openfeatur
 	public fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/Value;
 	public fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/Value;
-	public fun getProviderStatusFlow ()Lkotlinx/coroutines/flow/Flow;
+	public fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
 	public fun getStringDetails (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getStringDetails (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getStringValue (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
