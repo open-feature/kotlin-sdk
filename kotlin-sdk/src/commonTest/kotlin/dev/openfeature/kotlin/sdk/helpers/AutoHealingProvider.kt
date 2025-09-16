@@ -25,13 +25,13 @@ class AutoHealingProvider(
         ready = false
         _events.emit(
             OpenFeatureProviderEvents.ProviderError(
-                OpenFeatureError.ProviderNotReadyError(
+                error = OpenFeatureError.ProviderNotReadyError(
                     "AutoHealingProvider got an error. trying to heal"
                 )
             )
         )
         delay(healDelay)
-        _events.emit(OpenFeatureProviderEvents.ProviderReady)
+        _events.emit(OpenFeatureProviderEvents.ProviderReady())
         ready = true
     }
 

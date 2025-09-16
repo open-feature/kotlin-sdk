@@ -24,6 +24,8 @@ class OpenFeatureClient(
         this.hooks += hooks
     }
 
+    override val statusFlow = openFeatureAPI.statusFlow
+
     override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
         return getBooleanDetails(key, defaultValue).value
     }
@@ -175,8 +177,7 @@ class OpenFeatureClient(
         val hints = options.hookHints
         var details = FlagEvaluationDetails(key, defaultValue)
         val provider = openFeatureAPI.getProvider()
-        val mergedHooks: List<Hook<*>> =
-            provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
+        val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
         val context = openFeatureAPI.getEvaluationContext()
         val hookCtx: HookContext<T> = HookContext(
             key,
