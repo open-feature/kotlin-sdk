@@ -27,7 +27,7 @@ val multi = MultiProvider(
 )
 
 // 3) Set the SDK provider and wait until ready
-OpenFeatureAPI.setProviderAndWait()
+OpenFeatureAPI.setProviderAndWait(multi)
 
 // 4) Use the client as usual
 val client = OpenFeatureAPI.getClient("my-app")
