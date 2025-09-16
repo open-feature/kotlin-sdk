@@ -39,13 +39,6 @@ object OpenFeatureAPI {
                 tryEmit(OpenFeatureStatus.NotReady)
             }
 
-    /**
-     * A flow of [OpenFeatureStatus] that emits the current status of the SDK.
-     *
-     * Deprecated because calls to this should move to OpenFeatureClient according to
-     * https://openfeature.dev/specification/sections/flag-evaluation#17-provider-lifecycle-management
-     */
-    @Deprecated("Please use OpenFeatureClient.providerStatusFlow instead")
     val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
 
     var hooks: List<Hook<*>> = listOf()

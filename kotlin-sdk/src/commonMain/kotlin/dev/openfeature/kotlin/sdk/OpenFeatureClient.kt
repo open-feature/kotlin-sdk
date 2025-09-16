@@ -24,12 +24,7 @@ class OpenFeatureClient(
         this.hooks += hooks
     }
 
-    /**
-     * Calls from OpenFeatureAPI.statusFlow should move to this client according to
-     * https://openfeature.dev/specification/sections/flag-evaluation#17-provider-lifecycle-management
-     */
-    @Suppress("DEPRECATION")
-    override val providerStatusFlow = openFeatureAPI.statusFlow
+    override val statusFlow = openFeatureAPI.statusFlow
 
     override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
         return getBooleanDetails(key, defaultValue).value
