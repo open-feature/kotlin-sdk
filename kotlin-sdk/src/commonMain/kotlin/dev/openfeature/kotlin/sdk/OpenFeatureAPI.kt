@@ -10,8 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -26,7 +24,6 @@ object OpenFeatureAPI {
     private var setProviderJob: Job? = null
     private var setEvaluationContextJob: Job? = null
     private var observeProviderEventsJob: Job? = null
-    private var providerEventObservationScope: CoroutineScope? = null
 
     private val NOOP_PROVIDER = NoOpProvider()
     private var provider: FeatureProvider = NOOP_PROVIDER
@@ -242,8 +239,6 @@ object OpenFeatureAPI {
         observeProviderEventsJob?.cancel(
             CancellationException("Provider event observe job was cancelled due to shutdown")
         )
-        providerEventObservationScope?.coroutineContext?.cancelChildren()
-        providerEventObservationScope?.coroutineContext?.cancel()
         clearProvider()
     }
 
