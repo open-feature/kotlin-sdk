@@ -10,9 +10,14 @@ import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +26,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * Type alias for a function that evaluates a feature flag using a FeatureProvider.
@@ -154,6 +160,8 @@ class MultiProvider(
         }
     }
 
+    private var observeProviderEventsJob: Job? = null
+
     /**
      * @return Number of unique providers
      */
@@ -169,20 +177,27 @@ class MultiProvider(
      */
     override suspend fun initialize(initialContext: EvaluationContext?) {
         coroutineScope {
-            // Listen to events emitted by providers to emit our own set of events
-            // according to https://openfeature.dev/specification/appendix-a/#status-and-event-handling
-            childFeatureProviders.forEach { provider ->
-                provider.observe()
-                    .onEach { event ->
-                        handleProviderEvent(provider, event)
-                    }
-                    .launchIn(this)
+            observeProviderEventsJob?.cancel(
+                cause = CancellationException("Observe provider events job cancelled due to new initialize call")
+            )
+            observeProviderEventsJob = CoroutineScope(this.coroutineContext + SupervisorJob()).launch {
+                // Listen to events emitted by providers to emit our own set of events
+                // according to https://openfeature.dev/specification/appendix-a/#status-and-event-handling
+                childFeatureProviders.forEach { provider ->
+                    provider.observe()
+                        .onEach { event ->
+                            handleProviderEvent(provider, event)
+                        }
+                        .launchIn(this)
+                }
             }
 
-            // State updates captured by observing individual Feature Flag providers
-            childFeatureProviders
-                .map { async { it.initialize(initialContext) } }
-                .awaitAll()
+            launch {
+                // State updates captured by observing individual Feature Flag providers
+                childFeatureProviders
+                    .map { async { it.initialize(initialContext) } }
+                    .awaitAll()
+            }
         }
     }
 
@@ -221,6 +236,10 @@ class MultiProvider(
      * This allows providers to clean up resources and complete any pending operations.
      */
     override fun shutdown() {
+        observeProviderEventsJob?.cancel(
+            cause = CancellationException("Observe provider events job cancelled due to shutdown")
+        )
+
         val shutdownErrors = mutableListOf<Pair<String, Throwable>>()
         childFeatureProviders.forEach { provider ->
             try {

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -367,6 +368,17 @@ class MultiProviderTests {
         val suppressedMessages = error.suppressedExceptions.map { it.message ?: "" }
         assertTrue(suppressedMessages.any { it.contains("Provider 'bad1' shutdown failed: oops1") })
         assertTrue(suppressedMessages.any { it.contains("Provider '<unnamed>' shutdown failed: oops2") })
+    }
+
+    @Test
+    fun initializeFunctionCompletesWhenObservingNeverCompletingFlows() = runTest {
+        val fakeEventProvider = FakeEventProvider(name = "ok")
+
+        // Should complete immediately
+        withTimeout(1000) {
+            val multi = MultiProvider(listOf(fakeEventProvider))
+            multi.initialize(null)
+        }
     }
 }
 
