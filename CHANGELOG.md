@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.7.0](https://github.com/open-feature/kotlin-sdk/compare/v0.6.2...v0.7.0) (2025-09-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* OpenFeatureProviderEvents are now data classes and need to be instantiated ([#170](https://github.com/open-feature/kotlin-sdk/issues/170))
+
+### 🐛 Bug Fixes
+
+* **deps:** update kotlin monorepo to v2.2.10 ([#161](https://github.com/open-feature/kotlin-sdk/issues/161)) ([8dcd870](https://github.com/open-feature/kotlin-sdk/commit/8dcd870195f61360464e94068f29bf11e49d5c1e))
+
+
+### ✨ New Features
+
+* Multi provider impl ([#168](https://github.com/open-feature/kotlin-sdk/issues/168)) ([807fcc1](https://github.com/open-feature/kotlin-sdk/commit/807fcc18e1a59c8eb08ec71b6e2aae81e6306ffc))
+* Update ProviderEvents to match specifications ([#170](https://github.com/open-feature/kotlin-sdk/issues/170)) ([483f1bb](https://github.com/open-feature/kotlin-sdk/commit/483f1bb5ec4f4cef1a3a6378d28d3cec258f81b2))
+
+
+### 🧹 Chore
+
+* **deps:** update actions/checkout action to v5 ([#162](https://github.com/open-feature/kotlin-sdk/issues/162)) ([a585962](https://github.com/open-feature/kotlin-sdk/commit/a585962be39fe8bcfd8d08f17e181af31a1b356a))
+* **deps:** update actions/setup-java action to v5 ([#174](https://github.com/open-feature/kotlin-sdk/issues/174)) ([b789313](https://github.com/open-feature/kotlin-sdk/commit/b7893138a97ea32f12bfc7a5039904ea7b9f8019))
+* **deps:** update amannn/action-semantic-pull-request action to v6 ([#163](https://github.com/open-feature/kotlin-sdk/issues/163)) ([6b7fa1d](https://github.com/open-feature/kotlin-sdk/commit/6b7fa1d7fb6ad4910ed737ce0f70a1d975c284e4))
+* **deps:** update browser-actions/setup-chrome action to v2 ([#175](https://github.com/open-feature/kotlin-sdk/issues/175)) ([6098e5a](https://github.com/open-feature/kotlin-sdk/commit/6098e5aeac0373b2d4b97a349175759e15424540))
+* **deps:** update dependency gradle to v9 ([#176](https://github.com/open-feature/kotlin-sdk/issues/176)) ([bb1d63c](https://github.com/open-feature/kotlin-sdk/commit/bb1d63c97e852c1804ea0ef1282c213da3a69807))
+* **deps:** update plugin com.android.application to v8.12.2 ([#143](https://github.com/open-feature/kotlin-sdk/issues/143)) ([7941bb9](https://github.com/open-feature/kotlin-sdk/commit/7941bb96b2ad886d15b561caadfe35ca2e05524a))
+* **deps:** update plugin com.android.application to v8.13.0 ([#178](https://github.com/open-feature/kotlin-sdk/issues/178)) ([09dd988](https://github.com/open-feature/kotlin-sdk/commit/09dd988bdf27e419e36c5e37d588573a5b64aba4))
+* **deps:** update plugin com.android.library to v8.12.2 ([#160](https://github.com/open-feature/kotlin-sdk/issues/160)) ([392cbb9](https://github.com/open-feature/kotlin-sdk/commit/392cbb9f3f4df57e2e041681b260cf3c6407672e))
+* **deps:** update plugin org.jetbrains.kotlinx.binary-compatibility-validator to v0.18.1 ([#152](https://github.com/open-feature/kotlin-sdk/issues/152)) ([1392be3](https://github.com/open-feature/kotlin-sdk/commit/1392be35d7c93f7070c90b8613e28d5b56383aa3))
+
+
+### 📚 Documentation
+
+* Small fix for multiprovider ([#181](https://github.com/open-feature/kotlin-sdk/issues/181)) ([91d60bc](https://github.com/open-feature/kotlin-sdk/commit/91d60bccc7e4e13d5152b6bf4c00bbdcea033760))
+
 ## [0.6.2](https://github.com/open-feature/kotlin-sdk/compare/v0.6.1...v0.6.2) (2025-08-19)
 
 
