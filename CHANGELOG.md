@@ -5,7 +5,7 @@
 
 ### ⚠ BREAKING CHANGES
 
-* Update ProviderEvents to match specifications ([#170](https://github.com/open-feature/kotlin-sdk/issues/170))
+* OpenFeatureProviderEvents are now data classes and need to be instantiated ([#170](https://github.com/open-feature/kotlin-sdk/issues/170))
 
 ### 🐛 Bug Fixes
 
