@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1](https://github.com/open-feature/kotlin-sdk/compare/v0.7.0...v0.7.1) (2025-11-19)
+
+
+### 🧹 Chore
+
+* **deps:** update plugin com.android.library to v8.13.0 ([#179](https://github.com/open-feature/kotlin-sdk/issues/179)) ([491af0e](https://github.com/open-feature/kotlin-sdk/commit/491af0e4de91f16d2ffa5927d319deb59da4b2be))
+* update copyright to OpenFeature Maintainers ([#195](https://github.com/open-feature/kotlin-sdk/issues/195)) ([da47e54](https://github.com/open-feature/kotlin-sdk/commit/da47e54909bc1cfc77e2295b3d0ceb217d4193b9))
+
 ## [0.7.0](https://github.com/open-feature/kotlin-sdk/compare/v0.6.2...v0.7.0) (2025-09-17)
 
 
