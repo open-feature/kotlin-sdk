@@ -70,9 +70,7 @@ jobs:
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
-        # We publish everything from Mac.
-        # Note: This will compile Linux targets but NOT run their tests (which would fail on Mac).
-        # We assume CI has already validated Linux tests.
+        
         run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon --stacktrace
 
       - name: Clean up signing secrets
