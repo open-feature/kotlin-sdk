@@ -45,5 +45,5 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
 
-      - name: Run checks (skipping Linux tests)
+      - name: Run checks
         run: ./gradlew check --no-daemon --stacktrace
