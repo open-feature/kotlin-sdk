@@ -46,5 +46,4 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       - name: Run checks (skipping Linux tests)
-        # linuxX64Test fails on macOS because it tries to execute the Linux binary
-        run: ./gradlew check -x linuxX64Test --no-daemon --stacktrace
+        run: ./gradlew check --no-daemon --stacktrace
