@@ -17,7 +17,7 @@ allprojects {
 // x-release-please-end
 }
 
-// Allow JitPack (or callers) to override group and version with -Pgroup/-Pversion
+// Allow callers to override group and version with -Pgroup/-Pversion
 val overriddenGroup: String? = if (project.hasProperty("group")) project.property("group").toString() else null
 val overriddenVersion: String? = if (project.hasProperty("version")) project.property("version").toString() else null
 
