@@ -11,7 +11,7 @@ plugins {
     id("com.vanniktech.maven.publish").version("0.34.0").apply(false)
 }
 allprojects {
-    extra["groupId"] = "dev.openfeature"
+    extra["groupId"] = "io.github.penguindan"
 // x-release-please-start-version
     ext["version"] = "0.7.0"
 // x-release-please-end

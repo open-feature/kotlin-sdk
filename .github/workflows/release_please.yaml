@@ -1,0 +1,78 @@
+on:
+  push:
+    branches:
+      - main
+
+name: Run Release Please
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+
+    # Release-please creates a PR that tracks all changes
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          release-type: simple
+          command: manifest
+          token: ${{secrets.GITHUB_TOKEN}}
+          default-branch: main
+
+      - name: Dump Release Please Output
+        env:
+          RELEASE_PLEASE_OUTPUT: ${{ toJson(steps.release.outputs) }}
+        run: |
+          echo "$RELEASE_PLEASE_OUTPUT"
+
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+
+  kotlin-release:
+    needs: release-please
+    # Run on macOS to ensure we can publish iOS/Mac targets AND Linux/Android targets (via cross-compilation).
+    # This ensures a single consistent root module file is published.
+    runs-on: macos-latest
+    if: ${{ needs.release-please.outputs.release_created }}
+    steps:
+      # The logic below handles the github release:
+      - uses: actions/checkout@v6
+
+      - name: Configure GPG Key
+        run: |
+          echo -n "$GPG_SIGNING_KEY" | gpg --import
+          gpg --pinentry-mode=loopback --export-secret-key $GPG_SIGNING_KEY_ID > ~/.gnupg/secring.gpg
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          GPG_SIGNING_KEY_ID: ${{ secrets.GPG_SIGNING_KEY_ID }}
+
+      - name: Add signing secrets to gradle.properties
+        run: |
+          mkdir -p ~/.gradle/
+          echo "signing.keyId=$GPG_SIGNING_KEY_ID" >> ~/.gradle/gradle.properties
+          echo "signing.secretKeyRingFile=$HOME/.gnupg/secring.gpg" >> ~/.gradle/gradle.properties
+          echo "signing.password=$GPG_SIGNING_KEY_PASSWORD" >> ~/.gradle/gradle.properties
+        env:
+          GPG_SIGNING_KEY_ID: ${{ secrets.GPG_SIGNING_KEY_ID }}
+          GPG_SIGNING_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_KEY_PASSWORD }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: 17
+          distribution: 'zulu'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Grant Permission for Gradlew to Execute
+        run: chmod +x gradlew
+
+      - name: Publish to Sonatype
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+        
+        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon --stacktrace
+
+      - name: Clean up signing secrets
+        run: rm ~/.gradle/gradle.properties

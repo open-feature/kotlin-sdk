@@ -97,7 +97,7 @@ dokka {
     dokkaSourceSets.commonMain {
         sourceLink {
             localDirectory.set(file("src/"))
-            remoteUrl("https://github.com/open-feature/kotlin-sdk/tree/main/kotlin-sdk/src")
+            remoteUrl("https://github.com/PenguinDan/kotlin-sdk/tree/main/kotlin-sdk/src")
             remoteLineSuffix.set("#L")
         }
     }
@@ -111,6 +111,7 @@ mavenPublishing {
             androidVariantsToPublish = listOf("release")
         )
     )
+    signAllPublications()
 
     pom {
         name.set("OpenFeature Kotlin SDK")
@@ -126,34 +127,19 @@ mavenPublishing {
         }
         developers {
             developer {
-                id.set("vahidlazio")
-                name.set("Vahid Torkaman")
-                email.set("vahidt@spotify.com")
-            }
-            developer {
-                id.set("fabriziodemaria")
-                name.set("Fabrizio Demaria")
-                email.set("fdema@spotify.com")
-            }
-            developer {
-                id.set("nicklasl")
-                name.set("Nicklas Lundin")
-                email.set("nicklasl@spotify.com")
-            }
-            developer {
-                id.set("nickybondarenko")
-                name.set("Nicky Bondarenko")
-                email.set("nickyb@spotify.com")
+                id.set("penguindan")
+                name.set("Daniel Kim")
+                email.set("daniel.seunkim@gmail.com")
             }
         }
         scm {
             connection.set(
-                "scm:git:https://github.com/open-feature/kotlin-sdk.git"
+                "scm:git:https://github.com/PenguinDan/kotlin-sdk.git"
             )
             developerConnection.set(
-                "scm:git:ssh://open-feature/kotlin-sdk.git"
+                "scm:git:ssh://github.com/PenguinDan/kotlin-sdk.git"
             )
-            url.set("https://github.com/open-feature/kotlin-sdk")
+            url.set("https://github.com/PenguinDan/kotlin-sdk")
         }
     }
 }
