@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.1](https://github.com/PenguinDan/kotlin-sdk/compare/v0.1.0...v0.1.1) (2025-12-15)
+
+
+### ✨ New Features
+
+* reset version for fresh 0.1.0 release ([952176d](https://github.com/PenguinDan/kotlin-sdk/commit/952176dbbe321e1e6192af1f221bb879bfec4dc9))
+
+
+### 🧹 Chore
+
+* create v0.1.0 tag ([80b5955](https://github.com/PenguinDan/kotlin-sdk/commit/80b5955c0ef3fcdf51cc181f8546bfb4ad66eb13))
+* set version to 0.1.0 for initial release ([6ea527a](https://github.com/PenguinDan/kotlin-sdk/commit/6ea527a1d5fc095ad4862175bb21d6dc36b604c2))
+
 ## [0.1.0](https://github.com/PenguinDan/kotlin-sdk/releases/tag/v0.1.0) (2025-12-15)
 
 ### ✨ Initial Release
