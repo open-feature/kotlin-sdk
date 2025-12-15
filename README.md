@@ -16,8 +16,8 @@
     <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.8.0&color=yellow&style=for-the-badge" />
   </a>
   <!-- x-release-please-start-version -->
-  <a href="https://github.com/PenguinDan/kotlin-sdk/releases/tag/v0.7.0">
-    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.7.0&color=blue&style=for-the-badge" />
+  <a href="https://github.com/PenguinDan/kotlin-sdk/releases/tag/v0.0.0">
+    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.0.0&color=blue&style=for-the-badge" />
   </a>
   <!-- x-release-please-end -->
   <br/>
@@ -68,7 +68,7 @@ Installation is preferred via Maven Central.
 
 ```kotlin
 dependencies {
-    api("io.github.penguindan:kotlin-sdk:0.7.0")
+    api("io.github.penguindan:kotlin-sdk:0.0.0")
 }
 ```
 <!-- x-release-please-end -->
@@ -80,7 +80,7 @@ dependencies {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            api("io.github.penguindan:kotlin-sdk:0.7.0")
+            api("io.github.penguindan:kotlin-sdk:0.0.0")
         }
     }
 }
@@ -269,7 +269,7 @@ in an Android app.
 ### Develop a provider
 
 To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
-You’ll then need to write the provider by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
+You'll then need to write the provider by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
 
 ```kotlin
 class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Metadata) : FeatureProvider {
