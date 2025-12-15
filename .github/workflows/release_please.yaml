@@ -34,16 +34,27 @@ jobs:
     runs-on: macos-latest
     if: ${{ needs.release-please.outputs.release_created }}
     steps:
-      # The logic below handles the github release:
       - uses: actions/checkout@v6
 
       - name: Configure GPG Key
         run: |
-          echo -n "$GPG_SIGNING_KEY" | gpg --import
-          gpg --pinentry-mode=loopback --export-secret-key $GPG_SIGNING_KEY_ID > ~/.gnupg/secring.gpg
+          # Create GPG directory and configure for non-interactive use
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          echo "use-agent" >> ~/.gnupg/gpg.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          
+          # Import the GPG key with batch mode
+          echo -n "$GPG_SIGNING_KEY" | gpg --batch --import
+          
+          # Export to legacy format for Gradle signing plugin
+          gpg --batch --pinentry-mode loopback --passphrase "$GPG_SIGNING_KEY_PASSWORD" \
+              --export-secret-keys $GPG_SIGNING_KEY_ID > ~/.gnupg/secring.gpg
         env:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
           GPG_SIGNING_KEY_ID: ${{ secrets.GPG_SIGNING_KEY_ID }}
+          GPG_SIGNING_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_KEY_PASSWORD }}
 
       - name: Add signing secrets to gradle.properties
         run: |
@@ -71,7 +82,6 @@ jobs:
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
-        
         run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon --stacktrace
 
       - name: Clean up signing secrets
