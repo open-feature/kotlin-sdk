@@ -349,7 +349,7 @@ Implement your own hook by conforming to the `Hook` interface exported by the Op
 <!-- x-hide-in-docs-start -->
 ## 🙏 Acknowledgments
 
-This project is a fork of the [OpenFeature Kotlin SDK](https://github.com/open-feature/kotlin-sdk), originally developed by the OpenFeature community at Spotify. We are grateful for their foundational work on this project.
+This project is a fork of the [OpenFeature Kotlin SDK](https://github.com/open-feature/kotlin-sdk), originally developed by the OpenFeature community. We are grateful for their foundational work on this project.
 
 ## 🤝 Contributing
 
