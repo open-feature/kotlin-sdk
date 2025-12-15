@@ -16,14 +16,14 @@
     <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.8.0&color=yellow&style=for-the-badge" />
   </a>
   <!-- x-release-please-start-version -->
-  <a href="https://github.com/open-feature/kotlin-sdk/releases/tag/v0.7.0">
+  <a href="https://github.com/PenguinDan/kotlin-sdk/releases/tag/v0.7.0">
     <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.7.0&color=blue&style=for-the-badge" />
   </a>
   <!-- x-release-please-end -->
   <br/>
   <img alt="Status" src="https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg" />
-  <a href="https://mvnrepository.com/artifact/dev.openfeature/android-sdk">
-    <img alt="MavenCentral" src="https://img.shields.io/maven-central/v/dev.openfeature/android-sdk" />
+  <a href="https://mvnrepository.com/artifact/io.github.penguindan/kotlin-sdk">
+    <img alt="MavenCentral" src="https://img.shields.io/maven-central/v/io.github.penguindan/kotlin-sdk" />
   </a>
 </p>
 <!-- x-hide-in-docs-start -->
@@ -68,7 +68,7 @@ Installation is preferred via Maven Central.
 
 ```kotlin
 dependencies {
-    api("dev.openfeature:kotlin-sdk:0.7.0")
+    api("io.github.penguindan:kotlin-sdk:0.7.0")
 }
 ```
 <!-- x-release-please-end -->
@@ -80,7 +80,7 @@ dependencies {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            api("dev.openfeature:kotlin-sdk:0.7.0")
+            api("io.github.penguindan:kotlin-sdk:0.7.0")
         }
     }
 }
@@ -347,14 +347,9 @@ Implement your own hook by conforming to the `Hook` interface exported by the Op
 > Built a new hook? [Let us know](https://github.com/open-feature/openfeature.dev/issues/new?assignees=&labels=hook&projects=&template=document-hook.yaml&title=%5BHook%5D%3A+) so we can add it to the docs!
 
 <!-- x-hide-in-docs-start -->
-## ⭐️ Support the project
+## 🙏 Acknowledgments
 
-- Give this repo a ⭐️!
-- Follow us on social media:
-  - Twitter: [@openfeature](https://twitter.com/openfeature)
-  - LinkedIn: [OpenFeature](https://www.linkedin.com/company/openfeature/)
-- Join us on [Slack](https://cloud-native.slack.com/archives/C0344AANLA1)
-- For more, check out our [community page](https://openfeature.dev/community/)
+This project is a fork of the [OpenFeature Kotlin SDK](https://github.com/open-feature/kotlin-sdk), originally developed by the OpenFeature community. We are grateful for their foundational work on this project.
 
 ## 🤝 Contributing
 
@@ -362,8 +357,8 @@ Interested in contributing? Great, we'd love your help! To get started, take a l
 
 ### Thanks to everyone who has already contributed
 
-<a href="https://github.com/open-feature/kotlin-sdk/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=open-feature/kotlin-sdk" alt="Pictures of the folks who have contributed to the project" />
+<a href="https://github.com/PenguinDan/kotlin-sdk/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=PenguinDan/kotlin-sdk" alt="Pictures of the folks who have contributed to the project" />
 </a>
 
 Made with [contrib.rocks](https://contrib.rocks).
