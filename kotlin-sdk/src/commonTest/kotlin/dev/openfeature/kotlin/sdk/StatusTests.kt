@@ -3,6 +3,7 @@ package dev.openfeature.kotlin.sdk
 import dev.openfeature.kotlin.sdk.helpers.BrokenInitProvider
 import dev.openfeature.kotlin.sdk.helpers.DoSomethingProvider
 import dev.openfeature.kotlin.sdk.helpers.SlowProvider
+import dev.openfeature.kotlin.sdk.helpers.SpyProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -104,6 +105,54 @@ class StatusTests {
         assertFalse(statuses.any { it is OpenFeatureStatus.Error })
         assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         job.cancelAndJoin()
+    }
+
+    @Test
+    fun testShutdownCalledWhenReplacingProvider() = runTest {
+        val provider1 = SpyProvider()
+        val provider2 = SpyProvider()
+
+        OpenFeatureAPI.setProviderAndWait(provider1)
+        assertEquals(0, provider1.shutdownCalls)
+
+        OpenFeatureAPI.setProviderAndWait(provider2)
+        assertEquals(1, provider1.shutdownCalls)
+        assertEquals(0, provider2.shutdownCalls)
+    }
+
+    @Test
+    fun testMultipleProviderReplacements() = runTest {
+        val provider1 = SpyProvider()
+        val provider2 = SpyProvider()
+        val provider3 = SpyProvider()
+
+        OpenFeatureAPI.setProviderAndWait(provider1)
+        assertEquals(0, provider1.shutdownCalls)
+
+        OpenFeatureAPI.setProviderAndWait(provider2)
+        assertEquals(1, provider1.shutdownCalls)
+        assertEquals(0, provider2.shutdownCalls)
+
+        OpenFeatureAPI.setProviderAndWait(provider3)
+        assertEquals(1, provider1.shutdownCalls)
+        assertEquals(1, provider2.shutdownCalls)
+        assertEquals(0, provider3.shutdownCalls)
+    }
+
+    @Test
+    fun testShutdownCalledWithSetProviderAsync() = runTest {
+        val provider1 = SpyProvider()
+        val provider2 = SpyProvider()
+
+        OpenFeatureAPI.setProvider(provider1)
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
+        assertEquals(0, provider1.shutdownCalls)
+
+        OpenFeatureAPI.setProvider(provider2)
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
+        // Use waitAssert for shutdown calls to handle timing differences across platforms
+        waitAssert { assertEquals(1, provider1.shutdownCalls) }
+        assertEquals(0, provider2.shutdownCalls)
     }
 }
 

@@ -15,13 +15,15 @@ class SpyProvider : FeatureProvider {
 
     val initializeCalls = mutableListOf<EvaluationContext?>()
     val onContextSetCalls = mutableListOf<Pair<EvaluationContext?, EvaluationContext>>()
+    var shutdownCalls = 0
+        private set
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         initializeCalls.add(initialContext)
     }
 
     override fun shutdown() {
-        // no-op
+        shutdownCalls++
     }
 
     override suspend fun onContextSet(

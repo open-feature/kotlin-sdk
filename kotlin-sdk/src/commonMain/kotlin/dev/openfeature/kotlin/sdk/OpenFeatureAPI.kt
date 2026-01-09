@@ -91,8 +91,22 @@ object OpenFeatureAPI {
         dispatcher: CoroutineDispatcher,
         initialContext: EvaluationContext? = null
     ) {
-        // TODO should we send shutdown to previous provider:
-        // getProvider().shutdown()
+        // Shutdown the previous provider before replacing it
+        try {
+            getProvider().shutdown()
+        } catch (e: CancellationException) {
+            // This happens by design and shouldn't be treated as an error
+        } catch (e: OpenFeatureError) {
+            _statusFlow.emit(OpenFeatureStatus.Error(e))
+        } catch (e: Throwable) {
+            _statusFlow.emit(
+                OpenFeatureStatus.Error(
+                    OpenFeatureError.GeneralError(
+                        e.message ?: "Unknown error"
+                    )
+                )
+            )
+        }
 
         this@OpenFeatureAPI.provider = provider.also {
             _statusFlow.emit(OpenFeatureStatus.NotReady)
