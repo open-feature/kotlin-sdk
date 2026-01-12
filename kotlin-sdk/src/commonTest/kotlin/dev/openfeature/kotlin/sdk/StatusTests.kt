@@ -113,11 +113,11 @@ class StatusTests {
         val provider2 = SpyProvider()
 
         OpenFeatureAPI.setProviderAndWait(provider1)
-        assertEquals(0, provider1.shutdownCalls)
+        assertEquals(0, provider1.shutdownCalls.value)
 
         OpenFeatureAPI.setProviderAndWait(provider2)
-        assertEquals(1, provider1.shutdownCalls)
-        assertEquals(0, provider2.shutdownCalls)
+        assertEquals(1, provider1.shutdownCalls.value)
+        assertEquals(0, provider2.shutdownCalls.value)
     }
 
     @Test
@@ -127,16 +127,16 @@ class StatusTests {
         val provider3 = SpyProvider()
 
         OpenFeatureAPI.setProviderAndWait(provider1)
-        assertEquals(0, provider1.shutdownCalls)
+        assertEquals(0, provider1.shutdownCalls.value)
 
         OpenFeatureAPI.setProviderAndWait(provider2)
-        assertEquals(1, provider1.shutdownCalls)
-        assertEquals(0, provider2.shutdownCalls)
+        assertEquals(1, provider1.shutdownCalls.value)
+        assertEquals(0, provider2.shutdownCalls.value)
 
         OpenFeatureAPI.setProviderAndWait(provider3)
-        assertEquals(1, provider1.shutdownCalls)
-        assertEquals(1, provider2.shutdownCalls)
-        assertEquals(0, provider3.shutdownCalls)
+        assertEquals(1, provider1.shutdownCalls.value)
+        assertEquals(1, provider2.shutdownCalls.value)
+        assertEquals(0, provider3.shutdownCalls.value)
     }
 
     @Test
@@ -146,13 +146,13 @@ class StatusTests {
 
         OpenFeatureAPI.setProvider(provider1)
         waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
-        assertEquals(0, provider1.shutdownCalls)
+        assertEquals(0, provider1.shutdownCalls.value)
 
         OpenFeatureAPI.setProvider(provider2)
         waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
         // Use waitAssert for shutdown calls to handle timing differences across platforms
-        waitAssert { assertEquals(1, provider1.shutdownCalls) }
-        assertEquals(0, provider2.shutdownCalls)
+        waitAssert { assertEquals(1, provider1.shutdownCalls.value) }
+        assertEquals(0, provider2.shutdownCalls.value)
     }
 }
 

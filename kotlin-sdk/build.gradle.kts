@@ -60,6 +60,7 @@ kotlin {
             implementation("org.jetbrains.kotlin:kotlin-test:2.2.10")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.7.3")
+            implementation("org.jetbrains.kotlinx:atomicfu:0.25.0")
         }
     }
 }
