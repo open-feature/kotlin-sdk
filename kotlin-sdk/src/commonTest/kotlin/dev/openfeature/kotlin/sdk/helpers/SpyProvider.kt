@@ -6,6 +6,7 @@ import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.Value
+import kotlinx.atomicfu.atomic
 
 class SpyProvider : FeatureProvider {
     override val hooks: List<Hook<*>>
@@ -15,13 +16,14 @@ class SpyProvider : FeatureProvider {
 
     val initializeCalls = mutableListOf<EvaluationContext?>()
     val onContextSetCalls = mutableListOf<Pair<EvaluationContext?, EvaluationContext>>()
+    val shutdownCalls = atomic(0)
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         initializeCalls.add(initialContext)
     }
 
     override fun shutdown() {
-        // no-op
+        shutdownCalls.incrementAndGet()
     }
 
     override suspend fun onContextSet(

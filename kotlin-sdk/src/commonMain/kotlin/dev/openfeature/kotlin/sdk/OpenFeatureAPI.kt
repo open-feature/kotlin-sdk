@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 @Suppress("TooManyFunctions")
 object OpenFeatureAPI {
@@ -25,6 +27,7 @@ object OpenFeatureAPI {
     private var setEvaluationContextJob: Job? = null
     private var observeProviderEventsJob: Job? = null
 
+    private val providerMutex = Mutex()
     private val NOOP_PROVIDER = NoOpProvider()
     private var provider: FeatureProvider = NOOP_PROVIDER
     private var context: EvaluationContext? = null
@@ -91,14 +94,24 @@ object OpenFeatureAPI {
         dispatcher: CoroutineDispatcher,
         initialContext: EvaluationContext? = null
     ) {
-        // TODO should we send shutdown to previous provider:
-        // getProvider().shutdown()
-
-        this@OpenFeatureAPI.provider = provider.also {
-            _statusFlow.emit(OpenFeatureStatus.NotReady)
+        // Atomically swap the old and new provider to prevent race conditions
+        val oldProvider = providerMutex.withLock {
+            val current = this@OpenFeatureAPI.provider
+            this@OpenFeatureAPI.provider = provider
+            providersFlow.value = provider
+            if (initialContext != null) context = initialContext
+            current
         }
-        providersFlow.value = provider
-        if (initialContext != null) context = initialContext
+
+        // Emit NotReady status after swapping provider
+        _statusFlow.emit(OpenFeatureStatus.NotReady)
+
+        // Shutdown the previous provider outside the mutex
+        tryWithStatusEmitErrorHandling {
+            oldProvider.shutdown()
+        }
+
+        // Initialize the new provider
         tryWithStatusEmitErrorHandling {
             listenToProviderEvents(provider, dispatcher)
             getProvider().initialize(context)
