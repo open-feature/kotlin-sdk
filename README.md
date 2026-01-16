@@ -38,7 +38,7 @@
 The following [Kotlin Multiplatform Targets](https://www.jetbrains.com/help/kotlin-multiplatform-dev/multiplatform-dsl-reference.html#targets) are supported:
 
 | Supported | Platform             | Supported versions                                                             |
-|-----------|----------------------|--------------------------------------------------------------------------------|
+| --------- | -------------------- | ------------------------------------------------------------------------------ |
 | ✅         | Android              | SDK 21+                                                                        |
 | ✅         | JVM                  | JDK 11+                                                                        |
 | ✅         | Native               | Linux x64                                                                      |
@@ -110,18 +110,18 @@ coroutineScope.launch(Dispatchers.Default) {
 
 ## 🌟 Features
 
-| Status | Features                        | Description                                                                                                                        |
-|--------|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| ✅      | [Providers](#providers)         | Integrate with a commercial, open source, or in-house feature management tool.                                                     |
-| ✅      | [Targeting](#targeting)         | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
-| ✅      | [Hooks](#hooks)                 | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
-| ✅      | [Tracking](#tracking)           | Associate user actions with feature flag evaluations.                                                                              |
-| ❌      | [Logging](#logging)             | Integrate with popular logging packages.                                                                                           |
-| ❌      | [Domains](#domains)             | Logically bind clients with providers.                                                                                             |
-| ✅      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
-| ✅      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
-| ✅      | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                |
-| ✅      | [Multi-Provider](#multi-provider) | Combine multiple providers with configurable evaluation strategies.                                                               |
+| Status | Features                          | Description                                                                                                                        |
+| ------ | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| ✅      | [Providers](#providers)           | Integrate with a commercial, open source, or in-house feature management tool.                                                     |
+| ✅      | [Targeting](#targeting)           | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
+| ✅      | [Hooks](#hooks)                   | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
+| ✅      | [Tracking](#tracking)             | Associate user actions with feature flag evaluations.                                                                              |
+| ❌      | [Logging](#logging)               | Integrate with popular logging packages.                                                                                           |
+| ❌      | [Domains](#domains)               | Logically bind clients with providers.                                                                                             |
+| ✅      | [Eventing](#eventing)             | React to state changes in the provider or flag management system.                                                                  |
+| ✅      | [Shutdown](#shutdown)             | Gracefully clean up a provider during application shutdown.                                                                        |
+| ✅      | [Extending](#extending)           | Extend OpenFeature with custom providers and hooks.                                                                                |
+| ✅      | [Multi-Provider](#multi-provider) | Combine multiple providers with configurable evaluation strategies.                                                                |
 
 <sub>Implemented: ✅ | In-progress: ⚠️ | Not implemented yet: ❌</sub>
 
