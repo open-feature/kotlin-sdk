@@ -38,7 +38,7 @@
 The following [Kotlin Multiplatform Targets](https://www.jetbrains.com/help/kotlin-multiplatform-dev/multiplatform-dsl-reference.html#targets) are supported:
 
 | Supported | Platform             | Supported versions                                                             |
-|-----------|----------------------|--------------------------------------------------------------------------------|
+| --------- | -------------------- | ------------------------------------------------------------------------------ |
 | ✅         | Android              | SDK 21+                                                                        |
 | ✅         | JVM                  | JDK 11+                                                                        |
 | ✅         | Native               | Linux x64                                                                      |
@@ -110,17 +110,18 @@ coroutineScope.launch(Dispatchers.Default) {
 
 ## 🌟 Features
 
-| Status | Features                        | Description                                                                                                                        |
-|--------|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| ✅      | [Providers](#providers)         | Integrate with a commercial, open source, or in-house feature management tool.                                                     |
-| ✅      | [Targeting](#targeting)         | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
-| ✅      | [Hooks](#hooks)                 | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
-| ✅      | [Tracking](#tracking)           | Associate user actions with feature flag evaluations.                                                                              |
-| ❌      | [Logging](#logging)             | Integrate with popular logging packages.                                                                                           |
-| ❌      | [Named clients](#named-clients) | Utilize multiple providers in a single application.                                                                                |
-| ✅      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
-| ✅      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
-| ⚠️     | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                |
+| Status | Features                          | Description                                                                                                                        |
+| ------ | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| ✅      | [Providers](#providers)           | Integrate with a commercial, open source, or in-house feature management tool.                                                     |
+| ✅      | [Targeting](#targeting)           | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
+| ✅      | [Hooks](#hooks)                   | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
+| ✅      | [Tracking](#tracking)             | Associate user actions with feature flag evaluations.                                                                              |
+| ❌      | [Logging](#logging)               | Integrate with popular logging packages.                                                                                           |
+| ❌      | [Domains](#domains)               | Logically bind clients with providers.                                                                                             |
+| ✅      | [Eventing](#eventing)             | React to state changes in the provider or flag management system.                                                                  |
+| ✅      | [Shutdown](#shutdown)             | Gracefully clean up a provider during application shutdown.                                                                        |
+| ✅      | [Extending](#extending)           | Extend OpenFeature with custom providers and hooks.                                                                                |
+| ✅      | [Multi-Provider](#multi-provider) | Combine multiple providers with configurable evaluation strategies.                                                                |
 
 <sub>Implemented: ✅ | In-progress: ⚠️ | Not implemented yet: ❌</sub>
 
@@ -216,9 +217,10 @@ Logging customization is not yet available in the Kotlin SDK.
 
 It is possible to write and inject logging `Hook`s to log events at different stages of the flag evaluation life-cycle.
 
-### Named clients
+### Domains
 
-Support for named clients is not yet available in the Kotlin SDK.
+Domains allow you to logically bind clients with providers.
+Support for domains is not yet available in the Kotlin SDK.
 
 ### Eventing
 
@@ -245,6 +247,16 @@ viewModelScope.launch {
 ```
 
 <!-- (It's only possible to observe events from the global `OpenFeatureAPI`, until multiple providers are supported) -->
+
+### Multi-Provider
+
+The Multi-Provider allows you to use multiple underlying providers as sources of flag data for the OpenFeature Kotlin SDK.
+When a flag is being evaluated, the Multi-Provider will use each underlying provider in order to determine the final result.
+Different evaluation strategies can be defined to control which providers get evaluated and which result is used.
+
+The Multi-Provider is a useful tool for performing migrations between flag providers, or combining multiple providers into a single feature flagging interface.
+
+See the [Multi-Provider documentation](docs/multiprovider/README.md) for more details.
 
 ### Shutdown
 
