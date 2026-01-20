@@ -324,6 +324,51 @@ client.getBooleanValue("my-flag", false, context)
 - Implementing custom `Logger` that filters sensitive fields
 - Using separate loggers for different environments
 
+#### Filtering Sensitive Attributes
+
+When context logging is enabled, the `LoggingHook` automatically filters common PII attributes. You can customize this behavior:
+
+**Safe mode (allow-list - most secure):**
+```kotlin
+val hook = LoggingHook<Any>(
+    logger = logger,
+    logEvaluationContext = true,
+    includeAttributes = setOf("region", "plan", "environment")
+)
+// Logs ONLY: region, plan, environment (everything else filtered)
+```
+
+**Default mode (auto-filters common PII):**
+```kotlin
+val hook = LoggingHook<Any>(
+    logger = logger,
+    logEvaluationContext = true
+)
+// Automatically excludes: email, phone, ssn, creditCard, password, address, etc.
+// See LoggingHook.DEFAULT_SENSITIVE_KEYS for complete list
+```
+
+**Custom deny-list:**
+```kotlin
+val hook = LoggingHook<Any>(
+    logger = logger,
+    logEvaluationContext = true,
+    excludeAttributes = setOf("email", "internalNotes")
+)
+// Excludes only: email, internalNotes (logs everything else)
+```
+
+**Disable filtering (log everything):**
+```kotlin
+val hook = LoggingHook<Any>(
+    logger = logger,
+    logEvaluationContext = true,
+    excludeAttributes = emptySet()  // Explicitly bypass defaults
+)
+// ⚠️ Logs ALL attributes - use with extreme caution!
+```
+
+> **Note**: The targeting key is always logged (not subject to filtering). If the targeting key itself contains PII, avoid enabling context logging.
 #### Custom Logger Implementation
 
 You can implement a custom `Logger` for any logging backend:
