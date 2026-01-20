@@ -22,10 +22,14 @@ import dev.openfeature.kotlin.sdk.logging.NoOpLogger
  *
  * @param logger The logger to use. Defaults to NoOpLogger.
  * @param logEvaluationContext If true, includes evaluation context in logs (default: false for privacy)
+ * @param includeAttributes If specified, only these attributes are logged. Takes precedence over excludeAttributes.
+ * @param excludeAttributes Attributes to exclude from logging. Defaults to common PII fields.
  */
 class LoggingHook<T>(
     private val logger: Logger = NoOpLogger(),
-    private val logEvaluationContext: Boolean = false
+    private val logEvaluationContext: Boolean = false,
+    private val includeAttributes: Set<String>? = null,
+    private val excludeAttributes: Set<String> = DEFAULT_SENSITIVE_KEYS
 ) : Hook<T> {
 
     companion object {
@@ -34,6 +38,30 @@ class LoggingHook<T>(
          * Pass this key in hookHints with a Boolean value to override the hook's default behavior.
          */
         const val HINT_LOG_EVALUATION_CONTEXT = "logEvaluationContext"
+
+        /**
+         * Common attribute names that likely contain PII.
+         * These are excluded by default when logEvaluationContext is true.
+         */
+        val DEFAULT_SENSITIVE_KEYS = setOf(
+            "email",
+            "phone",
+            "phoneNumber",
+            "ssn",
+            "socialSecurityNumber",
+            "creditCard",
+            "creditCardNumber",
+            "password",
+            "address",
+            "streetAddress",
+            "zipCode",
+            "postalCode",
+            "ipAddress",
+            "firstName",
+            "lastName",
+            "fullName",
+            "dateOfBirth"
+        )
     }
 
     override fun before(ctx: HookContext<T>, hints: Map<String, Any>) {
@@ -114,11 +142,20 @@ class LoggingHook<T>(
         logger.debug(message)
     }
 
+    private fun filterAttributes(attributes: Map<String, Value>): Map<String, Value> {
+        return when {
+            // If include list specified, only include those attributes
+            includeAttributes != null -> attributes.filterKeys { it in includeAttributes }
+            // Otherwise, exclude sensitive keys
+            else -> attributes.filterKeys { it !in excludeAttributes }
+        }
+    }
+
     private fun formatContext(context: EvaluationContext): String {
         return buildString {
             append("context={")
             append("targetingKey='${context.getTargetingKey()}'")
-            val attributes = context.asMap()
+            val attributes = filterAttributes(context.asMap())
             if (attributes.isNotEmpty()) {
                 append(", attributes={")
                 append(attributes.entries.joinToString(", ") { "${it.key}=${formatValue(it.value)}" })
