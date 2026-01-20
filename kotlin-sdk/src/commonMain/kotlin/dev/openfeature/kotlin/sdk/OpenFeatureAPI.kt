@@ -45,6 +45,24 @@ object OpenFeatureAPI {
         private set
 
     /**
+     * The logger used by the SDK. Can be set to customize logging behavior.
+     * Defaults to NoOpLogger which discards all log messages.
+     * Access with OpenFeatureAPI.logger, set with OpenFeatureAPI.setLogger().
+     */
+    var logger: dev.openfeature.kotlin.sdk.logging.Logger = dev.openfeature.kotlin.sdk.logging.NoOpLogger()
+        private set
+
+    /**
+     * Set the logger for the SDK.
+     * This logger will be used for internal SDK logging and can be accessed by custom hooks.
+     *
+     * @param logger the logger to set
+     */
+    fun setLogger(logger: dev.openfeature.kotlin.sdk.logging.Logger) {
+        this.logger = logger
+    }
+
+    /**
      * Set the [FeatureProvider] for the SDK. This method will return immediately and initialize the provider in a coroutine scope
      * When the provider is successfully initialized it will set the status to Ready.
      * If the provider fails to initialize it will set the status to Error.
