@@ -437,7 +437,7 @@ class LoggingHookTests {
     }
 
     @Test
-    fun `targeting key is always logged regardless of filtering`() {
+    fun `targeting key is logged by default`() {
         val testLogger = TestLogger()
         val hook = LoggingHook<Boolean>(
             logger = testLogger,
@@ -455,5 +455,74 @@ class LoggingHookTests {
         val message = testLogger.debugMessages[0].message
         assertTrue(message.contains("targetingKey='user-123'"))
         assertTrue(message.contains("region=us-east"))
+    }
+
+    @Test
+    fun `targeting key can be excluded with logTargetingKey false`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook<Boolean>(
+            logger = testLogger,
+            logEvaluationContext = true,
+            logTargetingKey = false,
+            includeAttributes = setOf("region")
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "user@example.com",
+            attributes = mapOf("region" to Value.String("us-east"))
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+
+        hook.before(context, emptyMap())
+
+        val message = testLogger.debugMessages[0].message
+        assertTrue(!message.contains("targetingKey"))
+        assertTrue(!message.contains("user@example.com"))
+        assertTrue(message.contains("region=us-east"))
+    }
+
+    @Test
+    fun `logTargetingKey false works in after stage`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook<Boolean>(
+            logger = testLogger,
+            logEvaluationContext = true,
+            logTargetingKey = false
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "sensitive-user-id",
+            attributes = mapOf("region" to Value.String("eu-west"))
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+        val details = FlagEvaluationDetails(flagKey = "my-flag", value = true)
+
+        hook.after(context, details, emptyMap())
+
+        val message = testLogger.debugMessages[0].message
+        assertTrue(!message.contains("targetingKey"))
+        assertTrue(!message.contains("sensitive-user-id"))
+        assertTrue(message.contains("context="))
+    }
+
+    @Test
+    fun `logTargetingKey false works in error stage`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook<Boolean>(
+            logger = testLogger,
+            logEvaluationContext = true,
+            logTargetingKey = false
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "sensitive-user-id",
+            attributes = mapOf("region" to Value.String("ap-south"))
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+        val exception = RuntimeException("Test error")
+
+        hook.error(context, exception, emptyMap())
+
+        val message = testLogger.errorMessages[0].message
+        assertTrue(!message.contains("targetingKey"))
+        assertTrue(!message.contains("sensitive-user-id"))
+        assertTrue(message.contains("context="))
     }
 }

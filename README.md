@@ -395,7 +395,17 @@ val hook = LoggingHook<Any>(
 // ⚠️ Logs ALL attributes - use with extreme caution!
 ```
 
-> **Note**: The targeting key is always logged (not subject to filtering). If the targeting key itself contains PII, avoid enabling context logging.
+**Targeting key control:**
+```kotlin
+val hook = LoggingHook<Any>(
+    logger = logger,
+    logEvaluationContext = true,
+    logTargetingKey = false  // Exclude targeting key from logs (default: true)
+)
+// Targeting key is NOT logged - use when targeting keys contain PII (user IDs, emails, etc.)
+```
+
+> **Note**: By default, the targeting key is logged when context logging is enabled. Set `logTargetingKey = false` if your targeting keys contain PII.
 
 #### Custom Logger Implementation
 
