@@ -1,41 +1,58 @@
 package dev.openfeature.kotlin.sdk.logging
 
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
+
 /**
  * A test logger that captures all log messages for verification in tests.
  * This allows tests to verify that the correct messages are logged at the correct levels.
+ *
+ * This implementation is thread-safe to prevent ConcurrentModificationException
+ * when hooks are invoked from multiple coroutines during testing.
  */
 class TestLogger : Logger {
-    val debugMessages = mutableListOf<LogEntry>()
-    val infoMessages = mutableListOf<LogEntry>()
-    val warnMessages = mutableListOf<LogEntry>()
-    val errorMessages = mutableListOf<LogEntry>()
+    private val lock = SynchronizedObject()
+
+    private val _debugMessages = mutableListOf<LogEntry>()
+    private val _infoMessages = mutableListOf<LogEntry>()
+    private val _warnMessages = mutableListOf<LogEntry>()
+    private val _errorMessages = mutableListOf<LogEntry>()
+
+    val debugMessages: List<LogEntry> get() = synchronized(lock) { _debugMessages.toList() }
+    val infoMessages: List<LogEntry> get() = synchronized(lock) { _infoMessages.toList() }
+    val warnMessages: List<LogEntry> get() = synchronized(lock) { _warnMessages.toList() }
+    val errorMessages: List<LogEntry> get() = synchronized(lock) { _errorMessages.toList() }
 
     data class LogEntry(val message: String, val throwable: Throwable?)
 
     override fun debug(message: String, throwable: Throwable?) {
-        debugMessages.add(LogEntry(message, throwable))
+        synchronized(lock) { _debugMessages.add(LogEntry(message, throwable)) }
     }
 
     override fun info(message: String, throwable: Throwable?) {
-        infoMessages.add(LogEntry(message, throwable))
+        synchronized(lock) { _infoMessages.add(LogEntry(message, throwable)) }
     }
 
     override fun warn(message: String, throwable: Throwable?) {
-        warnMessages.add(LogEntry(message, throwable))
+        synchronized(lock) { _warnMessages.add(LogEntry(message, throwable)) }
     }
 
     override fun error(message: String, throwable: Throwable?) {
-        errorMessages.add(LogEntry(message, throwable))
+        synchronized(lock) { _errorMessages.add(LogEntry(message, throwable)) }
     }
 
     fun clear() {
-        debugMessages.clear()
-        infoMessages.clear()
-        warnMessages.clear()
-        errorMessages.clear()
+        synchronized(lock) {
+            _debugMessages.clear()
+            _infoMessages.clear()
+            _warnMessages.clear()
+            _errorMessages.clear()
+        }
     }
 
     fun getAllMessages(): List<LogEntry> {
-        return debugMessages + infoMessages + warnMessages + errorMessages
+        return synchronized(lock) {
+            _debugMessages + _infoMessages + _warnMessages + _errorMessages
+        }
     }
 }
