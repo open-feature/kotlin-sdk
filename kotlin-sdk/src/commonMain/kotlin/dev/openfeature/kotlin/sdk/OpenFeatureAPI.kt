@@ -3,6 +3,8 @@ package dev.openfeature.kotlin.sdk
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import dev.openfeature.kotlin.sdk.logging.Logger
+import dev.openfeature.kotlin.sdk.logging.NoOpLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -49,7 +51,7 @@ object OpenFeatureAPI {
      * Defaults to NoOpLogger which discards all log messages.
      * Access with OpenFeatureAPI.logger, set with OpenFeatureAPI.setLogger().
      */
-    var logger: dev.openfeature.kotlin.sdk.logging.Logger = dev.openfeature.kotlin.sdk.logging.NoOpLogger()
+    var logger: Logger = NoOpLogger()
         private set
 
     /**
@@ -58,7 +60,7 @@ object OpenFeatureAPI {
      *
      * @param logger the logger to set
      */
-    fun setLogger(logger: dev.openfeature.kotlin.sdk.logging.Logger) {
+    fun setLogger(logger: Logger) {
         this.logger = logger
     }
 

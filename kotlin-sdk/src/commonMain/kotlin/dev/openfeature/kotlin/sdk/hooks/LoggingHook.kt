@@ -1,6 +1,9 @@
+@file:OptIn(ExperimentalTime::class)
+
 package dev.openfeature.kotlin.sdk.hooks
 
 import dev.openfeature.kotlin.sdk.EvaluationContext
+import kotlin.time.ExperimentalTime
 import dev.openfeature.kotlin.sdk.FlagEvaluationDetails
 import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.HookContext
@@ -26,7 +29,11 @@ class LoggingHook<T>(
 ) : Hook<T> {
 
     companion object {
-        private const val HINT_LOG_EVALUATION_CONTEXT = "logEvaluationContext"
+        /**
+         * Hook hint key to enable/disable context logging for a specific evaluation.
+         * Pass this key in hookHints with a Boolean value to override the hook's default behavior.
+         */
+        const val HINT_LOG_EVALUATION_CONTEXT = "logEvaluationContext"
     }
 
     override fun before(ctx: HookContext<T>, hints: Map<String, Any>) {
@@ -127,10 +134,10 @@ class LoggingHook<T>(
             is Value.Integer -> value.asInteger()?.toString() ?: "null"
             is Value.Double -> value.asDouble()?.toString() ?: "null"
             is Value.Boolean -> value.asBoolean()?.toString() ?: "null"
+            is Value.Instant -> value.asInstant()?.toString() ?: "null"
             is Value.List -> "[${value.asList()?.joinToString(", ") { formatValue(it) } ?: ""}]"
             is Value.Structure -> "{${value.asStructure()?.entries?.joinToString(", ") { "${it.key}=${formatValue(it.value)}" } ?: ""}}"
             is Value.Null -> "null"
-            else -> value.toString()
         }
     }
 }
