@@ -22,12 +22,15 @@ import kotlin.time.ExperimentalTime
  *
  * @param logger The logger to use. Defaults to NoOpLogger.
  * @param logEvaluationContext If true, includes evaluation context in logs (default: false for privacy)
+ * @param logTargetingKey If true, includes the targeting key when logging context (default: true).
+ *                        Set to false if targeting keys contain PII such as user IDs or emails.
  * @param includeAttributes If specified, only these attributes are logged. Takes precedence over excludeAttributes.
  * @param excludeAttributes Attributes to exclude from logging. Defaults to common PII fields.
  */
 class LoggingHook<T>(
     private val logger: Logger = NoOpLogger(),
     private val logEvaluationContext: Boolean = false,
+    private val logTargetingKey: Boolean = true,
     private val includeAttributes: Set<String>? = null,
     private val excludeAttributes: Set<String> = DEFAULT_SENSITIVE_KEYS
 ) : Hook<T> {
@@ -154,10 +157,15 @@ class LoggingHook<T>(
     private fun formatContext(context: EvaluationContext): String {
         return buildString {
             append("context={")
-            append("targetingKey='${context.getTargetingKey()}'")
+            var hasContent = false
+            if (logTargetingKey) {
+                append("targetingKey='${context.getTargetingKey()}'")
+                hasContent = true
+            }
             val attributes = filterAttributes(context.asMap())
             if (attributes.isNotEmpty()) {
-                append(", attributes={")
+                if (hasContent) append(", ")
+                append("attributes={")
                 append(attributes.entries.joinToString(", ") { "${it.key}=${formatValue(it.value)}" })
                 append("}")
             }
