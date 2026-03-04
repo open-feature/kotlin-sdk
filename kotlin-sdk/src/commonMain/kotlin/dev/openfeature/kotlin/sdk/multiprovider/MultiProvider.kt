@@ -355,8 +355,30 @@ class MultiProvider(
         context: EvaluationContext?,
         details: TrackingEventDetails?
     ) {
-        childFeatureProviders.forEach {
-            it.track(trackingEventName, context, details)
+        val trackingErrors = mutableListOf<Pair<String, Throwable>>()
+        childFeatureProviders.forEach { provider ->
+            try {
+                provider.track(trackingEventName, context, details)
+            } catch (t: Throwable) {
+                trackingErrors += provider.name to t
+            }
+        }
+
+        if (trackingErrors.isNotEmpty()) {
+            val message = buildString {
+                append("One or more providers failed during track call: ")
+                append(
+                    trackingErrors.joinToString(separator = "\n") { (name, err) ->
+                        "$name: ${err.message}"
+                    }
+                )
+            }
+
+            val aggregate = OpenFeatureError.GeneralError(message)
+            trackingErrors.forEach { (name, err) ->
+                aggregate.addSuppressed(RuntimeException("Provider '$name' tracking failed", err))
+            }
+            throw aggregate
         }
     }
 

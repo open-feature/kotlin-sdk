@@ -394,6 +394,28 @@ class MultiProviderTests {
         assertEquals(1, fakeEventProvider1.trackingCalls)
         assertEquals(1, fakeEventProvider2.trackingCalls)
     }
+
+    @Test
+    fun trackAggregatesErrorsAndReportsProviderNames() {
+        val ok = FakeEventProvider(name = "ok")
+        val bad1 = FakeEventProvider(name = "bad1", trackThrowable = IllegalStateException("track-fail1"))
+        val bad2 = FakeEventProvider(name = null, trackThrowable = RuntimeException("track-fail2"))
+
+        val multi = MultiProvider(listOf(ok, bad1, bad2))
+
+        val error = assertFailsWith<OpenFeatureError.GeneralError> {
+            multi.track("exposure", null, null)
+        }
+
+        val msg = error.message
+        assertTrue(msg.contains("bad1: track-fail1"))
+        assertTrue(msg.contains("<unnamed>: track-fail2"))
+
+        assertEquals(2, error.suppressedExceptions.size)
+        val suppressedMessages = error.suppressedExceptions.map { it.message ?: "" }
+        assertTrue(suppressedMessages.any { it.contains("Provider 'bad1' tracking failed") })
+        assertTrue(suppressedMessages.any { it.contains("Provider '<unnamed>' tracking failed") })
+    }
 }
 
 // Helpers
@@ -401,7 +423,8 @@ class MultiProviderTests {
 private class FakeEventProvider(
     private val name: String?,
     private val eventsToEmitOnInit: List<OpenFeatureProviderEvents> = emptyList(),
-    private val shutdownThrowable: Throwable? = null
+    private val shutdownThrowable: Throwable? = null,
+    private val trackThrowable: Throwable? = null
 ) : FeatureProvider {
     override val hooks: List<Hook<*>> = emptyList()
     override val metadata: ProviderMetadata = object : ProviderMetadata {
@@ -482,6 +505,7 @@ private class FakeEventProvider(
         details: TrackingEventDetails?
     ) {
         trackingCalls++
+        trackThrowable?.let { throw it }
     }
 }
 
