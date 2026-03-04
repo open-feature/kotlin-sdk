@@ -6,6 +6,7 @@ import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
@@ -347,6 +348,16 @@ class MultiProvider(
             context,
             FeatureProvider::getObjectEvaluation
         )
+    }
+
+    override fun track(
+        trackingEventName: String,
+        context: EvaluationContext?,
+        details: TrackingEventDetails?
+    ) {
+        childFeatureProviders.forEach {
+            it.track(trackingEventName, context, details)
+        }
     }
 
     companion object {
