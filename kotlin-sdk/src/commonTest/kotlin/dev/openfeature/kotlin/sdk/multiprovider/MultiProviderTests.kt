@@ -7,6 +7,7 @@ import dev.openfeature.kotlin.sdk.ImmutableContext
 import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
@@ -380,6 +381,19 @@ class MultiProviderTests {
             multi.initialize(null)
         }
     }
+
+    @Test
+    fun trackCallIsTriggeredInChildProviders() {
+        val fakeEventProvider1 = FakeEventProvider(name = "1")
+        val fakeEventProvider2 = FakeEventProvider(name = "2")
+
+        // When triggering tracking calls
+        val multi = MultiProvider(listOf(fakeEventProvider1, fakeEventProvider2))
+        multi.track("exposure", null, null)
+
+        assertEquals(1, fakeEventProvider1.trackingCalls)
+        assertEquals(1, fakeEventProvider2.trackingCalls)
+    }
 }
 
 // Helpers
@@ -401,6 +415,8 @@ private class FakeEventProvider(
     var shutdownCalls: Int = 0
         private set
     var onContextSetCalls: Int = 0
+        private set
+    var trackingCalls: Int = 0
         private set
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
@@ -459,6 +475,14 @@ private class FakeEventProvider(
     }
 
     override fun observe(): Flow<OpenFeatureProviderEvents> = events
+
+    override fun track(
+        trackingEventName: String,
+        context: EvaluationContext?,
+        details: TrackingEventDetails?
+    ) {
+        trackingCalls++
+    }
 }
 
 private class RecordingStrategy(
