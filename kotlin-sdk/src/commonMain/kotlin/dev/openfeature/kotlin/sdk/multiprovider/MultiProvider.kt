@@ -6,6 +6,7 @@ import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
@@ -347,6 +348,38 @@ class MultiProvider(
             context,
             FeatureProvider::getObjectEvaluation
         )
+    }
+
+    override fun track(
+        trackingEventName: String,
+        context: EvaluationContext?,
+        details: TrackingEventDetails?
+    ) {
+        val trackingErrors = mutableListOf<Pair<String, Throwable>>()
+        childFeatureProviders.forEach { provider ->
+            try {
+                provider.track(trackingEventName, context, details)
+            } catch (t: Throwable) {
+                trackingErrors += provider.name to t
+            }
+        }
+
+        if (trackingErrors.isNotEmpty()) {
+            val message = buildString {
+                append("One or more providers failed during track call: ")
+                append(
+                    trackingErrors.joinToString(separator = "\n") { (name, err) ->
+                        "$name: ${err.message}"
+                    }
+                )
+            }
+
+            val aggregate = OpenFeatureError.GeneralError(message)
+            trackingErrors.forEach { (name, err) ->
+                aggregate.addSuppressed(RuntimeException("Provider '$name' tracking failed", err))
+            }
+            throw aggregate
+        }
     }
 
     companion object {

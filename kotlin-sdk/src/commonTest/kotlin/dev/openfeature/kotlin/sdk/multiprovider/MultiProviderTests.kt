@@ -7,6 +7,7 @@ import dev.openfeature.kotlin.sdk.ImmutableContext
 import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
@@ -380,6 +381,41 @@ class MultiProviderTests {
             multi.initialize(null)
         }
     }
+
+    @Test
+    fun trackCallIsTriggeredInChildProviders() {
+        val fakeEventProvider1 = FakeEventProvider(name = "1")
+        val fakeEventProvider2 = FakeEventProvider(name = "2")
+
+        // When triggering tracking calls
+        val multi = MultiProvider(listOf(fakeEventProvider1, fakeEventProvider2))
+        multi.track("exposure", null, null)
+
+        assertEquals(1, fakeEventProvider1.trackingCalls)
+        assertEquals(1, fakeEventProvider2.trackingCalls)
+    }
+
+    @Test
+    fun trackAggregatesErrorsAndReportsProviderNames() {
+        val ok = FakeEventProvider(name = "ok")
+        val bad1 = FakeEventProvider(name = "bad1", trackThrowable = IllegalStateException("track-fail1"))
+        val bad2 = FakeEventProvider(name = null, trackThrowable = RuntimeException("track-fail2"))
+
+        val multi = MultiProvider(listOf(ok, bad1, bad2))
+
+        val error = assertFailsWith<OpenFeatureError.GeneralError> {
+            multi.track("exposure", null, null)
+        }
+
+        val msg = error.message
+        assertTrue(msg.contains("bad1: track-fail1"))
+        assertTrue(msg.contains("<unnamed>: track-fail2"))
+
+        assertEquals(2, error.suppressedExceptions.size)
+        val suppressedMessages = error.suppressedExceptions.map { it.message ?: "" }
+        assertTrue(suppressedMessages.any { it.contains("Provider 'bad1' tracking failed") })
+        assertTrue(suppressedMessages.any { it.contains("Provider '<unnamed>' tracking failed") })
+    }
 }
 
 // Helpers
@@ -387,7 +423,8 @@ class MultiProviderTests {
 private class FakeEventProvider(
     private val name: String?,
     private val eventsToEmitOnInit: List<OpenFeatureProviderEvents> = emptyList(),
-    private val shutdownThrowable: Throwable? = null
+    private val shutdownThrowable: Throwable? = null,
+    private val trackThrowable: Throwable? = null
 ) : FeatureProvider {
     override val hooks: List<Hook<*>> = emptyList()
     override val metadata: ProviderMetadata = object : ProviderMetadata {
@@ -401,6 +438,8 @@ private class FakeEventProvider(
     var shutdownCalls: Int = 0
         private set
     var onContextSetCalls: Int = 0
+        private set
+    var trackingCalls: Int = 0
         private set
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
@@ -459,6 +498,15 @@ private class FakeEventProvider(
     }
 
     override fun observe(): Flow<OpenFeatureProviderEvents> = events
+
+    override fun track(
+        trackingEventName: String,
+        context: EvaluationContext?,
+        details: TrackingEventDetails?
+    ) {
+        trackingCalls++
+        trackThrowable?.let { throw it }
+    }
 }
 
 private class RecordingStrategy(
