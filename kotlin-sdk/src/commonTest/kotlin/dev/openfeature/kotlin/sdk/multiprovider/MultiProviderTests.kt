@@ -383,38 +383,88 @@ class MultiProviderTests {
     }
 
     @Test
-    fun trackCallIsTriggeredInChildProviders() {
-        val fakeEventProvider1 = FakeEventProvider(name = "1")
-        val fakeEventProvider2 = FakeEventProvider(name = "2")
+    fun trackCallIsTriggeredInReadyChildProviders() = runTest {
+        val fakeEventProvider1 = FakeEventProvider(
+            name = "1",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady())
+        )
+        val fakeEventProvider2 = FakeEventProvider(
+            name = "2",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady())
+        )
 
-        // When triggering tracking calls
         val multi = MultiProvider(listOf(fakeEventProvider1, fakeEventProvider2))
+        val initJob = launch { multi.initialize(null) }
+        advanceUntilIdle()
+
         multi.track("exposure", null, null)
 
         assertEquals(1, fakeEventProvider1.trackingCalls)
         assertEquals(1, fakeEventProvider2.trackingCalls)
+        initJob.cancelAndJoin()
     }
 
     @Test
-    fun trackAggregatesErrorsAndReportsProviderNames() {
-        val ok = FakeEventProvider(name = "ok")
-        val bad1 = FakeEventProvider(name = "bad1", trackThrowable = IllegalStateException("track-fail1"))
-        val bad2 = FakeEventProvider(name = null, trackThrowable = RuntimeException("track-fail2"))
+    fun trackSkipsProvidersThatAreNotReadyOrFatal() = runTest {
+        val ready = FakeEventProvider(
+            name = "ready",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady())
+        )
+        val notReady = FakeEventProvider(
+            name = "notReady",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderNotReady)
+        )
+        val fatal = FakeEventProvider(
+            name = "fatal",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderError(
+                    OpenFeatureProviderEvents.EventDetails(
+                        message = "fatal",
+                        errorCode = dev.openfeature.kotlin.sdk.exceptions.ErrorCode.PROVIDER_FATAL
+                    )
+                )
+            )
+        )
+
+        val multi = MultiProvider(listOf(ready, notReady, fatal))
+        val initJob = launch { multi.initialize(null) }
+        advanceUntilIdle()
+
+        multi.track("exposure", null, null)
+
+        assertEquals(1, ready.trackingCalls)
+        assertEquals(0, notReady.trackingCalls)
+        assertEquals(0, fatal.trackingCalls)
+        initJob.cancelAndJoin()
+    }
+
+    @Test
+    fun trackContinuesWhenChildProviderThrows() = runTest {
+        val ok = FakeEventProvider(
+            name = "ok",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady())
+        )
+        val bad1 = FakeEventProvider(
+            name = "bad1",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady()),
+            trackThrowable = IllegalStateException("track-fail1")
+        )
+        val bad2 = FakeEventProvider(
+            name = null,
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady()),
+            trackThrowable = RuntimeException("track-fail2")
+        )
 
         val multi = MultiProvider(listOf(ok, bad1, bad2))
+        val initJob = launch { multi.initialize(null) }
+        advanceUntilIdle()
 
-        val error = assertFailsWith<OpenFeatureError.GeneralError> {
-            multi.track("exposure", null, null)
-        }
+        multi.track("exposure", null, null)
 
-        val msg = error.message
-        assertTrue(msg.contains("bad1: track-fail1"))
-        assertTrue(msg.contains("<unnamed>: track-fail2"))
-
-        assertEquals(2, error.suppressedExceptions.size)
-        val suppressedMessages = error.suppressedExceptions.map { it.message ?: "" }
-        assertTrue(suppressedMessages.any { it.contains("Provider 'bad1' tracking failed") })
-        assertTrue(suppressedMessages.any { it.contains("Provider '<unnamed>' tracking failed") })
+        assertEquals(1, ok.trackingCalls)
+        assertEquals(1, bad1.trackingCalls)
+        assertEquals(1, bad2.trackingCalls)
+        initJob.cancelAndJoin()
     }
 }
 
