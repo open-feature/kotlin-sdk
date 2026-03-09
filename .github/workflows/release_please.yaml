@@ -33,16 +33,6 @@ jobs:
     if: ${{ needs.release-please.outputs.release_created }}
     steps:
       # The logic below handles the github release:
-      - name: Cache Gradle and wrapper
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
       - uses: actions/checkout@v5
 
       - name: Configure GPG Key
@@ -68,8 +58,8 @@ jobs:
           java-version: 17
           distribution: 'zulu'
 
-      - name: Grant Permission for Gradlew to Execute
-        run: chmod +x gradlew
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Publish to Sonatype
         env:

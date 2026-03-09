@@ -18,6 +18,9 @@ jobs:
       # For browser tests
       - uses: browser-actions/setup-chrome@v2
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
       - name: Run checks
         run: ./gradlew check --no-daemon --stacktrace
 
@@ -26,6 +29,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Run checks
         run: ./gradlew check --no-daemon --stacktrace
