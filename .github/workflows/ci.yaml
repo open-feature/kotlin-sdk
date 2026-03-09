@@ -20,3 +20,12 @@ jobs:
 
       - name: Run checks
         run: ./gradlew check --no-daemon --stacktrace
+
+  iOS-Tests:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Run checks
+        run: ./gradlew check --no-daemon --stacktrace
