@@ -25,6 +25,9 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
       - name: Run the tests script
         run: |
           chmod +x ./run-tests.sh
