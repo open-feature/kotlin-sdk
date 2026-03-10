@@ -93,11 +93,15 @@ jobs:
       - name: Grant Permission for Gradlew to Execute
         run: chmod +x gradlew
 
-      - name: Publish SNAPSHOT to Sonatype
-        env:
-          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
-          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
-        run: ./gradlew publishToSonatype --no-daemon --stacktrace
+      # TODO: replace publishToMavenLocal with publishToSonatype once verified
+      - name: Publish SNAPSHOT to local Maven repository
+        run: ./gradlew publishToMavenLocal --no-daemon --stacktrace
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-artifacts
+          path: ~/.m2/repository/dev/openfeature/
 
       - name: Clean up signing secrets
         if: always()
