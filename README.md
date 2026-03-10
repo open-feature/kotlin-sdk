@@ -367,6 +367,11 @@ Implement your own hook by conforming to the `Hook` interface exported by the Op
 - Join us on [Slack](https://cloud-native.slack.com/archives/C0344AANLA1)
 - For more, check out our [community page](https://openfeature.dev/community/)
 
+## 📦 SNAPSHOT versions
+
+SNAPSHOT versions are published to Maven Central's snapshot repository from the upcoming release branch.
+If you need a SNAPSHOT version published, please reach out to the [maintainers](https://github.com/open-feature/kotlin-sdk/graphs/contributors) to trigger the workflow.
+
 ## 🤝 Contributing
 
 Interested in contributing? Great, we'd love your help! To get started, take a look at the [CONTRIBUTING](CONTRIBUTING.md) guide.
