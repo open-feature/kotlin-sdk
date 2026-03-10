@@ -1,6 +1,10 @@
 name: Publish SNAPSHOT
 
 on:
+  # TODO: remove push trigger before merging
+  push:
+    branches:
+      - nicklasl/snapshot-workflow
   workflow_dispatch:
     inputs:
       version:
