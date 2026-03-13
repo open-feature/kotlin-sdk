@@ -62,6 +62,14 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.7.3")
             implementation("org.jetbrains.kotlinx:atomicfu:0.29.0")
         }
+        jvmMain.dependencies {
+            // Optional: SLF4J adapter for logging (users provide their own SLF4J implementation)
+            compileOnly("org.slf4j:slf4j-api:2.0.9")
+        }
+        androidMain.dependencies {
+            // Optional: Timber adapter for logging (users provide their own Timber dependency)
+            compileOnly("com.jakewharton.timber:timber:5.0.1")
+        }
     }
 }
 
