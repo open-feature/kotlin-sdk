@@ -65,9 +65,14 @@ class MultiProvider(
      * @property name The unique name of the [FeatureProvider] according to this MultiProvider
      */
     class ChildFeatureProvider(
-        implementation: FeatureProvider,
+        val provider: FeatureProvider,
         val name: String // Maybe there's a better variable name for this?
-    ) : FeatureProvider by implementation
+    ) : FeatureProvider by provider
+
+    class ProviderWithStatus(
+        val provider: FeatureProvider,
+        val status: OpenFeatureStatus
+    ) : FeatureProvider by provider
 
     /**
      * Strategy interface defines how multiple feature providers should be evaluated
@@ -286,7 +291,7 @@ class MultiProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<Boolean> {
         return strategy.evaluate(
-            childFeatureProviders,
+            childFeatureProviders.map(::providerWithStatus),
             key,
             defaultValue,
             context,
@@ -300,7 +305,7 @@ class MultiProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<String> {
         return strategy.evaluate(
-            childFeatureProviders,
+            childFeatureProviders.map(::providerWithStatus),
             key,
             defaultValue,
             context,
@@ -314,7 +319,7 @@ class MultiProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<Int> {
         return strategy.evaluate(
-            childFeatureProviders,
+            childFeatureProviders.map(::providerWithStatus),
             key,
             defaultValue,
             context,
@@ -328,7 +333,7 @@ class MultiProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<Double> {
         return strategy.evaluate(
-            childFeatureProviders,
+            childFeatureProviders.map(::providerWithStatus),
             key,
             defaultValue,
             context,
@@ -342,7 +347,7 @@ class MultiProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<Value> {
         return strategy.evaluate(
-            childFeatureProviders,
+            childFeatureProviders.map(::providerWithStatus),
             key,
             defaultValue,
             context,
@@ -355,31 +360,23 @@ class MultiProvider(
         context: EvaluationContext?,
         details: TrackingEventDetails?
     ) {
-        val trackingErrors = mutableListOf<Pair<String, Throwable>>()
-        childFeatureProviders.forEach { provider ->
-            try {
-                provider.track(trackingEventName, context, details)
-            } catch (t: Throwable) {
-                trackingErrors += provider.name to t
+        childFeatureProviders
+            .map(::providerWithStatus)
+            .filter(::shouldEvaluateProvider)
+            .forEach { provider ->
+                try {
+                    provider.track(trackingEventName, context, details)
+                } catch (error: Throwable) {
+                    val providerName = providerDisplayName(provider)
+                    println(
+                        "MultiProvider track failed for provider '$providerName': ${error.message ?: error}"
+                    )
+                }
             }
-        }
+    }
 
-        if (trackingErrors.isNotEmpty()) {
-            val message = buildString {
-                append("One or more providers failed during track call: ")
-                append(
-                    trackingErrors.joinToString(separator = "\n") { (name, err) ->
-                        "$name: ${err.message}"
-                    }
-                )
-            }
-
-            val aggregate = OpenFeatureError.GeneralError(message)
-            trackingErrors.forEach { (name, err) ->
-                aggregate.addSuppressed(RuntimeException("Provider '$name' tracking failed", err))
-            }
-            throw aggregate
-        }
+    private fun providerWithStatus(provider: ChildFeatureProvider): ProviderWithStatus {
+        return ProviderWithStatus(provider, childProviderStatuses[provider] ?: OpenFeatureStatus.NotReady)
     }
 
     companion object {

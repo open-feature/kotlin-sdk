@@ -1,6 +1,7 @@
 package dev.openfeature.kotlin.sdk.multiprovider
 
 import dev.openfeature.kotlin.sdk.FeatureProvider
+import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import dev.openfeature.kotlin.sdk.helpers.RecordingBooleanProvider
@@ -92,5 +93,36 @@ class FirstSuccessfulStrategyTests {
         assertEquals(1, error1.booleanEvalCalls)
         assertEquals(1, error2.booleanEvalCalls)
         assertEquals(1, notFound.booleanEvalCalls)
+    }
+
+    @Test
+    fun skipsProvidersThatAreNotReadyOrFatal() {
+        val strategy = FirstSuccessfulStrategy()
+        val notReady = RecordingBooleanProvider("notReady") {
+            dev.openfeature.kotlin.sdk.ProviderEvaluation(false)
+        }
+        val fatal = RecordingBooleanProvider("fatal") {
+            dev.openfeature.kotlin.sdk.ProviderEvaluation(false)
+        }
+        val success = RecordingBooleanProvider("success") {
+            dev.openfeature.kotlin.sdk.ProviderEvaluation(true)
+        }
+
+        val result = strategy.evaluate(
+            listOf(
+                MultiProvider.ProviderWithStatus(notReady, OpenFeatureStatus.NotReady),
+                MultiProvider.ProviderWithStatus(fatal, OpenFeatureStatus.Fatal(OpenFeatureError.ProviderFatalError())),
+                success
+            ),
+            key = "flag",
+            defaultValue = false,
+            evaluationContext = null,
+            flagEval = FeatureProvider::getBooleanEvaluation
+        )
+
+        assertEquals(true, result.value)
+        assertEquals(0, notReady.booleanEvalCalls)
+        assertEquals(0, fatal.booleanEvalCalls)
+        assertEquals(1, success.booleanEvalCalls)
     }
 }
