@@ -38,10 +38,10 @@
 The following [Kotlin Multiplatform Targets](https://www.jetbrains.com/help/kotlin-multiplatform-dev/multiplatform-dsl-reference.html#targets) are supported:
 
 | Supported | Platform             | Supported versions                                                             |
-| --------- | -------------------- | ------------------------------------------------------------------------------ |
+| --------- | -------------------- |--------------------------------------------------------------------------------|
 | ✅         | Android              | SDK 21+                                                                        |
 | ✅         | JVM                  | JDK 11+                                                                        |
-| ✅         | Native               | Linux x64                                                                      |
+| ✅         | Native               | Linux x64, iosSimulatorArm64, iosArm64                                         |
 | ❌         | Native               | [Other native targets](https://kotlinlang.org/docs/native-target-support.html) |
 | ✅         | Javascript (Node.js) |                                                                                |
 | ✅         | Javascript (Browser) |                                                                                |
