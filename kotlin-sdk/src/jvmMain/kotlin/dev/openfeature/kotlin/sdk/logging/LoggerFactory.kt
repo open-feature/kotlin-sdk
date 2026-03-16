@@ -9,16 +9,8 @@ import java.time.Instant
  */
 actual object LoggerFactory {
     actual fun getLogger(tag: String): Logger {
-        // Try to detect SLF4J on classpath and use it if available
-        return try {
-            Slf4jLogger.getLogger(tag)
-        } catch (e: NoClassDefFoundError) {
-            // SLF4J not available, use simple logger
-            JvmLogger(tag)
-        } catch (e: ClassNotFoundException) {
-            // SLF4J not available, use simple logger
-            JvmLogger(tag)
-        }
+        // TODO: SLF4J detection will be added in a future PR
+        return JvmLogger(tag)
     }
 }
 
