@@ -3,13 +3,13 @@
 package dev.openfeature.kotlin.sdk.hooks
 
 import dev.openfeature.kotlin.sdk.EvaluationContext
-import kotlin.time.ExperimentalTime
 import dev.openfeature.kotlin.sdk.FlagEvaluationDetails
 import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.HookContext
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.logging.Logger
 import dev.openfeature.kotlin.sdk.logging.NoOpLogger
+import kotlin.time.ExperimentalTime
 
 /**
  * A hook that logs detailed information during flag evaluation lifecycle.
@@ -93,7 +93,7 @@ class LoggingHook<T>(
                 append(formatContext(ctx.ctx))
             }
             append(", provider='${ctx.providerMetadata.name}', ")
-            append("error='${error.message?.replace("'", "''")}'" )
+            append("error='${error.message?.replace("'", "''")}'")
         }
 
         logger.error(message, error)
@@ -136,7 +136,8 @@ class LoggingHook<T>(
             is Value.Boolean -> value.boolean.toString()
             is Value.Instant -> value.instant.toString()
             is Value.List -> "[${value.list.joinToString(", ") { formatValue(it) }}]"
-            is Value.Structure -> "{${value.structure.entries.joinToString(", ") { "${it.key}=${formatValue(it.value)}" }}}"
+            is Value.Structure ->
+                "{${value.structure.entries.joinToString(", ") { "${it.key}=${formatValue(it.value)}" }}}"
             is Value.Null -> "null"
         }
     }

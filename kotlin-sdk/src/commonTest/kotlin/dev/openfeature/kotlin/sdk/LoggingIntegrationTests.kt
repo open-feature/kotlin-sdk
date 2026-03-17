@@ -178,10 +178,12 @@ class LoggingIntegrationTests {
         )
 
         // Verify context was logged
-        assertTrue(testLogger.debugMessages.any {
-            it.message.contains("context=") &&
-                it.message.contains("targetingKey='user-456'")
-        })
+        assertTrue(
+            testLogger.debugMessages.any {
+                it.message.contains("context=") &&
+                    it.message.contains("targetingKey='user-456'")
+            }
+        )
     }
 
     @Test
@@ -209,10 +211,12 @@ class LoggingIntegrationTests {
 
         // Verify logging happened
         assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
-        assertTrue(testLogger.debugMessages.any {
-            it.message.contains("flag='string-flag'") &&
-                it.message.contains("value='test-value'")
-        })
+        assertTrue(
+            testLogger.debugMessages.any {
+                it.message.contains("flag='string-flag'") &&
+                    it.message.contains("value='test-value'")
+            }
+        )
     }
 
     @Test
@@ -290,10 +294,12 @@ class LoggingIntegrationTests {
         }
 
         // Verify error was logged
-        assertTrue(testLogger.errorMessages.any {
-            it.message.contains("Flag evaluation error") &&
-                it.message.contains("flag='error-flag'")
-        })
+        assertTrue(
+            testLogger.errorMessages.any {
+                it.message.contains("Flag evaluation error") &&
+                    it.message.contains("flag='error-flag'")
+            }
+        )
     }
 
     @Test
