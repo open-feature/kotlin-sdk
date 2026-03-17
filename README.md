@@ -116,7 +116,7 @@ coroutineScope.launch(Dispatchers.Default) {
 | ✅      | [Targeting](#targeting)           | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
 | ✅      | [Hooks](#hooks)                   | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
 | ✅      | [Tracking](#tracking)             | Associate user actions with feature flag evaluations.                                                                              |
-| ❌      | [Logging](#logging)               | Integrate with popular logging packages.                                                                                           |
+| ✅      | [Logging](#logging)               | Integrate with popular logging packages.                                                                                           |
 | ❌      | [Domains](#domains)               | Logically bind clients with providers.                                                                                             |
 | ✅      | [Eventing](#eventing)             | React to state changes in the provider or flag management system.                                                                  |
 | ✅      | [Shutdown](#shutdown)             | Gracefully clean up a provider during application shutdown.                                                                        |
@@ -213,9 +213,168 @@ Tracking is optionally implemented by Providers.
 
 ### Logging
 
-Logging customization is not yet available in the Kotlin SDK.
+The Kotlin SDK provides built-in logging support through the `LoggingHook`, which logs detailed information during flag evaluation. The SDK includes a flexible logging abstraction with platform-specific implementations and adapters for popular logging frameworks.
 
-It is possible to write and inject logging `Hook`s to log events at different stages of the flag evaluation life-cycle.
+#### Quick Start
+
+```kotlin
+import dev.openfeature.kotlin.sdk.OpenFeatureAPI
+import dev.openfeature.kotlin.sdk.hooks.LoggingHook
+import dev.openfeature.kotlin.sdk.logging.LoggerFactory
+
+// Create a platform-appropriate logger
+val logger = LoggerFactory.getLogger("FeatureFlags")
+
+// Add LoggingHook at the API level (logs all evaluations)
+OpenFeatureAPI.addHooks(listOf(LoggingHook<Any>(logger = logger)))
+
+// Evaluate flags - logs will be automatically generated
+val client = OpenFeatureAPI.getClient()
+val value = client.getBooleanValue("my-flag", false)
+```
+
+This will produce logs like:
+```
+Flag evaluation starting: flag='my-flag', type=BOOLEAN, defaultValue=false, provider='MyProvider'
+Flag evaluation completed: flag='my-flag', value=true, variant='on', reason='TARGETING_MATCH', provider='MyProvider'
+Flag evaluation finalized: flag='my-flag'
+```
+
+#### LoggingHook Levels
+
+The `LoggingHook` can be registered at three different levels:
+
+```kotlin
+// API level - logs all evaluations globally
+OpenFeatureAPI.addHooks(listOf(LoggingHook<Any>(logger = logger)))
+
+// Client level - logs all evaluations from this client
+val client = OpenFeatureAPI.getClient()
+client.addHooks(listOf(LoggingHook<Any>(logger = logger)))
+
+// Invocation level - logs only this specific evaluation
+client.getBooleanValue(
+    "my-flag",
+    false,
+    FlagEvaluationOptions(hooks = listOf(LoggingHook<Boolean>(logger = logger)))
+)
+```
+
+#### Platform-Specific Loggers
+
+The SDK provides platform-native loggers out of the box:
+
+**Android (Logcat)**
+```kotlin
+import dev.openfeature.kotlin.sdk.logging.LoggerFactory
+
+val logger = LoggerFactory.getLogger("MyApp")
+// Logs appear in Logcat with standard Log.d(), Log.i(), Log.w(), Log.e()
+```
+
+**JVM (Console with timestamps)**
+```kotlin
+val logger = LoggerFactory.getLogger("FeatureFlags")
+// Logs to System.out/err: "YYYY-MM-DDTHH:mm:ss.SSSZ [DEBUG] FeatureFlags - ..."
+```
+
+**JavaScript (Browser/Node.js)**
+```kotlin
+val logger = LoggerFactory.getLogger("FeatureFlags")
+// Logs to console.log(), console.info(), console.warn(), console.error()
+```
+
+**Native (Linux)**
+```kotlin
+val logger = LoggerFactory.getLogger("FeatureFlags")
+// Logs to stdout: "[DEBUG] FeatureFlags - ..."
+```
+
+#### Third-Party Logging Frameworks
+
+You can integrate any logging framework by implementing the `Logger` interface. Common frameworks can be wrapped as shown in the [Custom Logger Implementation](#custom-logger-implementation) section below.
+
+> **Note**: Official adapters for SLF4J, Timber, and other popular frameworks are planned for [kotlin-sdk-contrib](https://github.com/open-feature/kotlin-sdk-contrib).
+
+#### Evaluation Context Logging
+
+By default, LoggingHook does NOT log the evaluation context to protect potentially sensitive user information.
+
+To enable context logging:
+```kotlin
+val context = EvaluationContext(
+    targetingKey = "user@example.com",
+    attributes = mapOf(
+        "email" to Value.String("user@example.com"),
+        "userId" to Value.String("12345")
+    )
+)
+
+val hook = LoggingHook<Any>(
+    logger = logger,
+    logEvaluationContext = true  // Opt-in to log evaluation context
+)
+
+client.getBooleanValue("my-flag", false, context)
+// Logs: context={targetingKey='user@example.com', attributes={email='user@example.com', userId='12345'}}
+```
+
+**Privacy Warning**: Evaluation context often contains personally identifiable information (PII). Only enable context logging when needed and consider:
+- Keeping context logging disabled in production
+- Implementing custom `Logger` that filters sensitive fields
+- Using separate loggers for different environments
+
+#### Custom Logger Implementation
+
+You can implement a custom `Logger` for any logging backend:
+
+```kotlin
+import dev.openfeature.kotlin.sdk.logging.Logger
+
+class MyCustomLogger(private val tag: String) : Logger {
+    override fun debug(message: String, throwable: Throwable?) {
+        MyLoggingFramework.debug(tag, message, throwable)
+    }
+
+    override fun info(message: String, throwable: Throwable?) {
+        MyLoggingFramework.info(tag, message, throwable)
+    }
+
+    override fun warn(message: String, throwable: Throwable?) {
+        MyLoggingFramework.warn(tag, message, throwable)
+    }
+
+    override fun error(message: String, throwable: Throwable?) {
+        MyLoggingFramework.error(tag, message, throwable)
+    }
+}
+
+// Use your custom logger
+val logger = MyCustomLogger("FeatureFlags")
+OpenFeatureAPI.addHooks(listOf(LoggingHook<Any>(logger = logger)))
+```
+
+#### Logging Hook Lifecycle Stages
+
+The `LoggingHook` logs at four stages of flag evaluation:
+
+1. **Before** (debug level): Flag evaluation starting with flag key, type, default value
+2. **After** (debug level): Successful evaluation with value, variant, reason
+3. **Error** (error level): Errors during evaluation with exception details
+4. **Finally** (debug level): Evaluation finalized with error codes if present
+
+Example output:
+```
+[DEBUG] Flag evaluation starting: flag='show-new-ui', type=BOOLEAN, defaultValue=false, provider='MyProvider', client='MyClient'
+[DEBUG] Flag evaluation completed: flag='show-new-ui', value=true, variant='on', reason='TARGETING_MATCH', provider='MyProvider'
+[DEBUG] Flag evaluation finalized: flag='show-new-ui'
+```
+
+Error example:
+```
+[ERROR] Flag evaluation error: flag='broken-flag', type=BOOLEAN, defaultValue=false, provider='MyProvider', error='Connection timeout'
+[DEBUG] Flag evaluation finalized: flag='broken-flag', errorCode=PROVIDER_NOT_READY, errorMessage='Provider not initialized'
+```
 
 ### Domains
 
