@@ -278,8 +278,8 @@ class LoggingHookTests {
         hook.before(context, emptyMap())
 
         val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("region=us-east"))
-        assertTrue(message.contains("plan=premium"))
+        assertTrue(message.contains("region='us-east'"))
+        assertTrue(message.contains("plan='premium'"))
         assertTrue(!message.contains("email"))
         assertTrue(!message.contains("phone"))
     }
@@ -305,7 +305,7 @@ class LoggingHookTests {
         hook.before(context, emptyMap())
 
         val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("region=us-east"))
+        assertTrue(message.contains("region='us-east'"))
         assertTrue(!message.contains("email"))
         assertTrue(!message.contains("phone"))
     }
@@ -331,7 +331,7 @@ class LoggingHookTests {
         hook.before(context, emptyMap())
 
         val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("region=us-east"))
+        assertTrue(message.contains("region='us-east'"))
         assertTrue(!message.contains("email"))
         assertTrue(!message.contains("ssn"))
         assertTrue(!message.contains("password"))
@@ -358,7 +358,7 @@ class LoggingHookTests {
         hook.before(context, emptyMap())
 
         val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("email=user@example.com"))
+        assertTrue(message.contains("email='user@example.com'"))
         assertTrue(!message.contains("region"))
     }
 
@@ -382,8 +382,8 @@ class LoggingHookTests {
         hook.before(context, emptyMap())
 
         val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("email=user@example.com"))
-        assertTrue(message.contains("region=us-east"))
+        assertTrue(message.contains("email='user@example.com'"))
+        assertTrue(message.contains("region='us-east'"))
     }
 
     @Test
@@ -407,7 +407,7 @@ class LoggingHookTests {
         hook.after(context, details, emptyMap())
 
         val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("region=us-west"))
+        assertTrue(message.contains("region='us-west'"))
         assertTrue(!message.contains("email"))
     }
 
@@ -432,7 +432,7 @@ class LoggingHookTests {
         hook.error(context, exception, emptyMap())
 
         val message = testLogger.errorMessages[0].message
-        assertTrue(message.contains("region=eu-central"))
+        assertTrue(message.contains("region='eu-central'"))
         assertTrue(!message.contains("email"))
     }
 
@@ -454,7 +454,7 @@ class LoggingHookTests {
 
         val message = testLogger.debugMessages[0].message
         assertTrue(message.contains("targetingKey='user-123'"))
-        assertTrue(message.contains("region=us-east"))
+        assertTrue(message.contains("region='us-east'"))
     }
 
     @Test
@@ -477,7 +477,7 @@ class LoggingHookTests {
         val message = testLogger.debugMessages[0].message
         assertTrue(!message.contains("targetingKey"))
         assertTrue(!message.contains("user@example.com"))
-        assertTrue(message.contains("region=us-east"))
+        assertTrue(message.contains("region='us-east'"))
     }
 
     @Test
