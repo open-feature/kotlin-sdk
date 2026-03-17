@@ -4,12 +4,14 @@ import java.time.Instant
 
 /**
  * JVM platform implementation of LoggerFactory.
- * Automatically detects and uses SLF4J if available on the classpath,
- * otherwise falls back to simple JvmLogger that uses System.out/err.
+ * Currently uses JvmLogger that writes to System.out/err.
+ *
+ * Note: SLF4J integration is planned for a future enhancement.
+ * This will enable automatic detection and use of SLF4J when available
+ * on the classpath, with fallback to JvmLogger.
  */
 actual object LoggerFactory {
     actual fun getLogger(tag: String): Logger {
-        // TODO: SLF4J detection will be added in a future PR
         return JvmLogger(tag)
     }
 }
