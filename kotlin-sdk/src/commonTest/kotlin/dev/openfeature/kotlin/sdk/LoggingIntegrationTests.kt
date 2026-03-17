@@ -211,7 +211,7 @@ class LoggingIntegrationTests {
         assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
         assertTrue(testLogger.debugMessages.any {
             it.message.contains("flag='string-flag'") &&
-                it.message.contains("value=test-value")
+                it.message.contains("value='test-value'")
         })
     }
 
