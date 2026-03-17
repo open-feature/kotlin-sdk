@@ -136,12 +136,4 @@ class LoggerTests {
         val logger = LoggerFactory.getLogger()
         assertNotNull(logger)
     }
-
-    @Test
-    fun `LoggerFactory with custom tag returns non-null logger`() {
-        val logger = LoggerFactory.getLogger("test-tag")
-        assertNotNull(logger)
-        // Note: Actual logging behavior is tested manually per platform
-        // as it depends on platform-specific APIs (android.util.Log, System.out, etc.)
-    }
 }

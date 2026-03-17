@@ -1,5 +1,8 @@
 package dev.openfeature.kotlin.sdk.logging
 
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import platform.Foundation.NSLog
 
 /**
@@ -16,8 +19,9 @@ actual object LoggerFactory {
  */
 internal class IosLogger(private val tag: String) : Logger {
     private fun formatMessage(level: String, message: String, throwable: Throwable?): String {
+        val timestamp = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         return buildString {
-            append("[$level] $tag - $message")
+            append("$timestamp [$level] $tag - $message")
             if (throwable != null) {
                 append("\n${throwable.stackTraceToString()}")
             }

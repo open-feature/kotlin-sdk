@@ -1,6 +1,9 @@
 package dev.openfeature.kotlin.sdk.logging
 
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import platform.posix.fprintf
 import platform.posix.stderr
 
@@ -19,8 +22,9 @@ actual object LoggerFactory {
  */
 internal class NativeLogger(private val tag: String) : Logger {
     private fun formatMessage(level: String, message: String, throwable: Throwable?): String {
+        val timestamp = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         return buildString {
-            append("[$level] $tag - $message")
+            append("$timestamp [$level] $tag - $message")
             if (throwable != null) {
                 append("\n${throwable.stackTraceToString()}")
             }
