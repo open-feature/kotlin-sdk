@@ -13,35 +13,19 @@ actual object LoggerFactory {
  * Logs are visible in the browser console or Node.js console.
  */
 internal class JsLogger(private val tag: String) : Logger {
-    override fun debug(message: String, throwable: Throwable?) {
-        if (throwable != null) {
-            console.log("[$tag] $message", throwable)
-        } else {
-            console.log("[$tag] $message")
-        }
-    }
+    override fun debug(message: String, throwable: Throwable?) = log(console::log, message, throwable)
 
-    override fun info(message: String, throwable: Throwable?) {
-        if (throwable != null) {
-            console.info("[$tag] $message", throwable)
-        } else {
-            console.info("[$tag] $message")
-        }
-    }
+    override fun info(message: String, throwable: Throwable?) = log(console::info, message, throwable)
 
-    override fun warn(message: String, throwable: Throwable?) {
-        if (throwable != null) {
-            console.warn("[$tag] $message", throwable)
-        } else {
-            console.warn("[$tag] $message")
-        }
-    }
+    override fun warn(message: String, throwable: Throwable?) = log(console::warn, message, throwable)
 
-    override fun error(message: String, throwable: Throwable?) {
+    override fun error(message: String, throwable: Throwable?) = log(console::error, message, throwable)
+
+    private fun log(logFn: (vararg o: Any?) -> Unit, message: String, throwable: Throwable?) {
         if (throwable != null) {
-            console.error("[$tag] $message", throwable)
+            logFn("[$tag] $message", throwable)
         } else {
-            console.error("[$tag] $message")
+            logFn("[$tag] $message")
         }
     }
 }
