@@ -43,7 +43,7 @@ class LoggingHook<T>(
             append("Flag evaluation starting: ")
             append("flag='${ctx.flagKey}', ")
             append("type=${ctx.type}, ")
-            append("defaultValue=${ctx.defaultValue}")
+            append("defaultValue=${formatAnyValue(ctx.defaultValue)}")
             if (shouldLogContext && ctx.ctx != null) {
                 append(", ")
                 append(formatContext(ctx.ctx))
@@ -63,7 +63,7 @@ class LoggingHook<T>(
         val message = buildString {
             append("Flag evaluation completed: ")
             append("flag='${details.flagKey}', ")
-            append("value=${details.value}")
+            append("value=${formatAnyValue(details.value)}")
             if (details.variant != null) {
                 append(", variant='${details.variant}'")
             }
@@ -87,13 +87,13 @@ class LoggingHook<T>(
             append("Flag evaluation error: ")
             append("flag='${ctx.flagKey}', ")
             append("type=${ctx.type}, ")
-            append("defaultValue=${ctx.defaultValue}")
+            append("defaultValue=${formatAnyValue(ctx.defaultValue)}")
             if (shouldLogContext && ctx.ctx != null) {
                 append(", ")
                 append(formatContext(ctx.ctx))
             }
             append(", provider='${ctx.providerMetadata.name}', ")
-            append("error='${error.message}'")
+            append("error='${error.message?.replace("'", "''")}'" )
         }
 
         logger.error(message, error)
@@ -107,7 +107,7 @@ class LoggingHook<T>(
                 append(", errorCode=${details.errorCode}")
             }
             if (details.errorMessage != null) {
-                append(", errorMessage='${details.errorMessage}'")
+                append(", errorMessage='${details.errorMessage.replace("'", "''")}'")
             }
         }
 
@@ -130,7 +130,7 @@ class LoggingHook<T>(
 
     private fun formatValue(value: Value): String {
         return when (value) {
-            is Value.String -> "'${value.string}'"
+            is Value.String -> "'${value.string.replace("'", "''")}'"
             is Value.Integer -> value.integer.toString()
             is Value.Double -> value.double.toString()
             is Value.Boolean -> value.boolean.toString()
@@ -138,6 +138,15 @@ class LoggingHook<T>(
             is Value.List -> "[${value.list.joinToString(", ") { formatValue(it) }}]"
             is Value.Structure -> "{${value.structure.entries.joinToString(", ") { "${it.key}=${formatValue(it.value)}" }}}"
             is Value.Null -> "null"
+        }
+    }
+
+    private fun formatAnyValue(value: Any?): String {
+        return when (value) {
+            null -> "null"
+            is String -> "'${value.replace("'", "''")}'"
+            is Number, is Boolean -> value.toString()
+            else -> "'${value.toString().replace("'", "''")}'"
         }
     }
 }
