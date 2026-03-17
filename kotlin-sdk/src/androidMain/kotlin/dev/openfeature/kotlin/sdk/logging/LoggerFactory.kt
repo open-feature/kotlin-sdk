@@ -13,42 +13,21 @@ actual object LoggerFactory {
 /**
  * Android-specific logger implementation using android.util.Log.
  * Logs are visible in Logcat.
- *
- * Note: We explicitly check for null throwables before calling Log methods
- * to ensure consistent behavior across all Android API levels (21+).
- * While modern Android versions handle null throwables gracefully, we cannot
- * verify this behavior across all API levels in our support matrix.
  */
 internal class AndroidLogger(private val tag: String) : Logger {
-    override fun debug(message: String, throwable: Throwable?) {
-        if (throwable != null) {
-            Log.d(tag, message, throwable)
-        } else {
-            Log.d(tag, message)
-        }
-    }
+    override fun debug(message: String, throwable: Throwable?) = log(Log.DEBUG, message, throwable)
 
-    override fun info(message: String, throwable: Throwable?) {
-        if (throwable != null) {
-            Log.i(tag, message, throwable)
-        } else {
-            Log.i(tag, message)
-        }
-    }
+    override fun info(message: String, throwable: Throwable?) = log(Log.INFO, message, throwable)
 
-    override fun warn(message: String, throwable: Throwable?) {
-        if (throwable != null) {
-            Log.w(tag, message, throwable)
-        } else {
-            Log.w(tag, message)
-        }
-    }
+    override fun warn(message: String, throwable: Throwable?) = log(Log.WARN, message, throwable)
 
-    override fun error(message: String, throwable: Throwable?) {
+    override fun error(message: String, throwable: Throwable?) = log(Log.ERROR, message, throwable)
+
+    private fun log(level: Int, message: String, throwable: Throwable?) {
         if (throwable != null) {
-            Log.e(tag, message, throwable)
+            Log.println(level, tag, message + '\n' + Log.getStackTraceString(throwable))
         } else {
-            Log.e(tag, message)
+            Log.println(level, tag, message)
         }
     }
 }
