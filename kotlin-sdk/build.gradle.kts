@@ -40,6 +40,8 @@ kotlin {
         }
     }
     linuxX64 {}
+    iosArm64()
+    iosSimulatorArm64()
     js {
         nodejs {}
         browser {
@@ -57,6 +59,7 @@ kotlin {
         commonMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
             implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
         }
         commonTest.dependencies {
             implementation("org.jetbrains.kotlin:kotlin-test:2.2.10")

@@ -3,6 +3,8 @@ package dev.openfeature.kotlin.sdk
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import dev.openfeature.kotlin.sdk.logging.Logger
+import dev.openfeature.kotlin.sdk.logging.NoOpLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -43,6 +45,24 @@ object OpenFeatureAPI {
 
     var hooks: List<Hook<*>> = listOf()
         private set
+
+    /**
+     * The logger used by the SDK. Can be set to customize logging behavior.
+     * Defaults to NoOpLogger which discards all log messages.
+     * Access with OpenFeatureAPI.logger, set with OpenFeatureAPI.setLogger().
+     */
+    var logger: Logger = NoOpLogger()
+        private set
+
+    /**
+     * Set the logger for the SDK.
+     * This logger will be used for internal SDK logging and can be accessed by custom hooks.
+     *
+     * @param logger the logger to set
+     */
+    fun setLogger(logger: Logger) {
+        this.logger = logger
+    }
 
     /**
      * Set the [FeatureProvider] for the SDK. This method will return immediately and initialize the provider in a coroutine scope
