@@ -290,38 +290,17 @@ val logger = LoggerFactory.getLogger("FeatureFlags")
 // Logs to stdout: "[DEBUG] FeatureFlags - ..."
 ```
 
-#### Framework Adapters
+#### Third-Party Logging Frameworks
 
-Optional adapters for popular logging frameworks are available in [kotlin-sdk-contrib](https://github.com/open-feature/kotlin-sdk-contrib):
+You can integrate any logging framework by implementing the `Logger` interface. Common frameworks can be wrapped as shown in the [Custom Logger Implementation](#custom-logger-implementation) section below.
 
-**SLF4J (JVM)** - `dev.openfeature.kotlin.contrib.hooks:logging-slf4j`
-```kotlin
-import dev.openfeature.kotlin.contrib.hooks.logging.slf4j.Slf4jLoggerAdapter
-import org.slf4j.LoggerFactory as Slf4jLoggerFactory
-
-// Use your existing SLF4J logger
-val slf4jLogger = Slf4jLoggerFactory.getLogger("FeatureFlags")
-val logger = Slf4jLoggerAdapter(slf4jLogger)
-OpenFeatureAPI.addHooks(listOf(LoggingHook<Any>(logger = logger)))
-```
-
-**Timber (Android)** - `dev.openfeature.kotlin.contrib.hooks:logging-timber`
-```kotlin
-import dev.openfeature.kotlin.contrib.hooks.logging.timber.TimberLoggerAdapter
-import timber.log.Timber
-
-// Plant Timber tree first (typically in Application.onCreate)
-Timber.plant(Timber.DebugTree())
-
-// Create adapter
-val logger = TimberLoggerAdapter()
-OpenFeatureAPI.addHooks(listOf(LoggingHook<Any>(logger = logger)))
-```
+> **Note**: Official adapters for SLF4J, Timber, and other popular frameworks are planned for [kotlin-sdk-contrib](https://github.com/open-feature/kotlin-sdk-contrib).
 
 #### Evaluation Context Logging
 
-By default, LoggingHook logs evaluation context which may contain user information:
+By default, LoggingHook does NOT log the evaluation context to protect potentially sensitive user information.
 
+To enable context logging:
 ```kotlin
 val context = EvaluationContext(
     targetingKey = "user@example.com",
@@ -331,22 +310,19 @@ val context = EvaluationContext(
     )
 )
 
+val hook = LoggingHook<Any>(
+    logger = logger,
+    logEvaluationContext = true  // Opt-in to log evaluation context
+)
+
 client.getBooleanValue("my-flag", false, context)
 // Logs: context={targetingKey='user@example.com', attributes={email='user@example.com', userId='12345'}}
 ```
 
-**Privacy Warning**: Evaluation context often contains personally identifiable information (PII). Consider:
-- Disabling context logging in production
+**Privacy Warning**: Evaluation context often contains personally identifiable information (PII). Only enable context logging when needed and consider:
+- Keeping context logging disabled in production
 - Implementing custom `Logger` that filters sensitive fields
 - Using separate loggers for different environments
-
-To disable context logging:
-```kotlin
-val hook = LoggingHook<Any>(
-    logger = logger,
-    logEvaluationContext = false  // Don't log potentially sensitive context
-)
-```
 
 #### Custom Logger Implementation
 
