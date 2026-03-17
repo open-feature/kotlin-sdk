@@ -9,50 +9,59 @@ import kotlinx.atomicfu.locks.synchronized
  *
  * This implementation is thread-safe to prevent ConcurrentModificationException
  * when hooks are invoked from multiple coroutines during testing.
+ *
+ * Messages are stored in chronological order across all log levels, allowing tests
+ * to verify the exact sequence of logged events.
  */
 class TestLogger : Logger {
     private val lock = SynchronizedObject()
 
-    private val _debugMessages = mutableListOf<LogEntry>()
-    private val _infoMessages = mutableListOf<LogEntry>()
-    private val _warnMessages = mutableListOf<LogEntry>()
-    private val _errorMessages = mutableListOf<LogEntry>()
+    private enum class Level { DEBUG, INFO, WARN, ERROR }
 
-    val debugMessages: List<LogEntry> get() = synchronized(lock) { _debugMessages.toList() }
-    val infoMessages: List<LogEntry> get() = synchronized(lock) { _infoMessages.toList() }
-    val warnMessages: List<LogEntry> get() = synchronized(lock) { _warnMessages.toList() }
-    val errorMessages: List<LogEntry> get() = synchronized(lock) { _errorMessages.toList() }
+    private data class InternalLogEntry(val level: Level, val entry: LogEntry)
+
+    private val _messages = mutableListOf<InternalLogEntry>()
+
+    val debugMessages: List<LogEntry> get() = synchronized(lock) {
+        _messages.filter { it.level == Level.DEBUG }.map { it.entry }
+    }
+    val infoMessages: List<LogEntry> get() = synchronized(lock) {
+        _messages.filter { it.level == Level.INFO }.map { it.entry }
+    }
+    val warnMessages: List<LogEntry> get() = synchronized(lock) {
+        _messages.filter { it.level == Level.WARN }.map { it.entry }
+    }
+    val errorMessages: List<LogEntry> get() = synchronized(lock) {
+        _messages.filter { it.level == Level.ERROR }.map { it.entry }
+    }
 
     data class LogEntry(val message: String, val throwable: Throwable?)
 
     override fun debug(message: String, throwable: Throwable?) {
-        synchronized(lock) { _debugMessages.add(LogEntry(message, throwable)) }
+        synchronized(lock) { _messages.add(InternalLogEntry(Level.DEBUG, LogEntry(message, throwable))) }
     }
 
     override fun info(message: String, throwable: Throwable?) {
-        synchronized(lock) { _infoMessages.add(LogEntry(message, throwable)) }
+        synchronized(lock) { _messages.add(InternalLogEntry(Level.INFO, LogEntry(message, throwable))) }
     }
 
     override fun warn(message: String, throwable: Throwable?) {
-        synchronized(lock) { _warnMessages.add(LogEntry(message, throwable)) }
+        synchronized(lock) { _messages.add(InternalLogEntry(Level.WARN, LogEntry(message, throwable))) }
     }
 
     override fun error(message: String, throwable: Throwable?) {
-        synchronized(lock) { _errorMessages.add(LogEntry(message, throwable)) }
+        synchronized(lock) { _messages.add(InternalLogEntry(Level.ERROR, LogEntry(message, throwable))) }
     }
 
     fun clear() {
         synchronized(lock) {
-            _debugMessages.clear()
-            _infoMessages.clear()
-            _warnMessages.clear()
-            _errorMessages.clear()
+            _messages.clear()
         }
     }
 
     fun getAllMessages(): List<LogEntry> {
         return synchronized(lock) {
-            _debugMessages + _infoMessages + _warnMessages + _errorMessages
+            _messages.map { it.entry }
         }
     }
 }
