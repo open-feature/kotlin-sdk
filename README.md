@@ -275,8 +275,7 @@ val logger = LoggerFactory.getLogger("MyApp")
 **JVM (Console with timestamps)**
 ```kotlin
 val logger = LoggerFactory.getLogger("FeatureFlags")
-// Logs to System.out/err: "2026-01-19T10:30:45.123Z [DEBUG] FeatureFlags - ..."
-// Auto-detects SLF4J if present on classpath
+// Logs to System.out/err: "YYYY-MM-DDTHH:mm:ss.SSSZ [DEBUG] FeatureFlags - ..."
 ```
 
 **JavaScript (Browser/Node.js)**
@@ -293,25 +292,22 @@ val logger = LoggerFactory.getLogger("FeatureFlags")
 
 #### Framework Adapters
 
-The SDK includes built-in adapters for popular logging frameworks:
+Optional adapters for popular logging frameworks are available in [kotlin-sdk-contrib](https://github.com/open-feature/kotlin-sdk-contrib):
 
-**SLF4J (JVM)**
+**SLF4J (JVM)** - `dev.openfeature.kotlin.contrib.hooks:logging-slf4j`
 ```kotlin
-import dev.openfeature.kotlin.sdk.logging.adapters.Slf4jLoggerAdapter
+import dev.openfeature.kotlin.contrib.hooks.logging.slf4j.Slf4jLoggerAdapter
 import org.slf4j.LoggerFactory as Slf4jLoggerFactory
 
 // Use your existing SLF4J logger
 val slf4jLogger = Slf4jLoggerFactory.getLogger("FeatureFlags")
 val logger = Slf4jLoggerAdapter(slf4jLogger)
-
-// Or use the default LoggerFactory which auto-detects SLF4J
-val logger = dev.openfeature.kotlin.sdk.logging.LoggerFactory.getLogger("FeatureFlags")
-// If SLF4J is on classpath, automatically uses Slf4jLoggerAdapter
+OpenFeatureAPI.addHooks(listOf(LoggingHook<Any>(logger = logger)))
 ```
 
-**Timber (Android)**
+**Timber (Android)** - `dev.openfeature.kotlin.contrib.hooks:logging-timber`
 ```kotlin
-import dev.openfeature.kotlin.sdk.logging.adapters.TimberLoggerAdapter
+import dev.openfeature.kotlin.contrib.hooks.logging.timber.TimberLoggerAdapter
 import timber.log.Timber
 
 // Plant Timber tree first (typically in Application.onCreate)
@@ -319,6 +315,7 @@ Timber.plant(Timber.DebugTree())
 
 // Create adapter
 val logger = TimberLoggerAdapter()
+OpenFeatureAPI.addHooks(listOf(LoggingHook<Any>(logger = logger)))
 ```
 
 #### Evaluation Context Logging
@@ -335,7 +332,7 @@ val context = EvaluationContext(
 )
 
 client.getBooleanValue("my-flag", false, context)
-// Logs: context={'targetingKey': 'user@example.com', 'email': 'user@example.com', 'userId': '12345'}
+// Logs: context={targetingKey='user@example.com', attributes={email='user@example.com', userId='12345'}}
 ```
 
 **Privacy Warning**: Evaluation context often contains personally identifiable information (PII). Consider:
@@ -343,7 +340,7 @@ client.getBooleanValue("my-flag", false, context)
 - Implementing custom `Logger` that filters sensitive fields
 - Using separate loggers for different environments
 
-To disable context logging (coming in a future PR):
+To disable context logging:
 ```kotlin
 val hook = LoggingHook<Any>(
     logger = logger,
@@ -357,22 +354,22 @@ You can implement a custom `Logger` for any logging backend:
 
 ```kotlin
 import dev.openfeature.kotlin.sdk.logging.Logger
-import dev.openfeature.kotlin.sdk.logging.LogLevel
 
 class MyCustomLogger(private val tag: String) : Logger {
-    override fun isEnabled(level: LogLevel): Boolean {
-        // Control which levels are logged
-        return level.ordinal >= LogLevel.INFO.ordinal
+    override fun debug(message: String, throwable: Throwable?) {
+        MyLoggingFramework.debug(tag, message, throwable)
     }
 
-    override fun log(level: LogLevel, message: String) {
-        when (level) {
-            LogLevel.ERROR -> MyLoggingFramework.error(tag, message)
-            LogLevel.WARN -> MyLoggingFramework.warn(tag, message)
-            LogLevel.INFO -> MyLoggingFramework.info(tag, message)
-            LogLevel.DEBUG -> MyLoggingFramework.debug(tag, message)
-            LogLevel.TRACE -> MyLoggingFramework.trace(tag, message)
-        }
+    override fun info(message: String, throwable: Throwable?) {
+        MyLoggingFramework.info(tag, message, throwable)
+    }
+
+    override fun warn(message: String, throwable: Throwable?) {
+        MyLoggingFramework.warn(tag, message, throwable)
+    }
+
+    override fun error(message: String, throwable: Throwable?) {
+        MyLoggingFramework.error(tag, message, throwable)
     }
 }
 
