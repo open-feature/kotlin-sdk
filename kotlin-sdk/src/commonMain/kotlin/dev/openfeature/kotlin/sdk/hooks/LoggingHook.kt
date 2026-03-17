@@ -130,13 +130,13 @@ class LoggingHook<T>(
 
     private fun formatValue(value: Value): String {
         return when (value) {
-            is Value.String -> value.asString() ?: "null"
-            is Value.Integer -> value.asInteger()?.toString() ?: "null"
-            is Value.Double -> value.asDouble()?.toString() ?: "null"
-            is Value.Boolean -> value.asBoolean()?.toString() ?: "null"
-            is Value.Instant -> value.asInstant()?.toString() ?: "null"
-            is Value.List -> "[${value.asList()?.joinToString(", ") { formatValue(it) } ?: ""}]"
-            is Value.Structure -> "{${value.asStructure()?.entries?.joinToString(", ") { "${it.key}=${formatValue(it.value)}" } ?: ""}}"
+            is Value.String -> "'${value.string}'"
+            is Value.Integer -> value.integer.toString()
+            is Value.Double -> value.double.toString()
+            is Value.Boolean -> value.boolean.toString()
+            is Value.Instant -> value.instant.toString()
+            is Value.List -> "[${value.list.joinToString(", ") { formatValue(it) }}]"
+            is Value.Structure -> "{${value.structure.entries.joinToString(", ") { "${it.key}=${formatValue(it.value)}" }}}"
             is Value.Null -> "null"
         }
     }

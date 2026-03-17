@@ -171,8 +171,8 @@ class LoggingHookTests {
         assertTrue(message.contains("context="))
         assertTrue(message.contains("targetingKey='user-123'"))
         assertTrue(message.contains("attributes="))
-        assertTrue(message.contains("email=user@example.com"))
-        assertTrue(message.contains("plan=premium"))
+        assertTrue(message.contains("email='user@example.com'"))
+        assertTrue(message.contains("plan='premium'"))
     }
 
     @Test
