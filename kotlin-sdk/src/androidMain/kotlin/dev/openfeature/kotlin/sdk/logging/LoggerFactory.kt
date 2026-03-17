@@ -13,6 +13,11 @@ actual object LoggerFactory {
 /**
  * Android-specific logger implementation using android.util.Log.
  * Logs are visible in Logcat.
+ *
+ * Note: We explicitly check for null throwables before calling Log methods
+ * to ensure consistent behavior across all Android API levels (21+).
+ * While modern Android versions handle null throwables gracefully, we cannot
+ * verify this behavior across all API levels in our support matrix.
  */
 internal class AndroidLogger(private val tag: String) : Logger {
     override fun debug(message: String, throwable: Throwable?) {
