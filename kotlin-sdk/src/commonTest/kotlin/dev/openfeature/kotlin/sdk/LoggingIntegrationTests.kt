@@ -92,9 +92,10 @@ class LoggingIntegrationTests {
     }
 
     @AfterTest
-    fun teardown() {
+    fun teardown() = runTest {
         // Clean up after tests
         OpenFeatureAPI.clearHooks()
+        OpenFeatureAPI.shutdown()
     }
 
     @Test
