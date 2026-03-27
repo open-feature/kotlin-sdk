@@ -13,7 +13,7 @@ import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
  *
  * If no provider responds successfully, it returns an error result.
  */
-class FirstSuccessfulStrategy : MultiProvider.Strategy {
+class FirstSuccessfulStrategy : BaseEvaluationStrategy() {
     override fun <T> evaluate(
         providers: List<FeatureProvider>,
         key: String,
@@ -23,6 +23,9 @@ class FirstSuccessfulStrategy : MultiProvider.Strategy {
     ): ProviderEvaluation<T> {
         // Iterate through each provider in the provided order
         for (provider in providers) {
+            if (!shouldEvaluate(provider)) {
+                continue
+            }
             try {
                 // Call the flag evaluation method on the current provider
                 val eval = provider.flagEval(key, defaultValue, evaluationContext)
@@ -36,6 +39,9 @@ class FirstSuccessfulStrategy : MultiProvider.Strategy {
             } catch (_: OpenFeatureError) {
                 // Handle any OpenFeature exceptions - continue to next provider
                 // FirstSuccessful strategy skips errors and continues
+                continue
+            } catch (_: Throwable) {
+                // Handle any non-OpenFeature exceptions - continue to next provider
                 continue
             }
         }

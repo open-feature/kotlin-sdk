@@ -16,7 +16,7 @@ import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
  * If any provider returns an error result other than [ErrorCode.FLAG_NOT_FOUND], the whole evaluation
  * returns the provider's error.
  */
-class FirstMatchStrategy : MultiProvider.Strategy {
+class FirstMatchStrategy : BaseEvaluationStrategy() {
     override fun <T> evaluate(
         providers: List<FeatureProvider>,
         key: String,
@@ -26,6 +26,9 @@ class FirstMatchStrategy : MultiProvider.Strategy {
     ): ProviderEvaluation<T> {
         // Iterate through each provider in the provided order
         for (provider in providers) {
+            if (!shouldEvaluate(provider)) {
+                continue
+            }
             try {
                 // Call the flag evaluation method on the current provider
                 val eval = provider.flagEval(key, defaultValue, evaluationContext)
@@ -43,6 +46,13 @@ class FirstMatchStrategy : MultiProvider.Strategy {
                     defaultValue,
                     reason = Reason.ERROR.toString(),
                     errorCode = error.errorCode(),
+                    errorMessage = error.message
+                )
+            } catch (error: Throwable) {
+                return ProviderEvaluation(
+                    defaultValue,
+                    reason = Reason.ERROR.toString(),
+                    errorCode = ErrorCode.GENERAL,
                     errorMessage = error.message
                 )
             }
