@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/open-feature/kotlin-sdk/compare/v0.7.2...v0.7.3) (2026-03-27)
+
+
+### ✨ New Features
+
+* Add in iOS support ([#213](https://github.com/open-feature/kotlin-sdk/issues/213)) ([b418bf4](https://github.com/open-feature/kotlin-sdk/commit/b418bf4791cdbf384368d0eeb7343a578516c9d5))
+
 ## [0.7.2](https://github.com/open-feature/kotlin-sdk/compare/v0.7.1...v0.7.2) (2026-03-10)
 
 
