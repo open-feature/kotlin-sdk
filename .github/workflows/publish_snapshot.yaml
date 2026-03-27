@@ -1,6 +1,9 @@
 name: Publish SNAPSHOT
 
 on:
+  workflow_run:
+    workflows: ["Run Release Please"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       version:
@@ -11,6 +14,7 @@ on:
 jobs:
   publish-snapshot:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Determine source branch
         id: source
@@ -20,25 +24,29 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             echo "ref=${{ github.ref }}" >> "$GITHUB_OUTPUT"
             echo "version=${{ inputs.version }}-SNAPSHOT" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "Using manually provided version: ${{ inputs.version }}-SNAPSHOT"
           else
             PR_JSON=$(gh pr list --repo "${{ github.repository }}" --label "autorelease: pending" --json headRefName,number --jq '.[0]')
             if [ -z "$PR_JSON" ] || [ "$PR_JSON" = "null" ]; then
-              echo "::error::No open Release Please PR found. Please provide a version manually."
-              exit 1
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "No open Release Please PR found. Skipping SNAPSHOT publish."
+              exit 0
             fi
             BRANCH=$(echo "$PR_JSON" | jq -r '.headRefName')
             PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
             echo "ref=$BRANCH" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "Found Release Please PR #${PR_NUMBER} on branch: $BRANCH"
           fi
 
       - uses: actions/checkout@v5
+        if: steps.source.outputs.skip != 'true'
         with:
           ref: ${{ steps.source.outputs.ref }}
 
       - name: Extract version from build.gradle.kts
-        if: ${{ !inputs.version }}
+        if: ${{ steps.source.outputs.skip != 'true' && !inputs.version }}
         id: extracted
         run: |
           VERSION=$(grep 'ext\["version"\]' build.gradle.kts | sed 's/.*"\(.*\)"/\1/')
@@ -46,6 +54,7 @@ jobs:
           echo "Detected version from Release Please branch: ${VERSION}-SNAPSHOT"
 
       - name: Set final version
+        if: steps.source.outputs.skip != 'true'
         id: final
         run: |
           VERSION="${{ steps.source.outputs.version || steps.extracted.outputs.version }}"
@@ -53,12 +62,14 @@ jobs:
           echo "Publishing SNAPSHOT version: $VERSION"
 
       - name: Override version in build.gradle.kts
+        if: steps.source.outputs.skip != 'true'
         run: |
           sed -i 's/ext\["version"\] = "[^"]*"/ext["version"] = "${{ steps.final.outputs.version }}"/' build.gradle.kts
           echo "Updated build.gradle.kts:"
           grep 'ext\["version"\]' build.gradle.kts
 
       - name: Cache Gradle and wrapper
+        if: steps.source.outputs.skip != 'true'
         uses: actions/cache@v3
         with:
           path: |
@@ -69,6 +80,7 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Configure GPG Key
+        if: steps.source.outputs.skip != 'true'
         run: |
           echo -n "$GPG_SIGNING_KEY" | gpg --import
           gpg --pinentry-mode=loopback --export-secret-key 08C5EC5C > ~/.gnupg/secring.gpg
@@ -76,6 +88,7 @@ jobs:
           GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
       - name: Add signing secrets to gradle.properties
+        if: steps.source.outputs.skip != 'true'
         run: |
           mkdir -p ~/.gradle/
           echo "signing.keyId=08C5EC5C" >> ~/.gradle/gradle.properties
@@ -85,20 +98,23 @@ jobs:
           GPG_SIGNING_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_KEY_PASSWORD }}
 
       - name: Set up JDK 17
+        if: steps.source.outputs.skip != 'true'
         uses: actions/setup-java@v5
         with:
           java-version: 17
           distribution: "zulu"
 
       - name: Grant Permission for Gradlew to Execute
+        if: steps.source.outputs.skip != 'true'
         run: chmod +x gradlew
 
       - name: Publish SNAPSHOT to Sonatype
+        if: steps.source.outputs.skip != 'true'
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
         run: ./gradlew publishToSonatype --no-daemon --stacktrace
 
       - name: Clean up signing secrets
-        if: always()
+        if: ${{ always() && steps.source.outputs.skip != 'true' }}
         run: rm -f ~/.gradle/gradle.properties
