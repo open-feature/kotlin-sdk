@@ -12,6 +12,7 @@ class ExampleProvider(override val hooks: List<Hook<*>> = listOf()) : FeaturePro
         put("booleanFlag", true)
         put("stringFlag", "this is a string")
         put("intFlag", 1337)
+        put("longFlag", 9_000_000_000_000L)
         put("doubleFlag", 42.0)
         put(
             "objectFlag",
@@ -59,6 +60,12 @@ class ExampleProvider(override val hooks: List<Hook<*>> = listOf()) : FeaturePro
         defaultValue: Int,
         context: EvaluationContext?
     ): ProviderEvaluation<Int> = generateProviderEvaluation<Int>(defaultValue, key)
+
+    override fun getLongEvaluation(
+        key: String,
+        defaultValue: Long,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Long> = generateProviderEvaluation<Long>(defaultValue, key)
 
     override fun getDoubleEvaluation(
         key: String,

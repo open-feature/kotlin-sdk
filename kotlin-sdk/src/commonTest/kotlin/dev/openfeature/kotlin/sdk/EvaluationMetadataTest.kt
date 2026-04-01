@@ -9,6 +9,7 @@ class EvaluationMetadataTest {
     private val metadata = EvaluationMetadata.builder()
         .putString("key1", "value1")
         .putInt("key2", 42)
+        .putLong("key2b", 9_000_000_000_000L)
         .putBoolean("key3", true)
         .putDouble("key4", 2.71828)
         .build()
@@ -17,6 +18,7 @@ class EvaluationMetadataTest {
     fun testAddAndGet() {
         assertEquals("value1", metadata.getString("key1"))
         assertEquals(42, metadata.getInt("key2"))
+        assertEquals(9_000_000_000_000L, metadata.getLong("key2b"))
         assertEquals(true, metadata.getBoolean("key3"))
         assertEquals(2.71828, metadata.getDouble("key4"))
     }
@@ -30,6 +32,7 @@ class EvaluationMetadataTest {
     fun testInvalidType() {
         assertNull(metadata.getString("key2"))
         assertNull(metadata.getInt("key3"))
+        assertNull(metadata.getLong("key2"))
         assertNull(metadata.getBoolean("key4"))
         assertNull(metadata.getDouble("key1"))
     }

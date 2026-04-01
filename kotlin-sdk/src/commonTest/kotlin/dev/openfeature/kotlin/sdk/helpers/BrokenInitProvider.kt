@@ -53,6 +53,14 @@ class BrokenInitProvider(
         throw FlagNotFoundError(key)
     }
 
+    override fun getLongEvaluation(
+        key: String,
+        defaultValue: Long,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Long> {
+        throw FlagNotFoundError(key)
+    }
+
     override fun getDoubleEvaluation(
         key: String,
         defaultValue: Double,

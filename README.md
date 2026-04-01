@@ -308,6 +308,14 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
         // resolve an integer flag value
     }
 
+    override fun getLongEvaluation(
+        key: String,
+        defaultValue: Long,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Long> {
+        // resolve a long (64-bit integer) flag value
+    }
+
     override fun getObjectEvaluation(
         key: String,
         defaultValue: Value,

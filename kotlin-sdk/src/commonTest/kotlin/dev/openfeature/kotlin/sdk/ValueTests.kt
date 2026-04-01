@@ -19,6 +19,12 @@ class ValueTests {
     }
 
     @Test
+    fun testLongShouldConvertToLong() {
+        val value = Value.Long(3L)
+        assertEquals(3L, value.asLong())
+    }
+
+    @Test
     fun testDoubleShouldConvertToDouble() {
         val value = Value.Double(3.14)
         assertEquals(3.14, value.asDouble()!!, 0.0)

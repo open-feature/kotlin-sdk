@@ -65,6 +65,9 @@ class FlagEvaluationsTests {
         assertEquals(400, client.getIntegerValue(key, 4))
         assertEquals(400, client.getIntegerValue(key, 4, FlagEvaluationOptions()))
 
+        assertEquals(400L, client.getLongValue(key, 4L))
+        assertEquals(400L, client.getLongValue(key, 4L, FlagEvaluationOptions()))
+
         assertEquals(40.0, client.getDoubleValue(key, 0.4), 0.0)
         assertEquals(40.0, client.getDoubleValue(key, 0.4, FlagEvaluationOptions()), 0.0)
 
@@ -90,6 +93,10 @@ class FlagEvaluationsTests {
         val integerDetails = FlagEvaluationDetails(key, 400)
         assertEquals(integerDetails, client.getIntegerDetails(key, 4))
         assertEquals(integerDetails, client.getIntegerDetails(key, 4, FlagEvaluationOptions()))
+
+        val longDetails = FlagEvaluationDetails(key, 400L)
+        assertEquals(longDetails, client.getLongDetails(key, 4L))
+        assertEquals(longDetails, client.getLongDetails(key, 4L, FlagEvaluationOptions()))
 
         val doubleDetails = FlagEvaluationDetails(key, 40.0)
         assertEquals(doubleDetails, client.getDoubleDetails(key, 0.4))

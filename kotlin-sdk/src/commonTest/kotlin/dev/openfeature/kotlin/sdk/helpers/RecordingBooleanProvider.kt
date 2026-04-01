@@ -56,6 +56,14 @@ class RecordingBooleanProvider(
         throw UnsupportedOperationException()
     }
 
+    override fun getLongEvaluation(
+        key: String,
+        defaultValue: Long,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Long> {
+        throw UnsupportedOperationException()
+    }
+
     override fun getDoubleEvaluation(
         key: String,
         defaultValue: Double,
