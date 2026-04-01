@@ -88,6 +88,14 @@ class SpyProvider(
         TODO("Not yet implemented")
     }
 
+    override fun getLongEvaluation(
+        key: String,
+        defaultValue: Long,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Long> {
+        TODO("Not yet implemented")
+    }
+
     override fun getDoubleEvaluation(
         key: String,
         defaultValue: Double,
