@@ -1,8 +1,5 @@
 package dev.openfeature.kotlin.sdk.logging
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import platform.Foundation.NSLog
 
 /**
@@ -16,31 +13,30 @@ actual object LoggerFactory {
 /**
  * iOS-specific logger implementation using NSLog.
  * Logs are visible in Xcode console and device logs.
+ * NSLog prepends a timestamp automatically, so no additional timestamp is included.
  */
 internal class IosLogger(private val tag: String) : Logger {
-    private fun formatMessage(level: String, message: String, throwable: Throwable?): String {
-        val timestamp = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-        return buildString {
-            append("$timestamp [$level] $tag - $message")
+    private fun formatMessage(level: String, message: String, throwable: Throwable?): String =
+        buildString {
+            append("[$level] $tag - $message")
             if (throwable != null) {
                 append("\n${throwable.stackTraceToString()}")
             }
         }
+
+    override fun debug(throwable: Throwable?, message: () -> String) {
+        NSLog(formatMessage("DEBUG", message(), throwable))
     }
 
-    override fun debug(message: String, throwable: Throwable?) {
-        NSLog(formatMessage("DEBUG", message, throwable))
+    override fun info(throwable: Throwable?, message: () -> String) {
+        NSLog(formatMessage("INFO", message(), throwable))
     }
 
-    override fun info(message: String, throwable: Throwable?) {
-        NSLog(formatMessage("INFO", message, throwable))
+    override fun warn(throwable: Throwable?, message: () -> String) {
+        NSLog(formatMessage("WARN", message(), throwable))
     }
 
-    override fun warn(message: String, throwable: Throwable?) {
-        NSLog(formatMessage("WARN", message, throwable))
-    }
-
-    override fun error(message: String, throwable: Throwable?) {
-        NSLog(formatMessage("ERROR", message, throwable))
+    override fun error(throwable: Throwable?, message: () -> String) {
+        NSLog(formatMessage("ERROR", message(), throwable))
     }
 }

@@ -11,17 +11,30 @@ class LoggerTests {
         val logger = NoOpLogger()
 
         // All methods should execute without throwing
-        logger.debug("test message")
-        logger.info("test message")
-        logger.warn("test message")
-        logger.error("test message")
+        logger.debug { "test message" }
+        logger.info { "test message" }
+        logger.warn { "test message" }
+        logger.error { "test message" }
 
         // With throwables
         val throwable = RuntimeException("test exception")
-        logger.debug("test message", throwable)
-        logger.info("test message", throwable)
-        logger.warn("test message", throwable)
-        logger.error("test message", throwable)
+        logger.debug(throwable) { "test message" }
+        logger.info(throwable) { "test message" }
+        logger.warn(throwable) { "test message" }
+        logger.error(throwable) { "test message" }
+    }
+
+    @Test
+    fun `NoOpLogger does not evaluate message lambda`() {
+        val logger = NoOpLogger()
+        var evaluated = false
+
+        logger.debug {
+            evaluated = true
+            "should not be evaluated"
+        }
+
+        assertEquals(false, evaluated)
     }
 
     @Test
@@ -30,8 +43,8 @@ class LoggerTests {
         val message = "debug message"
         val throwable = RuntimeException("test exception")
 
-        logger.debug(message)
-        logger.debug("$message with throwable", throwable)
+        logger.debug { message }
+        logger.debug(throwable) { "$message with throwable" }
 
         assertEquals(2, logger.debugMessages.size)
         assertEquals(message, logger.debugMessages[0].message)
@@ -46,8 +59,8 @@ class LoggerTests {
         val message = "info message"
         val throwable = RuntimeException("test exception")
 
-        logger.info(message)
-        logger.info("$message with throwable", throwable)
+        logger.info { message }
+        logger.info(throwable) { "$message with throwable" }
 
         assertEquals(2, logger.infoMessages.size)
         assertEquals(message, logger.infoMessages[0].message)
@@ -62,8 +75,8 @@ class LoggerTests {
         val message = "warn message"
         val throwable = RuntimeException("test exception")
 
-        logger.warn(message)
-        logger.warn("$message with throwable", throwable)
+        logger.warn { message }
+        logger.warn(throwable) { "$message with throwable" }
 
         assertEquals(2, logger.warnMessages.size)
         assertEquals(message, logger.warnMessages[0].message)
@@ -78,8 +91,8 @@ class LoggerTests {
         val message = "error message"
         val throwable = RuntimeException("test exception")
 
-        logger.error(message)
-        logger.error("$message with throwable", throwable)
+        logger.error { message }
+        logger.error(throwable) { "$message with throwable" }
 
         assertEquals(2, logger.errorMessages.size)
         assertEquals(message, logger.errorMessages[0].message)
@@ -92,10 +105,10 @@ class LoggerTests {
     fun `TestLogger clear removes all messages`() {
         val logger = TestLogger()
 
-        logger.debug("debug")
-        logger.info("info")
-        logger.warn("warn")
-        logger.error("error")
+        logger.debug { "debug" }
+        logger.info { "info" }
+        logger.warn { "warn" }
+        logger.error { "error" }
 
         assertEquals(4, logger.getAllMessages().size)
 
@@ -112,10 +125,10 @@ class LoggerTests {
     fun `TestLogger getAllMessages returns all messages in order`() {
         val logger = TestLogger()
 
-        logger.debug("message 1")
-        logger.info("message 2")
-        logger.warn("message 3")
-        logger.error("message 4")
+        logger.debug { "message 1" }
+        logger.info { "message 2" }
+        logger.warn { "message 3" }
+        logger.error { "message 4" }
 
         val allMessages = logger.getAllMessages()
         assertEquals(4, allMessages.size)

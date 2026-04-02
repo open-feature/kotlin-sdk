@@ -29,32 +29,32 @@ class TestLogger : Logger {
 
     data class LogEntry(val message: String, val throwable: Throwable?)
 
-    override fun debug(message: String, throwable: Throwable?) {
-        val entry = LogEntry(message, throwable)
+    override fun debug(throwable: Throwable?, message: () -> String) {
+        val entry = LogEntry(message(), throwable)
         synchronized(lock) {
             _debugMessages.add(entry)
             _allMessages.add(entry)
         }
     }
 
-    override fun info(message: String, throwable: Throwable?) {
-        val entry = LogEntry(message, throwable)
+    override fun info(throwable: Throwable?, message: () -> String) {
+        val entry = LogEntry(message(), throwable)
         synchronized(lock) {
             _infoMessages.add(entry)
             _allMessages.add(entry)
         }
     }
 
-    override fun warn(message: String, throwable: Throwable?) {
-        val entry = LogEntry(message, throwable)
+    override fun warn(throwable: Throwable?, message: () -> String) {
+        val entry = LogEntry(message(), throwable)
         synchronized(lock) {
             _warnMessages.add(entry)
             _allMessages.add(entry)
         }
     }
 
-    override fun error(message: String, throwable: Throwable?) {
-        val entry = LogEntry(message, throwable)
+    override fun error(throwable: Throwable?, message: () -> String) {
+        val entry = LogEntry(message(), throwable)
         synchronized(lock) {
             _errorMessages.add(entry)
             _allMessages.add(entry)
