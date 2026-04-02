@@ -25,18 +25,18 @@ internal class IosLogger(private val tag: String) : Logger {
         }
 
     override fun debug(throwable: Throwable?, message: () -> String) {
-        NSLog(formatMessage("DEBUG", message(), throwable))
+        NSLog("%@", formatMessage("DEBUG", message(), throwable))
     }
 
     override fun info(throwable: Throwable?, message: () -> String) {
-        NSLog(formatMessage("INFO", message(), throwable))
+        NSLog("%@", formatMessage("INFO", message(), throwable))
     }
 
     override fun warn(throwable: Throwable?, message: () -> String) {
-        NSLog(formatMessage("WARN", message(), throwable))
+        NSLog("%@", formatMessage("WARN", message(), throwable))
     }
 
     override fun error(throwable: Throwable?, message: () -> String) {
-        NSLog(formatMessage("ERROR", message(), throwable))
+        NSLog("%@", formatMessage("ERROR", message(), throwable))
     }
 }
