@@ -15,19 +15,19 @@ actual object LoggerFactory {
  * Logs are visible in Logcat.
  */
 internal class AndroidLogger(private val tag: String) : Logger {
-    override fun debug(throwable: Throwable?, message: () -> String) = log(Log.DEBUG, message(), throwable)
+    override fun debug(throwable: Throwable?, message: () -> String) {
+        Log.d(tag, message(), throwable)
+    }
 
-    override fun info(throwable: Throwable?, message: () -> String) = log(Log.INFO, message(), throwable)
+    override fun info(throwable: Throwable?, message: () -> String) {
+        Log.i(tag, message(), throwable)
+    }
 
-    override fun warn(throwable: Throwable?, message: () -> String) = log(Log.WARN, message(), throwable)
+    override fun warn(throwable: Throwable?, message: () -> String) {
+        Log.w(tag, message(), throwable)
+    }
 
-    override fun error(throwable: Throwable?, message: () -> String) = log(Log.ERROR, message(), throwable)
-
-    private fun log(level: Int, message: String, throwable: Throwable?) {
-        if (throwable != null) {
-            Log.println(level, tag, message + '\n' + Log.getStackTraceString(throwable))
-        } else {
-            Log.println(level, tag, message)
-        }
+    override fun error(throwable: Throwable?, message: () -> String) {
+        Log.e(tag, message(), throwable)
     }
 }
