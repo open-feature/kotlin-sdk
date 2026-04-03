@@ -181,24 +181,33 @@ public final class dev/openfeature/kotlin/sdk/Hook$DefaultImpls {
 }
 
 public final class dev/openfeature/kotlin/sdk/HookContext {
-	public fun <init> (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagValueType;Ljava/lang/Object;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/ClientMetadata;Ldev/openfeature/kotlin/sdk/ProviderMetadata;)V
+	public fun <init> (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagValueType;Ljava/lang/Object;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/ClientMetadata;Ldev/openfeature/kotlin/sdk/ProviderMetadata;Ldev/openfeature/kotlin/sdk/HookData;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagValueType;Ljava/lang/Object;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/ClientMetadata;Ldev/openfeature/kotlin/sdk/ProviderMetadata;Ldev/openfeature/kotlin/sdk/HookData;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ldev/openfeature/kotlin/sdk/FlagValueType;
 	public final fun component3 ()Ljava/lang/Object;
 	public final fun component4 ()Ldev/openfeature/kotlin/sdk/EvaluationContext;
 	public final fun component5 ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
 	public final fun component6 ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
-	public final fun copy (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagValueType;Ljava/lang/Object;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/ClientMetadata;Ldev/openfeature/kotlin/sdk/ProviderMetadata;)Ldev/openfeature/kotlin/sdk/HookContext;
-	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagValueType;Ljava/lang/Object;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/ClientMetadata;Ldev/openfeature/kotlin/sdk/ProviderMetadata;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/HookContext;
+	public final fun component7 ()Ldev/openfeature/kotlin/sdk/HookData;
+	public final fun copy (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagValueType;Ljava/lang/Object;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/ClientMetadata;Ldev/openfeature/kotlin/sdk/ProviderMetadata;Ldev/openfeature/kotlin/sdk/HookData;)Ldev/openfeature/kotlin/sdk/HookContext;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagValueType;Ljava/lang/Object;Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/ClientMetadata;Ldev/openfeature/kotlin/sdk/ProviderMetadata;Ldev/openfeature/kotlin/sdk/HookData;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/HookContext;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getClientMetadata ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
 	public final fun getCtx ()Ldev/openfeature/kotlin/sdk/EvaluationContext;
 	public final fun getDefaultValue ()Ljava/lang/Object;
 	public final fun getFlagKey ()Ljava/lang/String;
+	public final fun getHookData ()Ldev/openfeature/kotlin/sdk/HookData;
 	public final fun getProviderMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
 	public final fun getType ()Ldev/openfeature/kotlin/sdk/FlagValueType;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/HookData {
+	public abstract fun get (Ljava/lang/String;)Ljava/lang/Object;
+	public abstract fun get (Ljava/lang/String;Lkotlin/reflect/KClass;)Ljava/lang/Object;
+	public abstract fun set (Ljava/lang/String;Ljava/lang/Object;)V
 }
 
 public final class dev/openfeature/kotlin/sdk/HookSupport {

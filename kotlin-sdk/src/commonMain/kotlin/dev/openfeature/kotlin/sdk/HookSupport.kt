@@ -5,41 +5,40 @@ class HookSupport {
     fun <T> beforeHooks(
         flagValueType: FlagValueType,
         hookCtx: HookContext<T>,
-        hooks: List<Hook<*>>,
+        hooksWithData: List<Pair<Hook<*>, HookData>>,
         hints: Map<String, Any>
     ) {
-        hooks
+        hooksWithData
             .reversed()
-            .filter { hook -> hook.supportsFlagValueType(flagValueType) }
-            .forEach { hook ->
+            .forEach { (hook, hookData) ->
                 when (flagValueType) {
                     FlagValueType.BOOLEAN -> {
                         safeLet(hook as? Hook<Boolean>, hookCtx as? HookContext<Boolean>) { booleanHook, booleanCtx ->
-                            booleanHook.before(booleanCtx, hints)
+                            booleanHook.before(booleanCtx.copy(hookData = hookData), hints)
                         }
                     }
 
                     FlagValueType.STRING -> {
                         safeLet(hook as? Hook<String>, hookCtx as? HookContext<String>) { stringHook, stringCtx ->
-                            stringHook.before(stringCtx, hints)
+                            stringHook.before(stringCtx.copy(hookData = hookData), hints)
                         }
                     }
 
                     FlagValueType.INTEGER -> {
                         safeLet(hook as? Hook<Int>, hookCtx as? HookContext<Int>) { integerHook, integerCtx ->
-                            integerHook.before(integerCtx, hints)
+                            integerHook.before(integerCtx.copy(hookData = hookData), hints)
                         }
                     }
 
                     FlagValueType.DOUBLE -> {
                         safeLet(hook as? Hook<Double>, hookCtx as? HookContext<Double>) { doubleHook, doubleCtx ->
-                            doubleHook.before(doubleCtx, hints)
+                            doubleHook.before(doubleCtx.copy(hookData = hookData), hints)
                         }
                     }
 
                     FlagValueType.OBJECT -> {
                         safeLet(hook as? Hook<Value>, hookCtx as? HookContext<Value>) { objectHook, objectCtx ->
-                            objectHook.before(objectCtx, hints)
+                            objectHook.before(objectCtx.copy(hookData = hookData), hints)
                         }
                     }
                 }
@@ -50,12 +49,11 @@ class HookSupport {
         flagValueType: FlagValueType,
         hookCtx: HookContext<T>,
         details: FlagEvaluationDetails<T>,
-        hooks: List<Hook<*>>,
+        hooksWithData: List<Pair<Hook<*>, HookData>>,
         hints: Map<String, Any>
     ) {
-        hooks
-            .filter { hook -> hook.supportsFlagValueType(flagValueType) }
-            .forEach { hook ->
+        hooksWithData
+            .forEach { (hook, hookData) ->
                 run {
                     when (flagValueType) {
                         FlagValueType.BOOLEAN -> {
@@ -64,7 +62,7 @@ class HookSupport {
                                 hookCtx as? HookContext<Boolean>,
                                 details as? FlagEvaluationDetails<Boolean>
                             ) { booleanHook, booleanCtx, booleanDetails ->
-                                booleanHook.after(booleanCtx, booleanDetails, hints)
+                                booleanHook.after(booleanCtx.copy(hookData = hookData), booleanDetails, hints)
                             }
                         }
 
@@ -74,7 +72,7 @@ class HookSupport {
                                 hookCtx as? HookContext<String>,
                                 details as? FlagEvaluationDetails<String>
                             ) { stringHook, stringCtx, stringDetails ->
-                                stringHook.after(stringCtx, stringDetails, hints)
+                                stringHook.after(stringCtx.copy(hookData = hookData), stringDetails, hints)
                             }
                         }
 
@@ -84,7 +82,7 @@ class HookSupport {
                                 hookCtx as? HookContext<Int>,
                                 details as? FlagEvaluationDetails<Int>
                             ) { integerHook, integerCtx, integerDetails ->
-                                integerHook.after(integerCtx, integerDetails, hints)
+                                integerHook.after(integerCtx.copy(hookData = hookData), integerDetails, hints)
                             }
                         }
 
@@ -94,7 +92,7 @@ class HookSupport {
                                 hookCtx as? HookContext<Double>,
                                 details as? FlagEvaluationDetails<Double>
                             ) { doubleHook, doubleCtx, doubleDetails ->
-                                doubleHook.after(doubleCtx, doubleDetails, hints)
+                                doubleHook.after(doubleCtx.copy(hookData = hookData), doubleDetails, hints)
                             }
                         }
 
@@ -104,7 +102,7 @@ class HookSupport {
                                 hookCtx as? HookContext<Value>,
                                 details as? FlagEvaluationDetails<Value>
                             ) { objectHook, objectCtx, objectDetails ->
-                                objectHook.after(objectCtx, objectDetails, hints)
+                                objectHook.after(objectCtx.copy(hookData = hookData), objectDetails, hints)
                             }
                         }
                     }
@@ -116,12 +114,11 @@ class HookSupport {
         flagValueType: FlagValueType,
         hookCtx: HookContext<T>,
         details: FlagEvaluationDetails<T>,
-        hooks: List<Hook<*>>,
+        hooksWithData: List<Pair<Hook<*>, HookData>>,
         hints: Map<String, Any>
     ) {
-        hooks
-            .filter { hook -> hook.supportsFlagValueType(flagValueType) }
-            .forEach { hook ->
+        hooksWithData
+            .forEach { (hook, hookData) ->
                 run {
                     when (flagValueType) {
                         FlagValueType.BOOLEAN -> {
@@ -130,7 +127,7 @@ class HookSupport {
                                 hookCtx as? HookContext<Boolean>,
                                 details as? FlagEvaluationDetails<Boolean>
                             ) { booleanHook, booleanCtx, booleanDetails ->
-                                booleanHook.finallyAfter(booleanCtx, booleanDetails, hints)
+                                booleanHook.finallyAfter(booleanCtx.copy(hookData = hookData), booleanDetails, hints)
                             }
                         }
 
@@ -140,7 +137,7 @@ class HookSupport {
                                 hookCtx as? HookContext<String>,
                                 details as? FlagEvaluationDetails<String>
                             ) { stringHook, stringCtx, stringDetails ->
-                                stringHook.finallyAfter(stringCtx, stringDetails, hints)
+                                stringHook.finallyAfter(stringCtx.copy(hookData = hookData), stringDetails, hints)
                             }
                         }
 
@@ -150,7 +147,7 @@ class HookSupport {
                                 hookCtx as? HookContext<Int>,
                                 details as? FlagEvaluationDetails<Int>
                             ) { integerHook, integerCtx, integerDetails ->
-                                integerHook.finallyAfter(integerCtx, integerDetails, hints)
+                                integerHook.finallyAfter(integerCtx.copy(hookData = hookData), integerDetails, hints)
                             }
                         }
 
@@ -160,7 +157,7 @@ class HookSupport {
                                 hookCtx as? HookContext<Double>,
                                 details as? FlagEvaluationDetails<Double>
                             ) { doubleHook, doubleCtx, doubleDetails ->
-                                doubleHook.finallyAfter(doubleCtx, doubleDetails, hints)
+                                doubleHook.finallyAfter(doubleCtx.copy(hookData = hookData), doubleDetails, hints)
                             }
                         }
 
@@ -170,7 +167,7 @@ class HookSupport {
                                 hookCtx as? HookContext<Value>,
                                 details as? FlagEvaluationDetails<Value>
                             ) { objectHook, objectCtx, objectDetails ->
-                                objectHook.finallyAfter(objectCtx, objectDetails, hints)
+                                objectHook.finallyAfter(objectCtx.copy(hookData = hookData), objectDetails, hints)
                             }
                         }
                     }
@@ -182,12 +179,11 @@ class HookSupport {
         flagValueType: FlagValueType,
         hookCtx: HookContext<T>,
         error: Exception,
-        hooks: List<Hook<*>>,
+        hooksWithData: List<Pair<Hook<*>, HookData>>,
         hints: Map<String, Any>
     ) {
-        hooks
-            .filter { hook -> hook.supportsFlagValueType(flagValueType) }
-            .forEach { hook ->
+        hooksWithData
+            .forEach { (hook, hookData) ->
                 run {
                     when (flagValueType) {
                         FlagValueType.BOOLEAN -> {
@@ -195,7 +191,7 @@ class HookSupport {
                                 hook as? Hook<Boolean>,
                                 hookCtx as? HookContext<Boolean>
                             ) { booleanHook, booleanCtx ->
-                                booleanHook.error(booleanCtx, error, hints)
+                                booleanHook.error(booleanCtx.copy(hookData = hookData), error, hints)
                             }
                         }
 
@@ -204,7 +200,7 @@ class HookSupport {
                                 hook as? Hook<String>,
                                 hookCtx as? HookContext<String>
                             ) { stringHook, stringCtx ->
-                                stringHook.error(stringCtx, error, hints)
+                                stringHook.error(stringCtx.copy(hookData = hookData), error, hints)
                             }
                         }
 
@@ -213,7 +209,7 @@ class HookSupport {
                                 hook as? Hook<Int>,
                                 hookCtx as? HookContext<Int>
                             ) { integerHook, integerCtx ->
-                                integerHook.error(integerCtx, error, hints)
+                                integerHook.error(integerCtx.copy(hookData = hookData), error, hints)
                             }
                         }
 
@@ -222,7 +218,7 @@ class HookSupport {
                                 hook as? Hook<Double>,
                                 hookCtx as? HookContext<Double>
                             ) { doubleHook, doubleCtx ->
-                                doubleHook.error(doubleCtx, error, hints)
+                                doubleHook.error(doubleCtx.copy(hookData = hookData), error, hints)
                             }
                         }
 
@@ -231,7 +227,7 @@ class HookSupport {
                                 hook as? Hook<Value>,
                                 hookCtx as? HookContext<Value>
                             ) { objectHook, objectCtx ->
-                                objectHook.error(objectCtx, error, hints)
+                                objectHook.error(objectCtx.copy(hookData = hookData), error, hints)
                             }
                         }
                     }

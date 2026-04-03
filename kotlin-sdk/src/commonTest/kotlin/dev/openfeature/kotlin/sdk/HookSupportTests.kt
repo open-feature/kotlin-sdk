@@ -27,32 +27,34 @@ class HookSupportTests {
         )
 
         val hookSupport = HookSupport()
+        val hookData = DefaultHookData()
+        val hooksWithData = listOf(hook to hookData)
 
         hookSupport.beforeHooks(
             FlagValueType.BOOLEAN,
             hookContext,
-            listOf(hook),
+            hooksWithData,
             mapOf()
         )
         hookSupport.afterHooks(
             FlagValueType.BOOLEAN,
             hookContext,
             FlagEvaluationDetails("", false),
-            listOf(hook),
+            hooksWithData,
             mapOf()
         )
         hookSupport.afterAllHooks(
             FlagValueType.BOOLEAN,
             hookContext,
             FlagEvaluationDetails("", false),
-            listOf(hook),
+            hooksWithData,
             mapOf()
         )
         hookSupport.errorHooks(
             FlagValueType.BOOLEAN,
             hookContext,
             InvalidContextError(),
-            listOf(hook),
+            hooksWithData,
             mapOf()
         )
 

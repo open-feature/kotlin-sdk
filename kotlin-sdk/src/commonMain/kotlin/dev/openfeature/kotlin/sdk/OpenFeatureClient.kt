@@ -178,6 +178,10 @@ class OpenFeatureClient(
         var details = FlagEvaluationDetails(key, defaultValue)
         val provider = openFeatureAPI.getProvider()
         val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
+        val hooksWithData: List<Pair<Hook<*>, HookData>> =
+            mergedHooks
+                .filter { it.supportsFlagValueType(flagValueType) }
+                .map { it to DefaultHookData() }
         val context = openFeatureAPI.getEvaluationContext()
         val hookCtx: HookContext<T> = HookContext(
             key,
@@ -188,7 +192,7 @@ class OpenFeatureClient(
             provider.metadata
         )
         try {
-            hookSupport.beforeHooks(flagValueType, hookCtx, mergedHooks, hints)
+            hookSupport.beforeHooks(flagValueType, hookCtx, hooksWithData, hints)
             shortCircuitIfNotReady()
             val providerEval = createProviderEvaluation(
                 flagValueType,
@@ -198,7 +202,7 @@ class OpenFeatureClient(
                 provider
             )
             details = FlagEvaluationDetails.from(providerEval, key)
-            hookSupport.afterHooks(flagValueType, hookCtx, details, mergedHooks, hints)
+            hookSupport.afterHooks(flagValueType, hookCtx, details, hooksWithData, hints)
         } catch (error: Exception) {
             val errorCode = if (error is OpenFeatureError) {
                 error.errorCode()
@@ -212,9 +216,9 @@ class OpenFeatureClient(
                 errorCode = errorCode
             )
 
-            hookSupport.errorHooks(flagValueType, hookCtx, error, mergedHooks, hints)
+            hookSupport.errorHooks(flagValueType, hookCtx, error, hooksWithData, hints)
         }
-        hookSupport.afterAllHooks(flagValueType, hookCtx, details, mergedHooks, hints)
+        hookSupport.afterAllHooks(flagValueType, hookCtx, details, hooksWithData, hints)
         return details
     }
 
