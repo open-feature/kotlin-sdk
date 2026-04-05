@@ -82,3 +82,40 @@ jobs:
       - name: Test Build
         if: steps.source.outputs.skip != 'true'
         run: ./gradlew assemble publishToMavenLocal --no-daemon --stacktrace
+
+      - name: Verify Published Variants
+        if: steps.source.outputs.skip != 'true'
+        run: |
+          VERSION="${{ steps.final.outputs.version }}"
+          REPO_DIR="$HOME/.m2/repository/dev/openfeature"
+          
+          echo "Checking for published artifacts in Maven Local..."
+          
+          # List of expected variant directories
+          VARIANTS=(
+            "kotlin-sdk"
+            "kotlin-sdk-android"
+            "kotlin-sdk-jvm"
+            "kotlin-sdk-js"
+            "kotlin-sdk-linuxx64"
+            "kotlin-sdk-iosarm64"
+            "kotlin-sdk-iossimulatorarm64"
+          )
+          
+          MISSING=0
+          for VARIANT in "${VARIANTS[@]}"; do
+            POM_FILE="$REPO_DIR/$VARIANT/$VERSION/$VARIANT-$VERSION.pom"
+            if [ -f "$POM_FILE" ]; then
+              echo "✅ Found $VARIANT"
+            else
+              echo "❌ Missing $VARIANT ($POM_FILE not found)"
+              MISSING=1
+            fi
+          done
+          
+          if [ $MISSING -eq 1 ]; then
+            echo "Error: One or more variants failed to publish to Maven Local."
+            exit 1
+          else
+            echo "Success: All expected variants were published correctly."
+          fi
