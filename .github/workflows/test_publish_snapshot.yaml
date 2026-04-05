@@ -1,20 +1,16 @@
-name: Publish SNAPSHOT
+name: Test Publish SNAPSHOT
 
 on:
-  workflow_run:
-    workflows: ["Run Release Please"]
-    types: [completed]
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish (without -SNAPSHOT suffix). Leave empty to auto-detect from open Release Please PR."
+        description: "Version to test (without -SNAPSHOT suffix). Leave empty to auto-detect from open Release Please PR."
         required: false
         type: string
 
 jobs:
-  publish-snapshot:
+  test-publish-snapshot:
     runs-on: macos-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Determine source branch
         id: source
@@ -30,7 +26,7 @@ jobs:
             PR_JSON=$(gh pr list --repo "${{ github.repository }}" --label "autorelease: pending" --json headRefName,number --jq '.[0]')
             if [ -z "$PR_JSON" ] || [ "$PR_JSON" = "null" ]; then
               echo "skip=true" >> "$GITHUB_OUTPUT"
-              echo "No open Release Please PR found. Skipping SNAPSHOT publish."
+              echo "No open Release Please PR found. Skipping test."
               exit 0
             fi
             BRANCH=$(echo "$PR_JSON" | jq -r '.headRefName')
@@ -72,24 +68,6 @@ jobs:
         if: steps.source.outputs.skip != 'true'
         uses: gradle/actions/setup-gradle@v5
 
-      - name: Configure GPG Key
-        if: steps.source.outputs.skip != 'true'
-        run: |
-          echo -n "$GPG_SIGNING_KEY" | gpg --import
-          gpg --pinentry-mode=loopback --export-secret-key 08C5EC5C > ~/.gnupg/secring.gpg
-        env:
-          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-
-      - name: Add signing secrets to gradle.properties
-        if: steps.source.outputs.skip != 'true'
-        run: |
-          mkdir -p ~/.gradle/
-          echo "signing.keyId=08C5EC5C" >> ~/.gradle/gradle.properties
-          echo "signing.secretKeyRingFile=$HOME/.gnupg/secring.gpg" >> ~/.gradle/gradle.properties
-          echo "signing.password=$GPG_SIGNING_KEY_PASSWORD" >> ~/.gradle/gradle.properties
-        env:
-          GPG_SIGNING_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_KEY_PASSWORD }}
-
       - name: Set up JDK 17
         if: steps.source.outputs.skip != 'true'
         uses: actions/setup-java@v5
@@ -101,13 +79,6 @@ jobs:
         if: steps.source.outputs.skip != 'true'
         run: chmod +x gradlew
 
-      - name: Publish SNAPSHOT to Sonatype
+      - name: Test Build
         if: steps.source.outputs.skip != 'true'
-        env:
-          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
-          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
-        run: ./gradlew publishToSonatype --no-daemon --stacktrace
-
-      - name: Clean up signing secrets
-        if: ${{ always() && steps.source.outputs.skip != 'true' }}
-        run: rm -f ~/.gradle/gradle.properties
+        run: ./gradlew assemble publishToMavenLocal --no-daemon --stacktrace
