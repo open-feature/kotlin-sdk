@@ -1,6 +1,10 @@
 name: Test Publish SNAPSHOT
 
 on:
+  pull_request:
+  push:
+    branches:
+      - Update-Snapshot-Action
   workflow_dispatch:
     inputs:
       version:
