@@ -1,9 +1,8 @@
-package dev.openfeature.kotlin.sdk
-
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 
 internal class DefaultHookData(
-    private val backing: MutableMap<String, Any?> = mutableMapOf()
+    private val backing: MutableMap<String, Any?> = ConcurrentHashMap()
 ) : HookData {
 
     override operator fun set(key: String, value: Any?) {
