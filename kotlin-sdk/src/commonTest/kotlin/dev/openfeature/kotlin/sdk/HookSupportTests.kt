@@ -27,7 +27,7 @@ class HookSupportTests {
         )
 
         val hookSupport = HookSupport()
-        val hookData = DefaultHookData()
+        val hookData = HookData()
         val hooksWithData = listOf(hook to hookData)
 
         hookSupport.beforeHooks(

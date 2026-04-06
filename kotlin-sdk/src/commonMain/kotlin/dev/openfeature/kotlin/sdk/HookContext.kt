@@ -7,5 +7,5 @@ data class HookContext<T>(
     val ctx: EvaluationContext?,
     val clientMetadata: ClientMetadata?,
     val providerMetadata: ProviderMetadata,
-    val hookData: HookData = DefaultHookData()
+    val hookData: HookData = HookData()
 )

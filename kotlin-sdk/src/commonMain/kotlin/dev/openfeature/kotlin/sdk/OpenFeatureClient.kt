@@ -181,7 +181,7 @@ class OpenFeatureClient(
         val hooksWithData: List<Pair<Hook<*>, HookData>> =
             mergedHooks
                 .filter { it.supportsFlagValueType(flagValueType) }
-                .map { it to DefaultHookData() }
+                .map { it to HookData() }
         val context = openFeatureAPI.getEvaluationContext()
         val hookCtx: HookContext<T> = HookContext(
             key,
