@@ -9,7 +9,7 @@ class HookSupport {
         hints: Map<String, Any>
     ) {
         hooksWithData
-            .reversed()
+            .asReversed()
             .forEach { (hook, hookData) ->
                 when (flagValueType) {
                     FlagValueType.BOOLEAN -> {
