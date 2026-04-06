@@ -6,11 +6,11 @@ internal class DefaultHookData(
     private val backing: MutableMap<String, Any?> = mutableMapOf()
 ) : HookData {
 
-    override fun set(key: String, value: Any?) {
+    override operator fun set(key: String, value: Any?) {
         backing[key] = value
     }
 
-    override fun get(key: String): Any? = backing[key]
+    override operator fun get(key: String): Any? = backing[key]
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> get(key: String, type: KClass<T>): T? {
