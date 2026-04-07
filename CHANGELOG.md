@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.2](https://github.com/open-feature/kotlin-sdk/compare/v0.7.1...v0.7.2) (2026-03-10)
+
+
+### ✨ New Features
+
+* MultiProvider tracking ([#209](https://github.com/open-feature/kotlin-sdk/issues/209)) ([601fcbd](https://github.com/open-feature/kotlin-sdk/commit/601fcbd431a7742b11480913abfc8381a794cbb0))
+
+
+### 🧹 Chore
+
+* remove temp ci job ([#214](https://github.com/open-feature/kotlin-sdk/issues/214)) ([da78bad](https://github.com/open-feature/kotlin-sdk/commit/da78badb212cacac19cd40bddeb7358bbd7159ac))
+
 ## [0.7.1](https://github.com/open-feature/kotlin-sdk/compare/v0.7.0...v0.7.1) (2026-01-16)
 
 
