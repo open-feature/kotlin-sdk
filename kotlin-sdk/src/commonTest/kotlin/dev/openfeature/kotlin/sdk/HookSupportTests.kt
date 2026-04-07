@@ -27,7 +27,7 @@ class HookSupportTests {
         )
 
         val hookSupport = HookSupport()
-        val hookData = HookData()
+        val hookData = mutableMapOf<String, Any>()
         val hooksWithData = listOf(hook to hookData)
 
         hookSupport.beforeHooks(

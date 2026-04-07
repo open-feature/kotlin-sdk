@@ -178,10 +178,10 @@ class OpenFeatureClient(
         var details = FlagEvaluationDetails(key, defaultValue)
         val provider = openFeatureAPI.getProvider()
         val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
-        val hooksWithData: List<Pair<Hook<*>, HookData>> =
+        val hooksWithData: List<Pair<Hook<*>, MutableMap<String, Any>>> =
             mergedHooks
                 .filter { it.supportsFlagValueType(flagValueType) }
-                .map { it to HookData() }
+                .map { it to mutableMapOf<String, Any>() }
         val context = openFeatureAPI.getEvaluationContext()
         val hookCtx: HookContext<T> = HookContext(
             key,

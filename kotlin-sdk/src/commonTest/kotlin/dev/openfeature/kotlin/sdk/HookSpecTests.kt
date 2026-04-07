@@ -86,7 +86,7 @@ class HookSpecTests {
         var finallyValue: Any? = null
         val hook = object : Hook<Boolean> {
             override fun before(ctx: HookContext<Boolean>, hints: Map<String, Any>) {
-                ctx.hookData.set("span", 42)
+                ctx.hookData["span"] = 42
             }
 
             override fun after(
@@ -94,7 +94,7 @@ class HookSpecTests {
                 details: FlagEvaluationDetails<Boolean>,
                 hints: Map<String, Any>
             ) {
-                afterValue = ctx.hookData.get("span")
+                afterValue = ctx.hookData["span"]
             }
 
             override fun finallyAfter(
@@ -102,7 +102,7 @@ class HookSpecTests {
                 details: FlagEvaluationDetails<Boolean>,
                 hints: Map<String, Any>
             ) {
-                finallyValue = ctx.hookData.get("span")
+                finallyValue = ctx.hookData["span"]
             }
         }
 
@@ -118,7 +118,7 @@ class HookSpecTests {
         val client = OpenFeatureAPI.getClient()
         val hookA = object : Hook<Boolean> {
             override fun before(ctx: HookContext<Boolean>, hints: Map<String, Any>) {
-                ctx.hookData.set("onlyA", "a")
+                ctx.hookData["onlyA"] = "a"
             }
 
             override fun after(
@@ -126,13 +126,13 @@ class HookSpecTests {
                 details: FlagEvaluationDetails<Boolean>,
                 hints: Map<String, Any>
             ) {
-                assertEquals("a", ctx.hookData.get("onlyA"))
-                assertNull(ctx.hookData.get("onlyB"))
+                assertEquals("a", ctx.hookData["onlyA"])
+                assertNull(ctx.hookData["onlyB"])
             }
         }
         val hookB = object : Hook<Boolean> {
             override fun before(ctx: HookContext<Boolean>, hints: Map<String, Any>) {
-                ctx.hookData.set("onlyB", "b")
+                ctx.hookData["onlyB"] = "b"
             }
 
             override fun after(
@@ -140,8 +140,8 @@ class HookSpecTests {
                 details: FlagEvaluationDetails<Boolean>,
                 hints: Map<String, Any>
             ) {
-                assertEquals("b", ctx.hookData.get("onlyB"))
-                assertNull(ctx.hookData.get("onlyA"))
+                assertEquals("b", ctx.hookData["onlyB"])
+                assertNull(ctx.hookData["onlyA"])
             }
         }
 
@@ -156,11 +156,11 @@ class HookSpecTests {
         var finallyValue: Any? = null
         val hook = object : Hook<Boolean> {
             override fun before(ctx: HookContext<Boolean>, hints: Map<String, Any>) {
-                ctx.hookData.set("trace", "from-before")
+                ctx.hookData["trace"] = "from-before"
             }
 
             override fun error(ctx: HookContext<Boolean>, error: Exception, hints: Map<String, Any>) {
-                errorValue = ctx.hookData.get("trace")
+                errorValue = ctx.hookData["trace"]
             }
 
             override fun finallyAfter(
@@ -168,7 +168,7 @@ class HookSpecTests {
                 details: FlagEvaluationDetails<Boolean>,
                 hints: Map<String, Any>
             ) {
-                finallyValue = ctx.hookData.get("trace")
+                finallyValue = ctx.hookData["trace"]
             }
         }
 

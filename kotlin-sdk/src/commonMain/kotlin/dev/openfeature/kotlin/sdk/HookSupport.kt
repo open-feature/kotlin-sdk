@@ -5,7 +5,7 @@ class HookSupport {
     fun <T> beforeHooks(
         flagValueType: FlagValueType,
         hookCtx: HookContext<T>,
-        hooksWithData: List<Pair<Hook<*>, HookData>>,
+        hooksWithData: List<Pair<Hook<*>, MutableMap<String, Any>>>,
         hints: Map<String, Any>
     ) {
         hooksWithData
@@ -49,7 +49,7 @@ class HookSupport {
         flagValueType: FlagValueType,
         hookCtx: HookContext<T>,
         details: FlagEvaluationDetails<T>,
-        hooksWithData: List<Pair<Hook<*>, HookData>>,
+        hooksWithData: List<Pair<Hook<*>, MutableMap<String, Any>>>,
         hints: Map<String, Any>
     ) {
         hooksWithData
@@ -114,7 +114,7 @@ class HookSupport {
         flagValueType: FlagValueType,
         hookCtx: HookContext<T>,
         details: FlagEvaluationDetails<T>,
-        hooksWithData: List<Pair<Hook<*>, HookData>>,
+        hooksWithData: List<Pair<Hook<*>, MutableMap<String, Any>>>,
         hints: Map<String, Any>
     ) {
         hooksWithData
@@ -179,7 +179,7 @@ class HookSupport {
         flagValueType: FlagValueType,
         hookCtx: HookContext<T>,
         error: Exception,
-        hooksWithData: List<Pair<Hook<*>, HookData>>,
+        hooksWithData: List<Pair<Hook<*>, MutableMap<String, Any>>>,
         hints: Map<String, Any>
     ) {
         hooksWithData
