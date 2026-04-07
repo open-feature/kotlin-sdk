@@ -45,13 +45,23 @@ interface FeatureProvider {
     fun getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?): ProviderEvaluation<Value>
 
     /**
-     * Default implementation returns the default value.
      * Providers should implement this properly, following
-     * the same patternas the other evaluation methods.
+     * the patterns of other evaluation methods.
      * Note: This default will be removed at 1.0 release.
      */
     fun getLongEvaluation(key: String, defaultValue: Long, context: EvaluationContext?): ProviderEvaluation<Long> {
-        return ProviderEvaluation(value = defaultValue)
+        require(defaultValue in Int.MIN_VALUE..Int.MAX_VALUE) {
+            "defaultValue $defaultValue exceeds Int range, override getLongEvaluation for native Long support"
+        }
+        val intResult = getIntegerEvaluation(key, defaultValue.toInt(), context)
+        return ProviderEvaluation(
+            value = intResult.value.toLong(),
+            variant = intResult.variant,
+            reason = intResult.reason,
+            errorCode = intResult.errorCode,
+            errorMessage = intResult.errorMessage,
+            metadata = intResult.metadata
+        )
     }
 
     /**
