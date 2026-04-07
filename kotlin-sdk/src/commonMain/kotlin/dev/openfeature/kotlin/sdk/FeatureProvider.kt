@@ -51,7 +51,7 @@ interface FeatureProvider {
      */
     fun getLongEvaluation(key: String, defaultValue: Long, context: EvaluationContext?): ProviderEvaluation<Long> {
         require(defaultValue in Int.MIN_VALUE..Int.MAX_VALUE) {
-            "defaultValue $defaultValue exceeds Int range, override getLongEvaluation for native Long support"
+            "provider does not implement getLongEvaluation and we're unable to delegate to getIntegerEvaluation because defaultValue $defaultValue exceeds Int range"
         }
         val intResult = getIntegerEvaluation(key, defaultValue.toInt(), context)
         return ProviderEvaluation(
