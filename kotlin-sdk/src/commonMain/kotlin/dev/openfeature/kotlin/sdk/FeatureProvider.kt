@@ -41,9 +41,18 @@ interface FeatureProvider {
 
     fun getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?): ProviderEvaluation<String>
     fun getIntegerEvaluation(key: String, defaultValue: Int, context: EvaluationContext?): ProviderEvaluation<Int>
-    fun getLongEvaluation(key: String, defaultValue: Long, context: EvaluationContext?): ProviderEvaluation<Long>
     fun getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?): ProviderEvaluation<Double>
     fun getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?): ProviderEvaluation<Value>
+
+    /**
+     * Default implementation returns the default value.
+     * Providers should implement this properly, following
+     * the same patternas the other evaluation methods.
+     * Note: This default will be removed at 1.0 release.
+     */
+    fun getLongEvaluation(key: String, defaultValue: Long, context: EvaluationContext?): ProviderEvaluation<Long> {
+        return ProviderEvaluation(value = defaultValue)
+    }
 
     /**
      * Feature provider implementations can opt in for to support Tracking by implementing this method.
