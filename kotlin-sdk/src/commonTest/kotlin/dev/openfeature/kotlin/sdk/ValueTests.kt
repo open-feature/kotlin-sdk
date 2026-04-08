@@ -20,8 +20,8 @@ class ValueTests {
 
     @Test
     fun testLongShouldConvertToLong() {
-        val value = Value.Long(3L)
-        assertEquals(3L, value.asLong())
+        val value = Value.Long(Long.MAX_VALUE)
+        assertEquals(Long.MAX_VALUE, value.asLong())
     }
 
     @Test

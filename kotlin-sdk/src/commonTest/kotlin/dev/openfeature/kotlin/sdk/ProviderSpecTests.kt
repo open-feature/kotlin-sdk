@@ -20,7 +20,7 @@ class ProviderSpecTests {
         val intResult = provider.getIntegerEvaluation("key", 4, ImmutableContext())
         assertNotNull(intResult.value)
 
-        val longResult = provider.getLongEvaluation("key", 4L, ImmutableContext())
+        val longResult = provider.getLongEvaluation("key", Long.MAX_VALUE, ImmutableContext())
         assertNotNull(longResult.value)
 
         val doubleResult = provider.getDoubleEvaluation("key", 0.4, ImmutableContext())
