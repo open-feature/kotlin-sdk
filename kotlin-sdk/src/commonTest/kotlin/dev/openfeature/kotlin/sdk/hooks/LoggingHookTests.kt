@@ -8,6 +8,7 @@ import dev.openfeature.kotlin.sdk.HookContext
 import dev.openfeature.kotlin.sdk.ImmutableContext
 import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.Value
+import dev.openfeature.kotlin.sdk.logging.LogLevel
 import dev.openfeature.kotlin.sdk.logging.TestLogger
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -250,5 +251,47 @@ class LoggingHookTests {
         val message = testLogger.errorMessages[0].message
         assertTrue(message.contains("context="))
         assertTrue(message.contains("targetingKey='user-123'"))
+    }
+
+    @Test
+    fun `configurable log levels route messages to correct level`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook<Boolean>(
+            logger = testLogger,
+            beforeLogLevel = LogLevel.INFO,
+            afterLogLevel = LogLevel.INFO,
+            errorLogLevel = LogLevel.WARN,
+            finallyLogLevel = LogLevel.INFO
+        )
+        val context = createHookContext("my-flag")
+        val details = FlagEvaluationDetails(flagKey = "my-flag", value = true)
+        val exception = RuntimeException("err")
+
+        hook.before(context, emptyMap())
+        hook.after(context, details, emptyMap())
+        hook.error(context, exception, emptyMap())
+        hook.finallyAfter(context, details, emptyMap())
+
+        assertEquals(0, testLogger.debugMessages.size)
+        assertEquals(3, testLogger.infoMessages.size)
+        assertEquals(1, testLogger.warnMessages.size)
+        assertEquals(0, testLogger.errorMessages.size)
+    }
+
+    @Test
+    fun `default log levels use debug for before after finally and error for error stage`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook<Boolean>(logger = testLogger)
+        val context = createHookContext("my-flag")
+        val details = FlagEvaluationDetails(flagKey = "my-flag", value = true)
+        val exception = RuntimeException("err")
+
+        hook.before(context, emptyMap())
+        hook.after(context, details, emptyMap())
+        hook.error(context, exception, emptyMap())
+        hook.finallyAfter(context, details, emptyMap())
+
+        assertEquals(3, testLogger.debugMessages.size)
+        assertEquals(1, testLogger.errorMessages.size)
     }
 }

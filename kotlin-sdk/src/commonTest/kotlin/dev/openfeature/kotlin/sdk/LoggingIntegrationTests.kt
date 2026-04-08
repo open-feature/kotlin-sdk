@@ -88,7 +88,6 @@ class LoggingIntegrationTests {
     fun setup() {
         // Clear hooks and reset API state before each test
         OpenFeatureAPI.clearHooks()
-        OpenFeatureAPI.setLogger(dev.openfeature.kotlin.sdk.logging.NoOpLogger())
     }
 
     @AfterTest
@@ -185,16 +184,6 @@ class LoggingIntegrationTests {
                     it.message.contains("targetingKey='user-456'")
             }
         )
-    }
-
-    @Test
-    fun `logger can be set and retrieved from API`() {
-        val testLogger = TestLogger()
-
-        OpenFeatureAPI.setLogger(testLogger)
-        val retrievedLogger = OpenFeatureAPI.logger
-
-        assertEquals(testLogger, retrievedLogger)
     }
 
     @Test

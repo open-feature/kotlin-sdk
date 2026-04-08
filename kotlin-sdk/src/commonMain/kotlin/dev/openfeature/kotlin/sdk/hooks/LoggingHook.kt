@@ -7,6 +7,7 @@ import dev.openfeature.kotlin.sdk.FlagEvaluationDetails
 import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.HookContext
 import dev.openfeature.kotlin.sdk.Value
+import dev.openfeature.kotlin.sdk.logging.LogLevel
 import dev.openfeature.kotlin.sdk.logging.Logger
 import dev.openfeature.kotlin.sdk.logging.NoOpLogger
 import kotlin.time.ExperimentalTime
@@ -15,17 +16,25 @@ import kotlin.time.ExperimentalTime
  * A hook that logs detailed information during flag evaluation lifecycle.
  *
  * Logs at different stages:
- * - Before: Flag evaluation request (debug level)
- * - After: Successful evaluation with result (debug level)
- * - Error: Errors during evaluation (error level)
- * - Finally: Completion status (debug level)
+ * - Before: Flag evaluation request
+ * - After: Successful evaluation with result
+ * - Error: Errors during evaluation
+ * - Finally: Completion status
  *
  * @param logger The logger to use. Defaults to NoOpLogger.
  * @param logEvaluationContext If true, includes evaluation context in logs (default: false for privacy)
+ * @param beforeLogLevel Log level for the before stage (default: DEBUG)
+ * @param afterLogLevel Log level for the after stage (default: DEBUG)
+ * @param errorLogLevel Log level for the error stage (default: ERROR)
+ * @param finallyLogLevel Log level for the finallyAfter stage (default: DEBUG)
  */
 class LoggingHook<T>(
     private val logger: Logger = NoOpLogger(),
-    private val logEvaluationContext: Boolean = false
+    private val logEvaluationContext: Boolean = false,
+    private val beforeLogLevel: LogLevel = LogLevel.DEBUG,
+    private val afterLogLevel: LogLevel = LogLevel.DEBUG,
+    private val errorLogLevel: LogLevel = LogLevel.ERROR,
+    private val finallyLogLevel: LogLevel = LogLevel.DEBUG
 ) : Hook<T> {
 
     companion object {
@@ -54,7 +63,7 @@ class LoggingHook<T>(
             }
         }
 
-        logger.debug { message }
+        logAtLevel(beforeLogLevel) { message }
     }
 
     override fun after(ctx: HookContext<T>, details: FlagEvaluationDetails<T>, hints: Map<String, Any>) {
@@ -77,7 +86,7 @@ class LoggingHook<T>(
             append(", provider='${ctx.providerMetadata.name}'")
         }
 
-        logger.debug { message }
+        logAtLevel(afterLogLevel) { message }
     }
 
     override fun error(ctx: HookContext<T>, error: Exception, hints: Map<String, Any>) {
@@ -96,7 +105,7 @@ class LoggingHook<T>(
             append("error='${error.message?.replace("'", "''")}'")
         }
 
-        logger.error(error) { message }
+        logAtLevel(errorLogLevel, error) { message }
     }
 
     override fun finallyAfter(ctx: HookContext<T>, details: FlagEvaluationDetails<T>, hints: Map<String, Any>) {
@@ -111,7 +120,16 @@ class LoggingHook<T>(
             }
         }
 
-        logger.debug { message }
+        logAtLevel(finallyLogLevel) { message }
+    }
+
+    private fun logAtLevel(level: LogLevel, throwable: Throwable? = null, message: () -> String) {
+        when (level) {
+            LogLevel.DEBUG -> logger.debug(throwable, message)
+            LogLevel.INFO -> logger.info(throwable, message)
+            LogLevel.WARN -> logger.warn(throwable, message)
+            LogLevel.ERROR -> logger.error(throwable, message)
+        }
     }
 
     private fun formatContext(context: EvaluationContext): String {
