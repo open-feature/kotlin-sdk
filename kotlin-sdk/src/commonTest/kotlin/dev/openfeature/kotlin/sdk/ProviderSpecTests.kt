@@ -2,6 +2,7 @@ package dev.openfeature.kotlin.sdk
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -67,5 +68,38 @@ class ProviderSpecTests {
 
         val objectResult = provider.getObjectEvaluation("key", Value.Null, ImmutableContext())
         assertNotNull(objectResult.variant)
+    }
+
+    @Test
+    fun getLongEvaluation_featureProviderDefault() {
+        val defaultProvider = object : FeatureProvider {
+            override val hooks: List<Hook<*>> = emptyList()
+
+            override val metadata: ProviderMetadata = object : ProviderMetadata {
+                override val name: String? = null
+            }
+
+            override suspend fun initialize(initialContext: EvaluationContext?) {}
+
+            override fun shutdown() {}
+
+            override suspend fun onContextSet(o: EvaluationContext?, n: EvaluationContext) {}
+
+            override fun getBooleanEvaluation(k: String, d: Boolean, c: EvaluationContext?) = ProviderEvaluation(d)
+
+            override fun getStringEvaluation(k: String, d: String, c: EvaluationContext?) = ProviderEvaluation(d)
+
+            override fun getIntegerEvaluation(k: String, d: Int, c: EvaluationContext?) =
+                ProviderEvaluation(d * 2, "v", Reason.DEFAULT.toString())
+
+            override fun getDoubleEvaluation(k: String, d: Double, c: EvaluationContext?) = ProviderEvaluation(d)
+
+            override fun getObjectEvaluation(k: String, d: Value, c: EvaluationContext?) = ProviderEvaluation(d)
+        }
+
+        assertEquals(10L, defaultProvider.getLongEvaluation("k", 5L, null).value)
+        assertFailsWith<IllegalArgumentException> {
+            defaultProvider.getLongEvaluation("k", Long.MAX_VALUE, null)
+        }
     }
 }
