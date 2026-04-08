@@ -4,11 +4,7 @@ import java.time.Instant
 
 /**
  * JVM platform implementation of LoggerFactory.
- * Currently uses JvmLogger that writes to System.out/err.
- *
- * Note: SLF4J integration is planned for a future enhancement.
- * This will enable automatic detection and use of SLF4J when available
- * on the classpath, with fallback to JvmLogger.
+ * Uses JvmLogger that writes to System.out/err.
  */
 actual object LoggerFactory {
     actual fun getLogger(tag: String): Logger {
