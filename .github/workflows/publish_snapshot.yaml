@@ -13,7 +13,7 @@ on:
 
 jobs:
   publish-snapshot:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Determine source branch
@@ -64,20 +64,13 @@ jobs:
       - name: Override version in build.gradle.kts
         if: steps.source.outputs.skip != 'true'
         run: |
-          sed -i 's/ext\["version"\] = "[^"]*"/ext["version"] = "${{ steps.final.outputs.version }}"/' build.gradle.kts
+          sed -i '' 's/ext\["version"\] = "[^"]*"/ext["version"] = "${{ steps.final.outputs.version }}"/' build.gradle.kts
           echo "Updated build.gradle.kts:"
           grep 'ext\["version"\]' build.gradle.kts
 
-      - name: Cache Gradle and wrapper
+      - name: Setup Gradle
         if: steps.source.outputs.skip != 'true'
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Configure GPG Key
         if: steps.source.outputs.skip != 'true'
@@ -92,7 +85,7 @@ jobs:
         run: |
           mkdir -p ~/.gradle/
           echo "signing.keyId=08C5EC5C" >> ~/.gradle/gradle.properties
-          echo "signing.secretKeyRingFile=/home/runner/.gnupg/secring.gpg" >> ~/.gradle/gradle.properties
+          echo "signing.secretKeyRingFile=$HOME/.gnupg/secring.gpg" >> ~/.gradle/gradle.properties
           echo "signing.password=$GPG_SIGNING_KEY_PASSWORD" >> ~/.gradle/gradle.properties
         env:
           GPG_SIGNING_KEY_PASSWORD: ${{ secrets.GPG_SIGNING_KEY_PASSWORD }}
