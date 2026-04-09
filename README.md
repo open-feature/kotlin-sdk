@@ -280,10 +280,17 @@ in an Android app.
 ### Develop a provider
 
 To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
-You’ll then need to write the provider by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
+You’ll then need to write the provider by implementing the `StateManagingProvider` interface exported by the OpenFeature SDK.
+
+Keep `status` and the flow from `observe()` aligned: when you transition between `NotReady`, `Reconciling`, and `Ready`, update `_status` and emit the matching `OpenFeatureProviderEvents` for code that listens via `OpenFeatureAPI.observe()`.
 
 ```kotlin
-class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Metadata) : FeatureProvider {
+class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Metadata) : StateManagingProvider {
+    private val _status = MutableStateFlow(OpenFeatureStatus.NotReady)
+    override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
+
+    private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+
     override fun getBooleanEvaluation(
         key: String,
         defaultValue: Boolean,
@@ -326,23 +333,35 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         // add context-aware provider initialization
+
+        _status.value = OpenFeatureStatus.Ready
+        events.emit(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+        _status.value = OpenFeatureStatus.Reconciling
+        events.emit(OpenFeatureProviderEvents.ProviderReconciling())
+
         // add necessary changes on context change
+
+        _status.value = OpenFeatureStatus.Ready
+        events.emit(OpenFeatureProviderEvents.ProviderReady())
+    }
+
+    override fun shutdown() {
+        _status.value = OpenFeatureStatus.NotReady
+        // add necessary closure on shutdown
     }
   
     override fun track(
-      trackingEventName: String,
-      context: EvaluationContext?,
-      details: TrackingEventDetails?
+        trackingEventName: String,
+        context: EvaluationContext?,
+        details: TrackingEventDetails?
     ) {
-      // Optionally track an event
+        // Optionally track an event
     }
-  
-    override fun observe(): Flow<OpenFeatureProviderEvents> {
-        // Optionally return a `Flow` of OpenFeatureProviderEvents
-    }
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = events
 }
 ```
 

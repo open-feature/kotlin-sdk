@@ -32,4 +32,9 @@ sealed interface OpenFeatureStatus {
      * The provider is reconciling its state with a context change.
      */
     object Reconciling : OpenFeatureStatus
+
+    /**
+     * The provider's configuration has changed.
+     */
+    object ConfigurationChanged : OpenFeatureStatus
 }

@@ -11,8 +11,17 @@ interface FeatureProvider {
     val metadata: ProviderMetadata
 
     /**
-     * Called by OpenFeatureAPI whenever the new Provider is registered
-     * This function should block until ready and throw exceptions if it fails to initialize
+     * Called by OpenFeatureAPI whenever the new Provider is registered.
+     *
+     * Implementations must signal their initial state by emitting
+     * [OpenFeatureProviderEvents.ProviderReady] (on success) or
+     * [OpenFeatureProviderEvents.ProviderError] (on error) via
+     * [observe] before or after this function returns.
+     *
+     * The SDK waits for the first non-NotReady status derived from these events before considering
+     * initialization complete, so skipping the [observe] emission will cause [OpenFeatureAPI.setProviderAndWait]
+     * to hang indefinitely.
+     *
      * @param initialContext any initial context to be set before the provider is ready
      */
     @Throws(OpenFeatureError::class, CancellationException::class)
@@ -58,8 +67,16 @@ interface FeatureProvider {
     }
 
     /**
-     * Used by providers to expose internal events to the SDK or the application.
-     * This can be optionally implemented by the provider to expose a flow of internal events.
+     * Exposes a stream of lifecycle events from this provider.
+     *
+     * Implementations must emit [OpenFeatureProviderEvents.ProviderReady] or
+     * [OpenFeatureProviderEvents.ProviderError] to signal the outcome of
+     * [initialize]. The SDK derives its status exclusively from these emissions;
+     * omitting them will leave the SDK in the [OpenFeatureStatus.NotReady] state.
+     *
+     * All emissions (e.g. [OpenFeatureProviderEvents.ProviderStale],
+     * [OpenFeatureProviderEvents.ProviderConfigurationChanged]) are
+     * forwarded to application-level observers via [OpenFeatureAPI.observe].
      */
     fun observe(): Flow<OpenFeatureProviderEvents> {
         return emptyFlow()

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -39,22 +40,36 @@ object OpenFeatureAPI {
                 tryEmit(OpenFeatureStatus.NotReady)
             }
 
-    val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
+    /**
+     * Get the current [OpenFeatureStatus] for the SDK.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val statusFlow: Flow<OpenFeatureStatus>
+        get() = providersFlow.flatMapLatest { p ->
+            if (p is StateManagingProvider) {
+                p.status
+            } else {
+                // Legacy path: use the shared Provider/SDK-managed status buffer.
+                _statusFlow.distinctUntilChanged()
+            }
+        }
 
     var hooks: List<Hook<*>> = listOf()
         private set
 
     /**
-     * Set the [FeatureProvider] for the SDK. This method will return immediately and initialize the provider in a coroutine scope
-     * When the provider is successfully initialized it will set the status to Ready.
+     * Set the [StateManagingProvider] for the SDK. This method will return immediately and initialize the
+     * provider in a coroutine scope. Status becomes Ready or Error when a [StateManagingProvider]
+     * updates [StateManagingProvider.status], or when a legacy provider emits on [FeatureProvider.observe].
      * If the provider fails to initialize it will set the status to Error.
      *
-     * This method requires you to manually wait for the status to be Ready before using the SDK for flag evaluations.
-     * This can be done by using the [statusFlow] and waiting for the first Ready status or by accessing [getStatus]
+     * This method requires you to manually wait for the status to be Ready before using the SDK
+     * for flag evaluations. This can be done by using [statusFlow] and waiting for the first Ready
+     * status, or by accessing [getStatus].
      *
      * @param provider the provider to set
      * @param dispatcher the dispatcher to use for the provider initialization coroutine. Defaults to [Dispatchers.Default] if not set.
-     * @param initialContext the initial [EvaluationContext] to use for the provider initialization. Defaults to an null context if not set.
+     * @param initialContext the initial [EvaluationContext] to use for the provider initialization. Defaults to null context if not set.
      */
     fun setProvider(
         provider: FeatureProvider,
@@ -68,10 +83,12 @@ object OpenFeatureAPI {
     }
 
     /**
-     * Set the [FeatureProvider] for the SDK. This method will block until the provider is initialized.
+     * Set the [StateManagingProvider] for the SDK. This method blocks until the provider
+     * has signalled its initial state: [StateManagingProvider] via [StateManagingProvider.status],
+     * or a legacy provider via when [FeatureProvider.initialize] finishes, it may throw an exception).
      *
      * @param provider the [FeatureProvider] to set
-     * @param initialContext the initial [EvaluationContext] to use for the provider initialization. Defaults to an null context if not set.
+     * @param initialContext the initial [EvaluationContext] to use for the provider initialization. Defaults to null context if not set.
      */
     suspend fun setProviderAndWait(
         provider: FeatureProvider,
@@ -104,18 +121,36 @@ object OpenFeatureAPI {
         }
 
         // Emit NotReady status after swapping provider
-        _statusFlow.emit(OpenFeatureStatus.NotReady)
+        // Legacy path: reset Provider/SDK-managed status.
+        if (provider !is StateManagingProvider) {
+            _statusFlow.emit(OpenFeatureStatus.NotReady)
+        }
 
         // Shutdown the previous provider outside the mutex
-        tryWithStatusEmitErrorHandling {
+        if (oldProvider is StateManagingProvider) {
             oldProvider.shutdown()
+        } else {
+            // Legacy path: mirror shutdown failures into _statusFlow;
+            tryWithStatusEmitErrorHandling {
+                oldProvider.shutdown()
+            }
         }
 
         // Initialize the new provider
-        tryWithStatusEmitErrorHandling {
-            listenToProviderEvents(provider, dispatcher)
+        if (provider is StateManagingProvider) {
+            // Stop any legacy listener from a previous provider so it cannot propagate to _statusFlow
+            observeProviderEventsJob?.cancel(
+                CancellationException("State-managing provider: SDK does not mirror observe() into status")
+            )
+            observeProviderEventsJob = null
             getProvider().initialize(context)
-            _statusFlow.emit(OpenFeatureStatus.Ready)
+            provider.status.first { it !is OpenFeatureStatus.NotReady }
+        } else {
+            // Legacy path
+                listenToProviderEvents(provider, dispatcher)
+                getProvider().initialize(context)
+                _statusFlow.emit(OpenFeatureStatus.Ready)
+            }
         }
     }
 
@@ -133,7 +168,11 @@ object OpenFeatureAPI {
         getProvider().shutdown()
         provider = NOOP_PROVIDER
         providersFlow.value = NOOP_PROVIDER
-        _statusFlow.emit(OpenFeatureStatus.NotReady)
+        
+        if (provider !is StateManagingProvider) {
+            // Legacy path: reset Provider/SDK-managed status.
+            _statusFlow.emit(OpenFeatureStatus.NotReady)
+        }
     }
 
     /**
@@ -177,11 +216,18 @@ object OpenFeatureAPI {
     private suspend fun setEvaluationContextInternal(evaluationContext: EvaluationContext) {
         val oldContext = context
         context = evaluationContext
+
         if (oldContext != evaluationContext) {
-            _statusFlow.emit(OpenFeatureStatus.Reconciling)
-            tryWithStatusEmitErrorHandling {
-                getProvider().onContextSet(oldContext, evaluationContext)
-                _statusFlow.emit(OpenFeatureStatus.Ready)
+            val provider = getProvider()
+            if (provider is StateManagingProvider) {
+                provider.onContextSet(oldContext, evaluationContext)
+            } else {
+                // Legacy path: emit Reconciling/Ready (and errors via tryWith) on _statusFlow during context updates.
+                tryWithStatusEmitErrorHandling {
+                    _statusFlow.emit(OpenFeatureStatus.Reconciling)
+                    provider.onContextSet(oldContext, evaluationContext)
+                    _statusFlow.emit(OpenFeatureStatus.Ready)
+                }
             }
         }
     }
@@ -192,15 +238,21 @@ object OpenFeatureAPI {
         } catch (e: CancellationException) {
             // This happens by design and shouldn't be treated as an error
         } catch (e: OpenFeatureError) {
-            _statusFlow.emit(OpenFeatureStatus.Error(e))
+            // Legacy path: only non-state-managing providers use _statusFlow for surfaced errors.
+            if (getProvider() !is StateManagingProvider) {
+                _statusFlow.emit(OpenFeatureStatus.Error(e))
+            }
         } catch (e: Throwable) {
-            _statusFlow.emit(
-                OpenFeatureStatus.Error(
-                    OpenFeatureError.GeneralError(
-                        e.message ?: "Unknown error"
+            // Legacy path: only non-state-managing providers use _statusFlow for surfaced errors.
+            if (getProvider() !is StateManagingProvider) {
+                _statusFlow.emit(
+                    OpenFeatureStatus.Error(
+                        OpenFeatureError.GeneralError(
+                            e.message ?: "Unknown error"
+                        )
                     )
                 )
-            )
+            }
         }
     }
 
@@ -258,7 +310,16 @@ object OpenFeatureAPI {
     /**
      * Get the current [OpenFeatureStatus] of the SDK.
      */
-    fun getStatus(): OpenFeatureStatus = _statusFlow.replayCache.first()
+    // not very sure about how im handling this
+    fun getStatus(): OpenFeatureStatus {
+        val p = getProvider()
+        return if (p is StateManagingProvider) {
+            p.status.value
+        } else {
+            // Legacy path: last value from SDK-managed _statusFlow (distinct replay).
+            _statusFlow.replayCache.first()
+        }
+    }
 
     /**
      * Observe events from currently configured Provider.
@@ -275,6 +336,14 @@ object OpenFeatureAPI {
         when (providerEvent) {
             is OpenFeatureProviderEvents.ProviderReady -> {
                 _statusFlow.emit(OpenFeatureStatus.Ready)
+            }
+
+            is OpenFeatureProviderEvents.ProviderNotReady -> {
+                _statusFlow.emit(OpenFeatureStatus.NotReady)
+            }
+
+            is OpenFeatureProviderEvents.ProviderReconciling -> {
+                _statusFlow.emit(OpenFeatureStatus.Reconciling)
             }
 
             is OpenFeatureProviderEvents.ProviderStale -> {

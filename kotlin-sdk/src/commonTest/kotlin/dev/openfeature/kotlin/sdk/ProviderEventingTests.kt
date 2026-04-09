@@ -32,7 +32,7 @@ class ProviderEventingTests {
         val provider = object : DoSomethingProvider() {
             val flow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
             override suspend fun initialize(initialContext: EvaluationContext?) {
-                // no-op
+                flow.emit(OpenFeatureProviderEvents.ProviderReady())
             }
 
             override suspend fun onContextSet(

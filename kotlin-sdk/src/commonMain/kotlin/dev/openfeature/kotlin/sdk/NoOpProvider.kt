@@ -1,21 +1,50 @@
 package dev.openfeature.kotlin.sdk
 
-open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureProvider {
+import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : StateManagingProvider {
     override val metadata: ProviderMetadata = NoOpProviderMetadata("No-op provider")
+
+    private val _status = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
+    override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
+
+    // Ensure propagation to registered handlers
+    private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+
     override suspend fun initialize(initialContext: EvaluationContext?) {
-        // no-op
+        // No-op provider is not ready after initialization
+        _status.value = OpenFeatureStatus.NotReady
+        events.emit(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override fun shutdown() {
-        // no-op
+        _status.value = OpenFeatureStatus.NotReady
+        events.emit(OpenFeatureProviderEvents.ProviderNotReady())
     }
 
     override suspend fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
+        // optional event emission to indicate the provider is reconciling
+        _status.value = OpenFeatureStatus.Reconciling
+        events.emit(OpenFeatureProviderEvents.ProviderReconciling())
+
         // no-op
+
+        // collateral event emission to restore the status to ready
+        _status.value = OpenFeatureStatus.Ready
+        events.emit(OpenFeatureProviderEvents.ProviderReady())
     }
+
+    // No-op provider does not emit events
+    // override fun observe(): Flow<OpenFeatureProviderEvents> = events
+    override fun observe(): Flow<OpenFeatureProviderEvents> = emptyFlow()
 
     override fun getBooleanEvaluation(
         key: String,

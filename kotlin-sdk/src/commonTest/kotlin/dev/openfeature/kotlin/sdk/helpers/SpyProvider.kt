@@ -6,7 +6,10 @@ import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.Value
+import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 class SpyProvider : FeatureProvider {
     override val hooks: List<Hook<*>>
@@ -18,9 +21,14 @@ class SpyProvider : FeatureProvider {
     val onContextSetCalls = mutableListOf<Pair<EvaluationContext?, EvaluationContext>>()
     val shutdownCalls = atomic(0)
 
+    private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+
     override suspend fun initialize(initialContext: EvaluationContext?) {
         initializeCalls.add(initialContext)
+        events.emit(OpenFeatureProviderEvents.ProviderReady())
     }
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = events
 
     override fun shutdown() {
         shutdownCalls.incrementAndGet()
