@@ -21,9 +21,9 @@ class LoggingHookTests {
 
     private fun createHookContext(
         flagKey: String = "test-flag",
-        defaultValue: Boolean = false,
+        defaultValue: Any = false,
         evaluationContext: EvaluationContext? = null
-    ): HookContext<Boolean> {
+    ): HookContext<Any> {
         return HookContext(
             flagKey = flagKey,
             type = FlagValueType.BOOLEAN,
@@ -37,7 +37,7 @@ class LoggingHookTests {
     @Test
     fun `before stage logs flag evaluation starting`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
         val context = createHookContext("my-flag", false)
 
         hook.before(context, emptyMap())
@@ -55,9 +55,9 @@ class LoggingHookTests {
     @Test
     fun `after stage logs flag evaluation completed`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
         val context = createHookContext("my-flag")
-        val details = FlagEvaluationDetails(
+        val details = FlagEvaluationDetails<Any>(
             flagKey = "my-flag",
             value = true,
             variant = "on",
@@ -79,7 +79,7 @@ class LoggingHookTests {
     @Test
     fun `error stage logs flag evaluation error`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
         val context = createHookContext("my-flag", false)
         val exception = RuntimeException("Connection timeout")
 
@@ -99,9 +99,9 @@ class LoggingHookTests {
     @Test
     fun `finally stage logs flag evaluation finalized`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
         val context = createHookContext("my-flag")
-        val details = FlagEvaluationDetails(
+        val details = FlagEvaluationDetails<Any>(
             flagKey = "my-flag",
             value = false
         )
@@ -117,9 +117,9 @@ class LoggingHookTests {
     @Test
     fun `finally stage includes error details when present`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
         val context = createHookContext("my-flag")
-        val details = FlagEvaluationDetails(
+        val details = FlagEvaluationDetails<Any>(
             flagKey = "my-flag",
             value = false,
             errorCode = dev.openfeature.kotlin.sdk.exceptions.ErrorCode.PROVIDER_NOT_READY,
@@ -139,7 +139,7 @@ class LoggingHookTests {
     @Test
     fun `context logging is disabled by default`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
         val evaluationContext = ImmutableContext(
             targetingKey = "user-123",
             attributes = mapOf("email" to Value.String("user@example.com"))
@@ -158,7 +158,7 @@ class LoggingHookTests {
     @Test
     fun `context logging works when enabled`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger, logEvaluationContext = true)
+        val hook = LoggingHook(logger = testLogger, logEvaluationContext = true)
         val evaluationContext = ImmutableContext(
             targetingKey = "user-123",
             attributes = mapOf("email" to Value.String("user@example.com"), "plan" to Value.String("premium"))
@@ -179,7 +179,7 @@ class LoggingHookTests {
     @Test
     fun `hint override enables context logging`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger, logEvaluationContext = false)
+        val hook = LoggingHook(logger = testLogger, logEvaluationContext = false)
         val evaluationContext = ImmutableContext(
             targetingKey = "user-123",
             attributes = mapOf("email" to Value.String("user@example.com"))
@@ -198,7 +198,7 @@ class LoggingHookTests {
     @Test
     fun `hint override disables context logging`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger, logEvaluationContext = true)
+        val hook = LoggingHook(logger = testLogger, logEvaluationContext = true)
         val evaluationContext = ImmutableContext(
             targetingKey = "user-123",
             attributes = mapOf("email" to Value.String("user@example.com"))
@@ -217,12 +217,12 @@ class LoggingHookTests {
     @Test
     fun `context logging works in after stage`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger, logEvaluationContext = true)
+        val hook = LoggingHook(logger = testLogger, logEvaluationContext = true)
         val evaluationContext = ImmutableContext(
             targetingKey = "user-123"
         )
         val context = createHookContext("my-flag", false, evaluationContext)
-        val details = FlagEvaluationDetails(
+        val details = FlagEvaluationDetails<Any>(
             flagKey = "my-flag",
             value = true
         )
@@ -238,7 +238,7 @@ class LoggingHookTests {
     @Test
     fun `context logging works in error stage`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger, logEvaluationContext = true)
+        val hook = LoggingHook(logger = testLogger, logEvaluationContext = true)
         val evaluationContext = ImmutableContext(
             targetingKey = "user-123"
         )
@@ -256,7 +256,7 @@ class LoggingHookTests {
     @Test
     fun `configurable log levels route messages to correct level`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(
+        val hook = LoggingHook(
             logger = testLogger,
             beforeLogLevel = LogLevel.INFO,
             afterLogLevel = LogLevel.INFO,
@@ -264,7 +264,7 @@ class LoggingHookTests {
             finallyLogLevel = LogLevel.INFO
         )
         val context = createHookContext("my-flag")
-        val details = FlagEvaluationDetails(flagKey = "my-flag", value = true)
+        val details = FlagEvaluationDetails<Any>(flagKey = "my-flag", value = true)
         val exception = RuntimeException("err")
 
         hook.before(context, emptyMap())
@@ -281,9 +281,9 @@ class LoggingHookTests {
     @Test
     fun `default log levels use debug for before after finally and error for error stage`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
         val context = createHookContext("my-flag")
-        val details = FlagEvaluationDetails(flagKey = "my-flag", value = true)
+        val details = FlagEvaluationDetails<Any>(flagKey = "my-flag", value = true)
         val exception = RuntimeException("err")
 
         hook.before(context, emptyMap())

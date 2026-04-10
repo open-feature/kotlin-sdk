@@ -100,7 +100,7 @@ class LoggingIntegrationTests {
     @Test
     fun `logging hook at API level logs flag evaluations`() = runTest {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Any>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
 
         OpenFeatureAPI.setProviderAndWait(testProvider)
         OpenFeatureAPI.addHooks(listOf(hook))
@@ -121,7 +121,7 @@ class LoggingIntegrationTests {
     @Test
     fun `logging hook at client level logs flag evaluations`() = runTest {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Any>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
 
         OpenFeatureAPI.setProviderAndWait(testProvider)
         val client = OpenFeatureAPI.getClient()
@@ -137,7 +137,7 @@ class LoggingIntegrationTests {
     @Test
     fun `logging hook at invocation level logs flag evaluations`() = runTest {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
 
         OpenFeatureAPI.setProviderAndWait(testProvider)
         val client = OpenFeatureAPI.getClient()
@@ -158,7 +158,7 @@ class LoggingIntegrationTests {
     @Test
     fun `logging hook logs context when enabled at invocation level`() = runTest {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Boolean>(logger = testLogger, logEvaluationContext = true)
+        val hook = LoggingHook(logger = testLogger, logEvaluationContext = true)
 
         val evaluationContext = ImmutableContext(
             targetingKey = "user-456",
@@ -189,7 +189,7 @@ class LoggingIntegrationTests {
     @Test
     fun `logging hook with string evaluation`() = runTest {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Any>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
 
         OpenFeatureAPI.setProviderAndWait(testProvider)
         OpenFeatureAPI.addHooks(listOf(hook))
@@ -210,9 +210,71 @@ class LoggingIntegrationTests {
     }
 
     @Test
+    fun `logging hook with integer evaluation`() = runTest {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(logger = testLogger)
+
+        OpenFeatureAPI.setProviderAndWait(testProvider)
+        OpenFeatureAPI.addHooks(listOf(hook))
+
+        val client = OpenFeatureAPI.getClient()
+        val value = client.getIntegerValue("integer-flag", 42)
+
+        assertEquals(42, value)
+        assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
+        assertTrue(
+            testLogger.debugMessages.any {
+                it.message.contains("flag='integer-flag'") &&
+                    it.message.contains("value=42")
+            }
+        )
+    }
+
+    @Test
+    fun `logging hook with double evaluation`() = runTest {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(logger = testLogger)
+
+        OpenFeatureAPI.setProviderAndWait(testProvider)
+        OpenFeatureAPI.addHooks(listOf(hook))
+
+        val client = OpenFeatureAPI.getClient()
+        val value = client.getDoubleValue("double-flag", 3.14)
+
+        assertEquals(3.14, value)
+        assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
+        assertTrue(
+            testLogger.debugMessages.any {
+                it.message.contains("flag='double-flag'") &&
+                    it.message.contains("value=3.14")
+            }
+        )
+    }
+
+    @Test
+    fun `logging hook with object evaluation`() = runTest {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(logger = testLogger)
+
+        OpenFeatureAPI.setProviderAndWait(testProvider)
+        OpenFeatureAPI.addHooks(listOf(hook))
+
+        val client = OpenFeatureAPI.getClient()
+        client.getObjectValue("object-flag", Value.String("default-object"))
+
+        assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
+        assertTrue(
+            testLogger.debugMessages.any {
+                it.message.contains("flag='object-flag'") &&
+                    it.message.contains("value=")
+            }
+        )
+    }
+
+    @Test
     fun `logging hook captures error when provider throws`() = runTest {
         val testLogger = TestLogger()
-        val hook = LoggingHook<Any>(logger = testLogger)
+        val hook = LoggingHook(logger = testLogger)
 
         val errorProvider = object : FeatureProvider {
             override val metadata: ProviderMetadata = TestProviderMetadata("error-provider")
@@ -296,8 +358,8 @@ class LoggingIntegrationTests {
     fun `multiple hooks execute in order`() = runTest {
         val testLogger1 = TestLogger()
         val testLogger2 = TestLogger()
-        val hook1 = LoggingHook<Any>(logger = testLogger1)
-        val hook2 = LoggingHook<Any>(logger = testLogger2)
+        val hook1 = LoggingHook(logger = testLogger1)
+        val hook2 = LoggingHook(logger = testLogger2)
 
         OpenFeatureAPI.setProviderAndWait(testProvider)
         OpenFeatureAPI.addHooks(listOf(hook1, hook2))

@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalTime::class)
-
 package dev.openfeature.kotlin.sdk.hooks
 
 import dev.openfeature.kotlin.sdk.EvaluationContext
@@ -28,14 +26,14 @@ import kotlin.time.ExperimentalTime
  * @param errorLogLevel Log level for the error stage (default: ERROR)
  * @param finallyLogLevel Log level for the finallyAfter stage (default: DEBUG)
  */
-class LoggingHook<T>(
+class LoggingHook(
     private val logger: Logger = NoOpLogger(),
     private val logEvaluationContext: Boolean = false,
     private val beforeLogLevel: LogLevel = LogLevel.DEBUG,
     private val afterLogLevel: LogLevel = LogLevel.DEBUG,
     private val errorLogLevel: LogLevel = LogLevel.ERROR,
     private val finallyLogLevel: LogLevel = LogLevel.DEBUG
-) : Hook<T> {
+) : Hook<Any> {
 
     companion object {
         /**
@@ -45,7 +43,7 @@ class LoggingHook<T>(
         const val HINT_LOG_EVALUATION_CONTEXT = "logEvaluationContext"
     }
 
-    override fun before(ctx: HookContext<T>, hints: Map<String, Any>) {
+    override fun before(ctx: HookContext<Any>, hints: Map<String, Any>) {
         val shouldLogContext = hints[HINT_LOG_EVALUATION_CONTEXT] as? Boolean ?: logEvaluationContext
 
         val message = buildString {
@@ -66,7 +64,7 @@ class LoggingHook<T>(
         logAtLevel(beforeLogLevel) { message }
     }
 
-    override fun after(ctx: HookContext<T>, details: FlagEvaluationDetails<T>, hints: Map<String, Any>) {
+    override fun after(ctx: HookContext<Any>, details: FlagEvaluationDetails<Any>, hints: Map<String, Any>) {
         val shouldLogContext = hints[HINT_LOG_EVALUATION_CONTEXT] as? Boolean ?: logEvaluationContext
 
         val message = buildString {
@@ -89,7 +87,7 @@ class LoggingHook<T>(
         logAtLevel(afterLogLevel) { message }
     }
 
-    override fun error(ctx: HookContext<T>, error: Exception, hints: Map<String, Any>) {
+    override fun error(ctx: HookContext<Any>, error: Exception, hints: Map<String, Any>) {
         val shouldLogContext = hints[HINT_LOG_EVALUATION_CONTEXT] as? Boolean ?: logEvaluationContext
 
         val message = buildString {
@@ -108,7 +106,7 @@ class LoggingHook<T>(
         logAtLevel(errorLogLevel, error) { message }
     }
 
-    override fun finallyAfter(ctx: HookContext<T>, details: FlagEvaluationDetails<T>, hints: Map<String, Any>) {
+    override fun finallyAfter(ctx: HookContext<Any>, details: FlagEvaluationDetails<Any>, hints: Map<String, Any>) {
         val message = buildString {
             append("Flag evaluation finalized: ")
             append("flag='${ctx.flagKey}'")
@@ -146,6 +144,7 @@ class LoggingHook<T>(
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     private fun formatValue(value: Value): String {
         return when (value) {
             is Value.String -> "'${value.string.replace("'", "''")}'"
