@@ -178,7 +178,10 @@ class OpenFeatureClient(
         var details = FlagEvaluationDetails(key, defaultValue)
         val provider = openFeatureAPI.getProvider()
         val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
-        val context = openFeatureAPI.getEvaluationContext()
+        val globalContext = openFeatureAPI.getEvaluationContext()
+        val context = options.evaluationContext
+            ?.let { mergeEvaluationContexts(globalContext, it) }
+            ?: globalContext
         val hookCtx: HookContext<T> = HookContext(
             key,
             flagValueType,
@@ -280,4 +283,23 @@ private fun validateTrackingEventName(name: String) {
     if (name.isEmpty()) {
         throw IllegalArgumentException("trackingEventName cannot be empty")
     }
+}
+
+/**
+ * Returns a new [EvaluationContext] by merging [base] with [overlay] without mutating either.
+ *
+ * **Attributes:** Keys from [overlay] override keys from [base] on collision ([overlay] wins).
+ *
+ * **Targeting key:** If [overlay]'s targeting key is non-empty, it is used. Otherwise the result
+ * uses [base]'s targeting key when [base] is non-null, or an empty string when [base] is null.
+ * An empty targeting key on [overlay] therefore means "inherit from [base]" rather than "clear".
+ */
+internal fun mergeEvaluationContexts(base: EvaluationContext?, overlay: EvaluationContext): EvaluationContext {
+    val mergedAttributes = base?.asMap().orEmpty() + overlay.asMap()
+    val mergedTargeting = when {
+        overlay.getTargetingKey().isNotEmpty() -> overlay.getTargetingKey()
+        base != null -> base.getTargetingKey()
+        else -> ""
+    }
+    return ImmutableContext(targetingKey = mergedTargeting, attributes = mergedAttributes)
 }
