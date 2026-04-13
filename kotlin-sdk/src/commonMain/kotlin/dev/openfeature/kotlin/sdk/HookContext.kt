@@ -7,5 +7,5 @@ data class HookContext<T>(
     val ctx: EvaluationContext?,
     val clientMetadata: ClientMetadata?,
     val providerMetadata: ProviderMetadata,
-    val hookData: MutableMap<String, Any> = mutableMapOf()
+    val hookData: MutableMap<String, Any?> = mutableMapOf()
 )
