@@ -808,6 +808,32 @@ public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$TypeMi
 	public fun getMessage ()Ljava/lang/String;
 }
 
+public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook : dev/openfeature/kotlin/sdk/Hook {
+	public static final field Companion Ldev/openfeature/kotlin/sdk/hooks/LoggingHook$Companion;
+	public static final field HINT_LOG_EVALUATION_CONTEXT Ljava/lang/String;
+	public fun <init> ()V
+	public fun <init> (Ldev/openfeature/kotlin/sdk/logging/Logger;ZLdev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;)V
+	public synthetic fun <init> (Ldev/openfeature/kotlin/sdk/logging/Logger;ZLdev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun after (Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
+	public fun before (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/util/Map;)V
+	public fun error (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/lang/Exception;Ljava/util/Map;)V
+	public fun finallyAfter (Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
+	public fun supportsFlagValueType (Ldev/openfeature/kotlin/sdk/FlagValueType;)Z
+}
+
+public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook$Companion {
+}
+
+public final class dev/openfeature/kotlin/sdk/logging/LogLevel : java/lang/Enum {
+	public static final field DEBUG Ldev/openfeature/kotlin/sdk/logging/LogLevel;
+	public static final field ERROR Ldev/openfeature/kotlin/sdk/logging/LogLevel;
+	public static final field INFO Ldev/openfeature/kotlin/sdk/logging/LogLevel;
+	public static final field WARN Ldev/openfeature/kotlin/sdk/logging/LogLevel;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/logging/LogLevel;
+	public static fun values ()[Ldev/openfeature/kotlin/sdk/logging/LogLevel;
+}
+
 public abstract interface class dev/openfeature/kotlin/sdk/logging/Logger {
 	public abstract fun debug (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
 	public static synthetic fun debug$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
