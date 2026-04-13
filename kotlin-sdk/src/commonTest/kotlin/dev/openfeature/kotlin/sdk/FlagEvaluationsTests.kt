@@ -97,7 +97,10 @@ class FlagEvaluationsTests {
 
         val objectDetails = FlagEvaluationDetails<Value>(key, Value.Null)
         assertEquals(objectDetails, client.getObjectDetails(key, Value.Structure(mapOf())))
-        assertEquals(objectDetails, client.getObjectDetails(key, Value.Structure(mapOf()), FlagEvaluationOptions()))
+        assertEquals(
+            objectDetails,
+            client.getObjectDetails(key, Value.Structure(mapOf()), FlagEvaluationOptions())
+        )
     }
 
     @Test

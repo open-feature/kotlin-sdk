@@ -26,140 +26,150 @@ class OpenFeatureClient(
 
     override val statusFlow = openFeatureAPI.statusFlow
 
-    override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
-        return getBooleanDetails(key, defaultValue).value
-    }
+    override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean =
+        getBooleanDetails(key, defaultValue).value
+
+    override fun getBooleanValue(key: String, defaultValue: Boolean, options: FlagEvaluationOptions): Boolean =
+        getBooleanDetails(key, defaultValue, options).value
 
     override fun getBooleanValue(
         key: String,
         defaultValue: Boolean,
-        options: FlagEvaluationOptions
-    ): Boolean {
-        return getBooleanDetails(key, defaultValue, options).value
-    }
+        options: FlagEvaluationOptions,
+        evaluationContext: EvaluationContext?,
+    ): Boolean = getBooleanDetails(key, defaultValue, options, evaluationContext).value
 
-    override fun getBooleanDetails(
-        key: String,
-        defaultValue: Boolean
-    ): FlagEvaluationDetails<Boolean> {
-        return getBooleanDetails(key, defaultValue, FlagEvaluationOptions())
-    }
+    override fun getBooleanDetails(key: String, defaultValue: Boolean): FlagEvaluationDetails<Boolean> =
+        evaluateFlag(BOOLEAN, key, defaultValue, null, FlagEvaluationOptions())
 
     override fun getBooleanDetails(
         key: String,
         defaultValue: Boolean,
         options: FlagEvaluationOptions
-    ): FlagEvaluationDetails<Boolean> {
-        return evaluateFlag(BOOLEAN, key, defaultValue, options)
-    }
+    ): FlagEvaluationDetails<Boolean> = evaluateFlag(BOOLEAN, key, defaultValue, null, options)
 
-    override fun getStringValue(key: String, defaultValue: String): String {
-        return getStringDetails(key, defaultValue).value
-    }
+    override fun getBooleanDetails(
+        key: String,
+        defaultValue: Boolean,
+        options: FlagEvaluationOptions,
+        evaluationContext: EvaluationContext?,
+    ): FlagEvaluationDetails<Boolean> = evaluateFlag(BOOLEAN, key, defaultValue, evaluationContext, options)
+
+    override fun getStringValue(key: String, defaultValue: String): String =
+        getStringDetails(key, defaultValue).value
+
+    override fun getStringValue(key: String, defaultValue: String, options: FlagEvaluationOptions): String =
+        getStringDetails(key, defaultValue, options).value
 
     override fun getStringValue(
         key: String,
         defaultValue: String,
-        options: FlagEvaluationOptions
-    ): String {
-        return getStringDetails(key, defaultValue, options).value
-    }
+        options: FlagEvaluationOptions,
+        evaluationContext: EvaluationContext?,
+    ): String = getStringDetails(key, defaultValue, options, evaluationContext).value
 
-    override fun getStringDetails(
-        key: String,
-        defaultValue: String
-    ): FlagEvaluationDetails<String> {
-        return getStringDetails(key, defaultValue, FlagEvaluationOptions())
-    }
+    override fun getStringDetails(key: String, defaultValue: String): FlagEvaluationDetails<String> =
+        evaluateFlag(STRING, key, defaultValue, null, FlagEvaluationOptions())
 
     override fun getStringDetails(
         key: String,
         defaultValue: String,
         options: FlagEvaluationOptions
-    ): FlagEvaluationDetails<String> {
-        return evaluateFlag(STRING, key, defaultValue, options)
-    }
+    ): FlagEvaluationDetails<String> = evaluateFlag(STRING, key, defaultValue, null, options)
 
-    override fun getIntegerValue(key: String, defaultValue: Int): Int {
-        return getIntegerDetails(key, defaultValue).value
-    }
+    override fun getStringDetails(
+        key: String,
+        defaultValue: String,
+        options: FlagEvaluationOptions,
+        evaluationContext: EvaluationContext?,
+    ): FlagEvaluationDetails<String> = evaluateFlag(STRING, key, defaultValue, evaluationContext, options)
+
+    override fun getIntegerValue(key: String, defaultValue: Int): Int =
+        getIntegerDetails(key, defaultValue).value
+
+    override fun getIntegerValue(key: String, defaultValue: Int, options: FlagEvaluationOptions): Int =
+        getIntegerDetails(key, defaultValue, options).value
 
     override fun getIntegerValue(
         key: String,
         defaultValue: Int,
-        options: FlagEvaluationOptions
-    ): Int {
-        return getIntegerDetails(key, defaultValue, options).value
-    }
+        options: FlagEvaluationOptions,
+        evaluationContext: EvaluationContext?,
+    ): Int = getIntegerDetails(key, defaultValue, options, evaluationContext).value
 
-    override fun getIntegerDetails(
-        key: String,
-        defaultValue: Int
-    ): FlagEvaluationDetails<Int> {
-        return getIntegerDetails(key, defaultValue, FlagEvaluationOptions())
-    }
+    override fun getIntegerDetails(key: String, defaultValue: Int): FlagEvaluationDetails<Int> =
+        evaluateFlag(INTEGER, key, defaultValue, null, FlagEvaluationOptions())
 
     override fun getIntegerDetails(
         key: String,
         defaultValue: Int,
         options: FlagEvaluationOptions
-    ): FlagEvaluationDetails<Int> {
-        return evaluateFlag(INTEGER, key, defaultValue, options)
-    }
+    ): FlagEvaluationDetails<Int> = evaluateFlag(INTEGER, key, defaultValue, null, options)
 
-    override fun getDoubleValue(key: String, defaultValue: Double): Double {
-        return getDoubleDetails(key, defaultValue).value
-    }
+    override fun getIntegerDetails(
+        key: String,
+        defaultValue: Int,
+        options: FlagEvaluationOptions,
+        evaluationContext: EvaluationContext?,
+    ): FlagEvaluationDetails<Int> = evaluateFlag(INTEGER, key, defaultValue, evaluationContext, options)
+
+    override fun getDoubleValue(key: String, defaultValue: Double): Double =
+        getDoubleDetails(key, defaultValue).value
+
+    override fun getDoubleValue(key: String, defaultValue: Double, options: FlagEvaluationOptions): Double =
+        getDoubleDetails(key, defaultValue, options).value
 
     override fun getDoubleValue(
         key: String,
         defaultValue: Double,
-        options: FlagEvaluationOptions
-    ): Double {
-        return getDoubleDetails(key, defaultValue, options).value
-    }
+        options: FlagEvaluationOptions,
+        evaluationContext: EvaluationContext?,
+    ): Double = getDoubleDetails(key, defaultValue, options, evaluationContext).value
 
-    override fun getDoubleDetails(
-        key: String,
-        defaultValue: Double
-    ): FlagEvaluationDetails<Double> {
-        return evaluateFlag(DOUBLE, key, defaultValue, FlagEvaluationOptions())
-    }
+    override fun getDoubleDetails(key: String, defaultValue: Double): FlagEvaluationDetails<Double> =
+        evaluateFlag(DOUBLE, key, defaultValue, null, FlagEvaluationOptions())
 
     override fun getDoubleDetails(
         key: String,
         defaultValue: Double,
         options: FlagEvaluationOptions
-    ): FlagEvaluationDetails<Double> {
-        return evaluateFlag(DOUBLE, key, defaultValue, options)
-    }
+    ): FlagEvaluationDetails<Double> = evaluateFlag(DOUBLE, key, defaultValue, null, options)
 
-    override fun getObjectValue(key: String, defaultValue: Value): Value {
-        return getObjectDetails(key, defaultValue).value
-    }
+    override fun getDoubleDetails(
+        key: String,
+        defaultValue: Double,
+        options: FlagEvaluationOptions,
+        evaluationContext: EvaluationContext?,
+    ): FlagEvaluationDetails<Double> = evaluateFlag(DOUBLE, key, defaultValue, evaluationContext, options)
+
+    override fun getObjectValue(key: String, defaultValue: Value): Value =
+        getObjectDetails(key, defaultValue).value
+
+    override fun getObjectValue(key: String, defaultValue: Value, options: FlagEvaluationOptions): Value =
+        getObjectDetails(key, defaultValue, options).value
 
     override fun getObjectValue(
         key: String,
         defaultValue: Value,
-        options: FlagEvaluationOptions
-    ): Value {
-        return getObjectDetails(key, defaultValue, options).value
-    }
+        options: FlagEvaluationOptions,
+        evaluationContext: EvaluationContext?,
+    ): Value = getObjectDetails(key, defaultValue, options, evaluationContext).value
 
-    override fun getObjectDetails(
-        key: String,
-        defaultValue: Value
-    ): FlagEvaluationDetails<Value> {
-        return getObjectDetails(key, defaultValue, FlagEvaluationOptions())
-    }
+    override fun getObjectDetails(key: String, defaultValue: Value): FlagEvaluationDetails<Value> =
+        evaluateFlag(OBJECT, key, defaultValue, null, FlagEvaluationOptions())
 
     override fun getObjectDetails(
         key: String,
         defaultValue: Value,
         options: FlagEvaluationOptions
-    ): FlagEvaluationDetails<Value> {
-        return evaluateFlag(OBJECT, key, defaultValue, options)
-    }
+    ): FlagEvaluationDetails<Value> = evaluateFlag(OBJECT, key, defaultValue, null, options)
+
+    override fun getObjectDetails(
+        key: String,
+        defaultValue: Value,
+        options: FlagEvaluationOptions,
+        evaluationContext: EvaluationContext?,
+    ): FlagEvaluationDetails<Value> = evaluateFlag(OBJECT, key, defaultValue, evaluationContext, options)
 
     override fun track(trackingEventName: String, details: TrackingEventDetails?) {
         validateTrackingEventName(trackingEventName)
@@ -171,17 +181,15 @@ class OpenFeatureClient(
         flagValueType: FlagValueType,
         key: String,
         defaultValue: T,
-        optionsIn: FlagEvaluationOptions?
+        invocationContext: EvaluationContext?,
+        options: FlagEvaluationOptions
     ): FlagEvaluationDetails<T> {
-        val options = optionsIn ?: FlagEvaluationOptions(listOf(), mapOf())
         val hints = options.hookHints
         var details = FlagEvaluationDetails(key, defaultValue)
         val provider = openFeatureAPI.getProvider()
         val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
         val globalContext = openFeatureAPI.getEvaluationContext()
-        val context = options.evaluationContext
-            ?.let { mergeEvaluationContexts(globalContext, it) }
-            ?: globalContext
+        val context = invocationContext?.let { mergeEvaluationContexts(globalContext, it) } ?: globalContext
         val hookCtx: HookContext<T> = HookContext(
             key,
             flagValueType,
@@ -286,13 +294,8 @@ private fun validateTrackingEventName(name: String) {
 }
 
 /**
- * Returns a new [EvaluationContext] by merging [base] with [overlay] without mutating either.
- *
- * **Attributes:** Keys from [overlay] override keys from [base] on collision ([overlay] wins).
- *
- * **Targeting key:** If [overlay]'s targeting key is non-empty, it is used. Otherwise the result
- * uses [base]'s targeting key when [base] is non-null, or an empty string when [base] is null.
- * An empty targeting key on [overlay] therefore means "inherit from [base]" rather than "clear".
+ * Merges [base] with [overlay] without mutating either. [overlay] wins on attribute key collision.
+ * Non-empty [overlay] targeting key overrides; empty overlay targeting inherits [base].
  */
 internal fun mergeEvaluationContexts(base: EvaluationContext?, overlay: EvaluationContext): EvaluationContext {
     val mergedAttributes = base?.asMap().orEmpty() + overlay.asMap()

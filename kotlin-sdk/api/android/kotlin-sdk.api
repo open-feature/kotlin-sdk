@@ -33,10 +33,6 @@ public abstract interface class dev/openfeature/kotlin/sdk/EvaluationContext : d
 	public abstract fun withTargetingKey (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/EvaluationContext;
 }
 
-public final class dev/openfeature/kotlin/sdk/EvaluationContextMergeKt {
-	public static final fun mergeEvaluationContexts (Ldev/openfeature/kotlin/sdk/EvaluationContext;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/EvaluationContext;
-}
-
 public final class dev/openfeature/kotlin/sdk/EvaluationEvent {
 	public fun <init> (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;)V
 	public final fun component1 ()Ljava/lang/String;
@@ -90,24 +86,57 @@ public final class dev/openfeature/kotlin/sdk/FeatureProvider$DefaultImpls {
 public abstract interface class dev/openfeature/kotlin/sdk/Features {
 	public abstract fun getBooleanDetails (Ljava/lang/String;Z)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getBooleanDetails (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getBooleanDetails (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun getBooleanDetails$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getBooleanValue (Ljava/lang/String;Z)Z
 	public abstract fun getBooleanValue (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Z
+	public abstract fun getBooleanValue (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Z
+	public static synthetic fun getBooleanValue$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Z
 	public abstract fun getDoubleDetails (Ljava/lang/String;D)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getDoubleDetails (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getDoubleDetails (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun getDoubleDetails$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getDoubleValue (Ljava/lang/String;D)D
 	public abstract fun getDoubleValue (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)D
+	public abstract fun getDoubleValue (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)D
+	public static synthetic fun getDoubleValue$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)D
 	public abstract fun getIntegerDetails (Ljava/lang/String;I)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getIntegerDetails (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getIntegerDetails (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun getIntegerDetails$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getIntegerValue (Ljava/lang/String;I)I
 	public abstract fun getIntegerValue (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)I
+	public abstract fun getIntegerValue (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)I
+	public static synthetic fun getIntegerValue$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)I
 	public abstract fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun getObjectDetails$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/Value;
 	public abstract fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/Value;
+	public abstract fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/Value;
+	public static synthetic fun getObjectValue$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Value;
 	public abstract fun getStringDetails (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getStringDetails (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getStringDetails (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun getStringDetails$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getStringValue (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public abstract fun getStringValue (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ljava/lang/String;
+	public abstract fun getStringValue (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ljava/lang/String;
+	public static synthetic fun getStringValue$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ljava/lang/String;
+}
+
+public final class dev/openfeature/kotlin/sdk/Features$DefaultImpls {
+	public static synthetic fun getBooleanDetails$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun getBooleanValue$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Z
+	public static synthetic fun getDoubleDetails$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun getDoubleValue$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)D
+	public static synthetic fun getIntegerDetails$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun getIntegerValue$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)I
+	public static synthetic fun getObjectDetails$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun getObjectValue$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Value;
+	public static synthetic fun getStringDetails$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public static synthetic fun getStringValue$default (Ldev/openfeature/kotlin/sdk/Features;Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ljava/lang/String;
 }
 
 public final class dev/openfeature/kotlin/sdk/FlagEvaluationDetails {
@@ -144,15 +173,13 @@ public final class dev/openfeature/kotlin/sdk/FlagEvaluationDetailsKt {
 
 public final class dev/openfeature/kotlin/sdk/FlagEvaluationOptions {
 	public fun <init> ()V
-	public fun <init> (Ljava/util/List;Ljava/util/Map;Ldev/openfeature/kotlin/sdk/EvaluationContext;)V
-	public synthetic fun <init> (Ljava/util/List;Ljava/util/Map;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/List;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/util/List;
 	public final fun component2 ()Ljava/util/Map;
-	public final fun component3 ()Ldev/openfeature/kotlin/sdk/EvaluationContext;
-	public final fun copy (Ljava/util/List;Ljava/util/Map;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;
-	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ljava/util/List;Ljava/util/Map;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;
+	public final fun copy (Ljava/util/List;Ljava/util/Map;)Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ljava/util/List;Ljava/util/Map;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getEvaluationContext ()Ldev/openfeature/kotlin/sdk/EvaluationContext;
 	public final fun getHookHints ()Ljava/util/Map;
 	public final fun getHooks ()Ljava/util/List;
 	public fun hashCode ()I
@@ -303,27 +330,37 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureClient : dev/openfeatur
 	public fun addHooks (Ljava/util/List;)V
 	public fun getBooleanDetails (Ljava/lang/String;Z)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getBooleanDetails (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getBooleanDetails (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getBooleanValue (Ljava/lang/String;Z)Z
 	public fun getBooleanValue (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Z
+	public fun getBooleanValue (Ljava/lang/String;ZLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Z
 	public fun getDoubleDetails (Ljava/lang/String;D)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getDoubleDetails (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getDoubleDetails (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getDoubleValue (Ljava/lang/String;D)D
 	public fun getDoubleValue (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)D
+	public fun getDoubleValue (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)D
 	public fun getHooks ()Ljava/util/List;
 	public fun getIntegerDetails (Ljava/lang/String;I)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getIntegerDetails (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getIntegerDetails (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getIntegerValue (Ljava/lang/String;I)I
 	public fun getIntegerValue (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)I
+	public fun getIntegerValue (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)I
 	public fun getMetadata ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
 	public fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/Value;
 	public fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/Value;
+	public fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/Value;
 	public fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
 	public fun getStringDetails (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getStringDetails (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getStringDetails (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getStringValue (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public fun getStringValue (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ljava/lang/String;
+	public fun getStringValue (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ljava/lang/String;
 	public fun track (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/TrackingEventDetails;)V
 }
 

@@ -182,8 +182,7 @@ val client = OpenFeatureAPI.getClient()
 client.addHooks(listOf(ExampleHook()))
 
 // add a hook for this evaluation only
-val retval = client.getBooleanValue(flagKey, false,
-    FlagEvaluationOptions(listOf(ExampleHook())))
+val retval = client.getBooleanValue(flagKey, false, FlagEvaluationOptions(listOf(ExampleHook())))
 ```
 
 ### Tracking
