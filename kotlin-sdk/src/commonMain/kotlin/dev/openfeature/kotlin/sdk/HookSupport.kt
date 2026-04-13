@@ -4,41 +4,40 @@ package dev.openfeature.kotlin.sdk
 internal class HookSupport {
     fun <T> beforeHooks(
         flagValueType: FlagValueType,
-        hookCtx: HookContext<T>,
-        hooksWithData: List<Pair<Hook<*>, MutableMap<String, Any?>>>,
+        hooksWithContext: List<Pair<Hook<*>, HookContext<T>>>,
         hints: Map<String, Any>
     ) {
-        hooksWithData
+        hooksWithContext
             .asReversed()
-            .forEach { (hook, hookData) ->
+            .forEach { (hook, ctx) ->
                 when (flagValueType) {
                     FlagValueType.BOOLEAN -> {
-                        safeLet(hook as? Hook<Boolean>, hookCtx as? HookContext<Boolean>) { booleanHook, booleanCtx ->
-                            booleanHook.before(booleanCtx.copy(hookData = hookData), hints)
+                        safeLet(hook as? Hook<Boolean>, ctx as? HookContext<Boolean>) { booleanHook, booleanCtx ->
+                            booleanHook.before(booleanCtx, hints)
                         }
                     }
 
                     FlagValueType.STRING -> {
-                        safeLet(hook as? Hook<String>, hookCtx as? HookContext<String>) { stringHook, stringCtx ->
-                            stringHook.before(stringCtx.copy(hookData = hookData), hints)
+                        safeLet(hook as? Hook<String>, ctx as? HookContext<String>) { stringHook, stringCtx ->
+                            stringHook.before(stringCtx, hints)
                         }
                     }
 
                     FlagValueType.INTEGER -> {
-                        safeLet(hook as? Hook<Int>, hookCtx as? HookContext<Int>) { integerHook, integerCtx ->
-                            integerHook.before(integerCtx.copy(hookData = hookData), hints)
+                        safeLet(hook as? Hook<Int>, ctx as? HookContext<Int>) { integerHook, integerCtx ->
+                            integerHook.before(integerCtx, hints)
                         }
                     }
 
                     FlagValueType.DOUBLE -> {
-                        safeLet(hook as? Hook<Double>, hookCtx as? HookContext<Double>) { doubleHook, doubleCtx ->
-                            doubleHook.before(doubleCtx.copy(hookData = hookData), hints)
+                        safeLet(hook as? Hook<Double>, ctx as? HookContext<Double>) { doubleHook, doubleCtx ->
+                            doubleHook.before(doubleCtx, hints)
                         }
                     }
 
                     FlagValueType.OBJECT -> {
-                        safeLet(hook as? Hook<Value>, hookCtx as? HookContext<Value>) { objectHook, objectCtx ->
-                            objectHook.before(objectCtx.copy(hookData = hookData), hints)
+                        safeLet(hook as? Hook<Value>, ctx as? HookContext<Value>) { objectHook, objectCtx ->
+                            objectHook.before(objectCtx, hints)
                         }
                     }
                 }
@@ -47,192 +46,180 @@ internal class HookSupport {
 
     fun <T> afterHooks(
         flagValueType: FlagValueType,
-        hookCtx: HookContext<T>,
         details: FlagEvaluationDetails<T>,
-        hooksWithData: List<Pair<Hook<*>, MutableMap<String, Any?>>>,
+        hooksWithContext: List<Pair<Hook<*>, HookContext<T>>>,
         hints: Map<String, Any>
     ) {
-        hooksWithData
-            .forEach { (hook, hookData) ->
-                run {
-                    when (flagValueType) {
-                        FlagValueType.BOOLEAN -> {
-                            safeLet(
-                                hook as? Hook<Boolean>,
-                                hookCtx as? HookContext<Boolean>,
-                                details as? FlagEvaluationDetails<Boolean>
-                            ) { booleanHook, booleanCtx, booleanDetails ->
-                                booleanHook.after(booleanCtx.copy(hookData = hookData), booleanDetails, hints)
-                            }
-                        }
+        hooksWithContext.forEach { (hook, ctx) ->
+            when (flagValueType) {
+                FlagValueType.BOOLEAN -> {
+                    safeLet(
+                        hook as? Hook<Boolean>,
+                        ctx as? HookContext<Boolean>,
+                        details as? FlagEvaluationDetails<Boolean>
+                    ) { booleanHook, booleanCtx, booleanDetails ->
+                        booleanHook.after(booleanCtx, booleanDetails, hints)
+                    }
+                }
 
-                        FlagValueType.STRING -> {
-                            safeLet(
-                                hook as? Hook<String>,
-                                hookCtx as? HookContext<String>,
-                                details as? FlagEvaluationDetails<String>
-                            ) { stringHook, stringCtx, stringDetails ->
-                                stringHook.after(stringCtx.copy(hookData = hookData), stringDetails, hints)
-                            }
-                        }
+                FlagValueType.STRING -> {
+                    safeLet(
+                        hook as? Hook<String>,
+                        ctx as? HookContext<String>,
+                        details as? FlagEvaluationDetails<String>
+                    ) { stringHook, stringCtx, stringDetails ->
+                        stringHook.after(stringCtx, stringDetails, hints)
+                    }
+                }
 
-                        FlagValueType.INTEGER -> {
-                            safeLet(
-                                hook as? Hook<Int>,
-                                hookCtx as? HookContext<Int>,
-                                details as? FlagEvaluationDetails<Int>
-                            ) { integerHook, integerCtx, integerDetails ->
-                                integerHook.after(integerCtx.copy(hookData = hookData), integerDetails, hints)
-                            }
-                        }
+                FlagValueType.INTEGER -> {
+                    safeLet(
+                        hook as? Hook<Int>,
+                        ctx as? HookContext<Int>,
+                        details as? FlagEvaluationDetails<Int>
+                    ) { integerHook, integerCtx, integerDetails ->
+                        integerHook.after(integerCtx, integerDetails, hints)
+                    }
+                }
 
-                        FlagValueType.DOUBLE -> {
-                            safeLet(
-                                hook as? Hook<Double>,
-                                hookCtx as? HookContext<Double>,
-                                details as? FlagEvaluationDetails<Double>
-                            ) { doubleHook, doubleCtx, doubleDetails ->
-                                doubleHook.after(doubleCtx.copy(hookData = hookData), doubleDetails, hints)
-                            }
-                        }
+                FlagValueType.DOUBLE -> {
+                    safeLet(
+                        hook as? Hook<Double>,
+                        ctx as? HookContext<Double>,
+                        details as? FlagEvaluationDetails<Double>
+                    ) { doubleHook, doubleCtx, doubleDetails ->
+                        doubleHook.after(doubleCtx, doubleDetails, hints)
+                    }
+                }
 
-                        FlagValueType.OBJECT -> {
-                            safeLet(
-                                hook as? Hook<Value>,
-                                hookCtx as? HookContext<Value>,
-                                details as? FlagEvaluationDetails<Value>
-                            ) { objectHook, objectCtx, objectDetails ->
-                                objectHook.after(objectCtx.copy(hookData = hookData), objectDetails, hints)
-                            }
-                        }
+                FlagValueType.OBJECT -> {
+                    safeLet(
+                        hook as? Hook<Value>,
+                        ctx as? HookContext<Value>,
+                        details as? FlagEvaluationDetails<Value>
+                    ) { objectHook, objectCtx, objectDetails ->
+                        objectHook.after(objectCtx, objectDetails, hints)
                     }
                 }
             }
+        }
     }
 
     fun <T> afterAllHooks(
         flagValueType: FlagValueType,
-        hookCtx: HookContext<T>,
         details: FlagEvaluationDetails<T>,
-        hooksWithData: List<Pair<Hook<*>, MutableMap<String, Any?>>>,
+        hooksWithContext: List<Pair<Hook<*>, HookContext<T>>>,
         hints: Map<String, Any>
     ) {
-        hooksWithData
-            .forEach { (hook, hookData) ->
-                run {
-                    when (flagValueType) {
-                        FlagValueType.BOOLEAN -> {
-                            safeLet(
-                                hook as? Hook<Boolean>,
-                                hookCtx as? HookContext<Boolean>,
-                                details as? FlagEvaluationDetails<Boolean>
-                            ) { booleanHook, booleanCtx, booleanDetails ->
-                                booleanHook.finallyAfter(booleanCtx.copy(hookData = hookData), booleanDetails, hints)
-                            }
-                        }
+        hooksWithContext.forEach { (hook, ctx) ->
+            when (flagValueType) {
+                FlagValueType.BOOLEAN -> {
+                    safeLet(
+                        hook as? Hook<Boolean>,
+                        ctx as? HookContext<Boolean>,
+                        details as? FlagEvaluationDetails<Boolean>
+                    ) { booleanHook, booleanCtx, booleanDetails ->
+                        booleanHook.finallyAfter(booleanCtx, booleanDetails, hints)
+                    }
+                }
 
-                        FlagValueType.STRING -> {
-                            safeLet(
-                                hook as? Hook<String>,
-                                hookCtx as? HookContext<String>,
-                                details as? FlagEvaluationDetails<String>
-                            ) { stringHook, stringCtx, stringDetails ->
-                                stringHook.finallyAfter(stringCtx.copy(hookData = hookData), stringDetails, hints)
-                            }
-                        }
+                FlagValueType.STRING -> {
+                    safeLet(
+                        hook as? Hook<String>,
+                        ctx as? HookContext<String>,
+                        details as? FlagEvaluationDetails<String>
+                    ) { stringHook, stringCtx, stringDetails ->
+                        stringHook.finallyAfter(stringCtx, stringDetails, hints)
+                    }
+                }
 
-                        FlagValueType.INTEGER -> {
-                            safeLet(
-                                hook as? Hook<Int>,
-                                hookCtx as? HookContext<Int>,
-                                details as? FlagEvaluationDetails<Int>
-                            ) { integerHook, integerCtx, integerDetails ->
-                                integerHook.finallyAfter(integerCtx.copy(hookData = hookData), integerDetails, hints)
-                            }
-                        }
+                FlagValueType.INTEGER -> {
+                    safeLet(
+                        hook as? Hook<Int>,
+                        ctx as? HookContext<Int>,
+                        details as? FlagEvaluationDetails<Int>
+                    ) { integerHook, integerCtx, integerDetails ->
+                        integerHook.finallyAfter(integerCtx, integerDetails, hints)
+                    }
+                }
 
-                        FlagValueType.DOUBLE -> {
-                            safeLet(
-                                hook as? Hook<Double>,
-                                hookCtx as? HookContext<Double>,
-                                details as? FlagEvaluationDetails<Double>
-                            ) { doubleHook, doubleCtx, doubleDetails ->
-                                doubleHook.finallyAfter(doubleCtx.copy(hookData = hookData), doubleDetails, hints)
-                            }
-                        }
+                FlagValueType.DOUBLE -> {
+                    safeLet(
+                        hook as? Hook<Double>,
+                        ctx as? HookContext<Double>,
+                        details as? FlagEvaluationDetails<Double>
+                    ) { doubleHook, doubleCtx, doubleDetails ->
+                        doubleHook.finallyAfter(doubleCtx, doubleDetails, hints)
+                    }
+                }
 
-                        FlagValueType.OBJECT -> {
-                            safeLet(
-                                hook as? Hook<Value>,
-                                hookCtx as? HookContext<Value>,
-                                details as? FlagEvaluationDetails<Value>
-                            ) { objectHook, objectCtx, objectDetails ->
-                                objectHook.finallyAfter(objectCtx.copy(hookData = hookData), objectDetails, hints)
-                            }
-                        }
+                FlagValueType.OBJECT -> {
+                    safeLet(
+                        hook as? Hook<Value>,
+                        ctx as? HookContext<Value>,
+                        details as? FlagEvaluationDetails<Value>
+                    ) { objectHook, objectCtx, objectDetails ->
+                        objectHook.finallyAfter(objectCtx, objectDetails, hints)
                     }
                 }
             }
+        }
     }
 
     fun <T> errorHooks(
         flagValueType: FlagValueType,
-        hookCtx: HookContext<T>,
         error: Exception,
-        hooksWithData: List<Pair<Hook<*>, MutableMap<String, Any?>>>,
+        hooksWithContext: List<Pair<Hook<*>, HookContext<T>>>,
         hints: Map<String, Any>
     ) {
-        hooksWithData
-            .forEach { (hook, hookData) ->
-                run {
-                    when (flagValueType) {
-                        FlagValueType.BOOLEAN -> {
-                            safeLet(
-                                hook as? Hook<Boolean>,
-                                hookCtx as? HookContext<Boolean>
-                            ) { booleanHook, booleanCtx ->
-                                booleanHook.error(booleanCtx.copy(hookData = hookData), error, hints)
-                            }
-                        }
+        hooksWithContext.forEach { (hook, ctx) ->
+            when (flagValueType) {
+                FlagValueType.BOOLEAN -> {
+                    safeLet(
+                        hook as? Hook<Boolean>,
+                        ctx as? HookContext<Boolean>
+                    ) { booleanHook, booleanCtx ->
+                        booleanHook.error(booleanCtx, error, hints)
+                    }
+                }
 
-                        FlagValueType.STRING -> {
-                            safeLet(
-                                hook as? Hook<String>,
-                                hookCtx as? HookContext<String>
-                            ) { stringHook, stringCtx ->
-                                stringHook.error(stringCtx.copy(hookData = hookData), error, hints)
-                            }
-                        }
+                FlagValueType.STRING -> {
+                    safeLet(
+                        hook as? Hook<String>,
+                        ctx as? HookContext<String>
+                    ) { stringHook, stringCtx ->
+                        stringHook.error(stringCtx, error, hints)
+                    }
+                }
 
-                        FlagValueType.INTEGER -> {
-                            safeLet(
-                                hook as? Hook<Int>,
-                                hookCtx as? HookContext<Int>
-                            ) { integerHook, integerCtx ->
-                                integerHook.error(integerCtx.copy(hookData = hookData), error, hints)
-                            }
-                        }
+                FlagValueType.INTEGER -> {
+                    safeLet(
+                        hook as? Hook<Int>,
+                        ctx as? HookContext<Int>
+                    ) { integerHook, integerCtx ->
+                        integerHook.error(integerCtx, error, hints)
+                    }
+                }
 
-                        FlagValueType.DOUBLE -> {
-                            safeLet(
-                                hook as? Hook<Double>,
-                                hookCtx as? HookContext<Double>
-                            ) { doubleHook, doubleCtx ->
-                                doubleHook.error(doubleCtx.copy(hookData = hookData), error, hints)
-                            }
-                        }
+                FlagValueType.DOUBLE -> {
+                    safeLet(
+                        hook as? Hook<Double>,
+                        ctx as? HookContext<Double>
+                    ) { doubleHook, doubleCtx ->
+                        doubleHook.error(doubleCtx, error, hints)
+                    }
+                }
 
-                        FlagValueType.OBJECT -> {
-                            safeLet(
-                                hook as? Hook<Value>,
-                                hookCtx as? HookContext<Value>
-                            ) { objectHook, objectCtx ->
-                                objectHook.error(objectCtx.copy(hookData = hookData), error, hints)
-                            }
-                        }
+                FlagValueType.OBJECT -> {
+                    safeLet(
+                        hook as? Hook<Value>,
+                        ctx as? HookContext<Value>
+                    ) { objectHook, objectCtx ->
+                        objectHook.error(objectCtx, error, hints)
                     }
                 }
             }
+        }
     }
 
     private inline fun <T1 : Any, T2 : Any, R : Any> safeLet(p1: T1?, p2: T2?, block: (T1, T2) -> R?): R? {

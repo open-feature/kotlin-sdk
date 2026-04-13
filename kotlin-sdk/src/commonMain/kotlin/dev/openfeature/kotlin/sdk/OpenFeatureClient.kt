@@ -178,21 +178,23 @@ class OpenFeatureClient(
         var details = FlagEvaluationDetails(key, defaultValue)
         val provider = openFeatureAPI.getProvider()
         val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
-        val hooksWithData: List<Pair<Hook<*>, MutableMap<String, Any?>>> =
+        val context = openFeatureAPI.getEvaluationContext()
+        val hooksWithContext: List<Pair<Hook<*>, HookContext<T>>> =
             mergedHooks
                 .filter { it.supportsFlagValueType(flagValueType) }
-                .map { it to mutableMapOf<String, Any?>() }
-        val context = openFeatureAPI.getEvaluationContext()
-        val hookCtx: HookContext<T> = HookContext(
-            key,
-            flagValueType,
-            defaultValue,
-            context,
-            this.metadata,
-            provider.metadata
-        )
+                .map { hook ->
+                    hook to HookContext(
+                        key,
+                        flagValueType,
+                        defaultValue,
+                        context,
+                        this.metadata,
+                        provider.metadata,
+                        mutableMapOf()
+                    )
+                }
         try {
-            hookSupport.beforeHooks(flagValueType, hookCtx, hooksWithData, hints)
+            hookSupport.beforeHooks(flagValueType, hooksWithContext, hints)
             shortCircuitIfNotReady()
             val providerEval = createProviderEvaluation(
                 flagValueType,
@@ -202,7 +204,7 @@ class OpenFeatureClient(
                 provider
             )
             details = FlagEvaluationDetails.from(providerEval, key)
-            hookSupport.afterHooks(flagValueType, hookCtx, details, hooksWithData, hints)
+            hookSupport.afterHooks(flagValueType, details, hooksWithContext, hints)
         } catch (error: Exception) {
             val errorCode = if (error is OpenFeatureError) {
                 error.errorCode()
@@ -216,9 +218,9 @@ class OpenFeatureClient(
                 errorCode = errorCode
             )
 
-            hookSupport.errorHooks(flagValueType, hookCtx, error, hooksWithData, hints)
+            hookSupport.errorHooks(flagValueType, error, hooksWithContext, hints)
         }
-        hookSupport.afterAllHooks(flagValueType, hookCtx, details, hooksWithData, hints)
+        hookSupport.afterAllHooks(flagValueType, details, hooksWithContext, hints)
         return details
     }
 
