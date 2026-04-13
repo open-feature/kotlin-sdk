@@ -9,6 +9,13 @@ sealed interface OpenFeatureStatus {
     object NotReady : OpenFeatureStatus
 
     /**
+     * Initialization finished for a passive placeholder (e.g. the built-in no-op provider): not
+     * [NotReady], so [OpenFeatureAPI.setProviderAndWait] can complete, but flag evaluations are still
+     * blocked the same way as [NotReady] until a full provider reaches [Ready].
+     */
+    object Inactive : OpenFeatureStatus
+
+    /**
      * The provider is ready to resolve flags.
      */
     object Ready : OpenFeatureStatus

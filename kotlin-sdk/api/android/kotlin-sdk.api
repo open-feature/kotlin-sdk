@@ -354,6 +354,10 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$NotReady : dev/o
 	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$NotReady;
 }
 
+public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Inactive : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$Inactive;
+}
+
 public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Ready : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
 	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$Ready;
 }

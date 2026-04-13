@@ -36,7 +36,7 @@ class StatusTests {
     fun testProviderTransitionsToReadyAndNotReadyAfterShutdown() = runTest {
         assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
         OpenFeatureAPI.setProviderAndWait(NoOpProvider())
-        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+        assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus())
         OpenFeatureAPI.shutdown()
         assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
     }
@@ -54,7 +54,7 @@ class StatusTests {
     fun testClearProviderEmitsNotReady() = runTest {
         assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
         OpenFeatureAPI.setProviderAndWait(NoOpProvider())
-        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+        assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus())
         OpenFeatureAPI.clearProvider()
         assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
     }

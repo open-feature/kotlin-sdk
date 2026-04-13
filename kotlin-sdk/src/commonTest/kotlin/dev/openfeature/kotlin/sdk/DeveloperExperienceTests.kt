@@ -72,8 +72,7 @@ class DeveloperExperienceTests {
         )
         testScheduler.advanceUntilIdle() // Make sure coroutine in setProvider is called
         val booleanDetails = OpenFeatureAPI.getClient().getBooleanDetails("test", false)
-        assertNull(booleanDetails.errorCode)
-        assertNull(booleanDetails.errorMessage)
+        assertEquals(ErrorCode.PROVIDER_NOT_READY, booleanDetails.errorCode)
     }
 
     @Test
@@ -194,12 +193,15 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
         job.cancelAndJoin()
+        // State-managing SlowProvider drives status from its StateFlow; after shutdown, flatMapLatest
+        // switches to the no-op provider and replays NotReady again (no distinctUntilChanged on SMP).
         assertEquals(
             listOf(
                 OpenFeatureStatus.NotReady,
                 OpenFeatureStatus.Ready,
                 OpenFeatureStatus.Reconciling,
                 OpenFeatureStatus.Ready,
+                OpenFeatureStatus.NotReady,
                 OpenFeatureStatus.NotReady
             ),
             emittedStatuses

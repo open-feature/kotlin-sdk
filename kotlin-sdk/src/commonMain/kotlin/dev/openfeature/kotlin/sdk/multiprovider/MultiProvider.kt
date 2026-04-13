@@ -97,9 +97,11 @@ class MultiProvider(
     }
 
     private val OpenFeatureStatus.precedence: Int
+        // not sure if I understand this precedence logic
         get() = when (this) {
             is OpenFeatureStatus.Fatal -> 5
             is OpenFeatureStatus.NotReady -> 4
+            is OpenFeatureStatus.Inactive -> 4
             is OpenFeatureStatus.Error -> 3
             is OpenFeatureStatus.Reconciling -> 2 // Not specified in precedence; treat similar to Stale
             is OpenFeatureStatus.Stale -> 2
@@ -220,7 +222,6 @@ class MultiProvider(
             is OpenFeatureProviderEvents.ProviderNotReady -> OpenFeatureStatus.NotReady
             is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
             is OpenFeatureProviderEvents.ProviderReconciling -> OpenFeatureStatus.Reconciling
-            is OpenFeatureProviderEvents.ProviderConfigurationChanged -> OpenFeatureStatus.ConfigurationChanged
             is OpenFeatureProviderEvents.ProviderError -> event.toOpenFeatureStatusError()
         }
 

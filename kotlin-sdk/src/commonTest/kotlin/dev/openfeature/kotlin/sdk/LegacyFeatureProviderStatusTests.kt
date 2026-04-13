@@ -2,7 +2,7 @@ package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
-import dev.openfeature.kotlin.sdk.helpers.SpyProvider
+import dev.openfeature.kotlin.sdk.helpers.LegacyMinimalProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -77,8 +77,8 @@ class LegacyFeatureProviderStatusTests {
 
     @Test
     fun legacy_swap_to_second_legacy_provider_shuts_down_first() = runTest {
-        val first = SpyProvider()
-        val second = SpyProvider()
+        val first = LegacyMinimalProvider()
+        val second = LegacyMinimalProvider()
         OpenFeatureAPI.setProviderAndWait(first)
         OpenFeatureAPI.setProviderAndWait(second)
         waitAssert { assertEquals(1, first.shutdownCalls.value) }

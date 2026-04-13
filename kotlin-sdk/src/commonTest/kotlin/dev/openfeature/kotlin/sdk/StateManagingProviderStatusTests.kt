@@ -1,10 +1,11 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.helpers.SpyProvider
+import dev.openfeature.kotlin.sdk.helpers.LegacyMinimalProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,11 +30,11 @@ class StateManagingProviderStatusTests {
     }
 
     @Test
-    fun smp_noop_is_state_managing_and_reports_ready_after_init() = runTest {
+    fun smp_noop_is_state_managing_and_reports_inactive_after_init() = runTest {
         val provider = NoOpProvider()
         OpenFeatureAPI.setProviderAndWait(provider)
-        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
-        assertEquals(OpenFeatureStatus.Ready, provider.status.value)
+        waitAssert { assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus()) }
+        assertEquals(OpenFeatureStatus.Inactive, provider.status.value)
     }
 
     @Test
@@ -44,8 +45,8 @@ class StateManagingProviderStatusTests {
         }
 
         OpenFeatureAPI.setProviderAndWait(NoOpProvider())
-        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
-        waitAssert { assertTrue(seen.any { it is OpenFeatureStatus.Ready }, "expected Ready in $seen") }
+        waitAssert { assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus()) }
+        waitAssert { assertTrue(seen.any { it is OpenFeatureStatus.Inactive }, "expected Inactive in $seen") }
 
         OpenFeatureAPI.clearProvider()
         waitAssert { assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus()) }
@@ -65,7 +66,64 @@ class StateManagingProviderStatusTests {
             }
         }
 
-        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
+        val emitting = object : StateManagingProvider {
+            override val hooks: List<Hook<*>> = listOf()
+            override val metadata: ProviderMetadata = object : ProviderMetadata {
+                override val name: String? = "emitting-smp"
+            }
+            private val _status = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
+            override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
+            private val ev = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                _status.value = OpenFeatureStatus.Ready
+                ev.emit(OpenFeatureProviderEvents.ProviderReady())
+            }
+
+            override fun shutdown() {
+                _status.value = OpenFeatureStatus.NotReady
+            }
+
+            override suspend fun onContextSet(
+                oldContext: EvaluationContext?,
+                newContext: EvaluationContext
+            ) {
+            }
+
+            override fun observe(): Flow<OpenFeatureProviderEvents> = ev
+
+            override fun getBooleanEvaluation(
+                key: String,
+                defaultValue: Boolean,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Boolean> = ProviderEvaluation(defaultValue)
+
+            override fun getStringEvaluation(
+                key: String,
+                defaultValue: String,
+                context: EvaluationContext?
+            ): ProviderEvaluation<String> = ProviderEvaluation(defaultValue)
+
+            override fun getIntegerEvaluation(
+                key: String,
+                defaultValue: Int,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Int> = ProviderEvaluation(defaultValue)
+
+            override fun getDoubleEvaluation(
+                key: String,
+                defaultValue: Double,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Double> = ProviderEvaluation(defaultValue)
+
+            override fun getObjectEvaluation(
+                key: String,
+                defaultValue: Value,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Value> = ProviderEvaluation(defaultValue)
+        }
+
+        OpenFeatureAPI.setProviderAndWait(emitting)
         waitAssert { assertTrue(events.isNotEmpty()) }
 
         job.cancelAndJoin()
@@ -75,23 +133,23 @@ class StateManagingProviderStatusTests {
     @Test
     fun smp_context_set_updates_status_via_provider() = runTest {
         OpenFeatureAPI.setProviderAndWait(NoOpProvider(), initialContext = ImmutableContext("a"))
-        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
+        waitAssert { assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus()) }
 
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("b"))
-        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
+        waitAssert { assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus()) }
     }
 
     @Test
     fun smp_after_legacy_swap_status_comes_from_smp_instance() = runTest {
-        OpenFeatureAPI.setProviderAndWait(SpyProvider())
+        OpenFeatureAPI.setProviderAndWait(LegacyMinimalProvider())
         waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
         assertTrue(OpenFeatureAPI.getProvider() !is StateManagingProvider)
 
         val noop = NoOpProvider()
         OpenFeatureAPI.setProviderAndWait(noop)
-        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
+        waitAssert { assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus()) }
         assertTrue(OpenFeatureAPI.getProvider() is StateManagingProvider)
-        assertEquals(OpenFeatureStatus.Ready, noop.status.value)
+        assertEquals(OpenFeatureStatus.Inactive, noop.status.value)
     }
 
     @Test

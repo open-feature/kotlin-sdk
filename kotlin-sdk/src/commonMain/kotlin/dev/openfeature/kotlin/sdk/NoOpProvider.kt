@@ -17,9 +17,7 @@ open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : StateMan
     private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
-        // No-op provider is not ready after initialization
-        _status.value = OpenFeatureStatus.NotReady
-        events.emit(OpenFeatureProviderEvents.ProviderReady())
+        _status.value = OpenFeatureStatus.Inactive
     }
 
     override fun shutdown() {
@@ -31,20 +29,10 @@ open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : StateMan
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
-        // optional event emission to indicate the provider is reconciling
-        _status.value = OpenFeatureStatus.Reconciling
-        events.emit(OpenFeatureProviderEvents.ProviderReconciling())
-
         // no-op
-
-        // collateral event emission to restore the status to ready
-        _status.value = OpenFeatureStatus.Ready
-        events.emit(OpenFeatureProviderEvents.ProviderReady())
     }
 
-    // No-op provider does not emit events
-    // override fun observe(): Flow<OpenFeatureProviderEvents> = events
-    override fun observe(): Flow<OpenFeatureProviderEvents> = emptyFlow()
+    override fun observe(): Flow<OpenFeatureProviderEvents> = events
 
     override fun getBooleanEvaluation(
         key: String,

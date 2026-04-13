@@ -220,7 +220,7 @@ class OpenFeatureClient(
 
     private fun shortCircuitIfNotReady() {
         val providerStatus = openFeatureAPI.getStatus()
-        if (providerStatus == OpenFeatureStatus.NotReady) {
+        if (providerStatus == OpenFeatureStatus.NotReady || providerStatus == OpenFeatureStatus.Inactive) {
             throw OpenFeatureError.ProviderNotReadyError()
         } else if (providerStatus is OpenFeatureStatus.Fatal) {
             throw OpenFeatureError.ProviderFatalError()

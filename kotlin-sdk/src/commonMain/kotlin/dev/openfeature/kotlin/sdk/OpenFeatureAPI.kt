@@ -49,7 +49,7 @@ object OpenFeatureAPI {
             if (p is StateManagingProvider) {
                 p.status
             } else {
-                // Legacy path: use the shared Provider/SDK-managed status buffer.
+                // Legacy path: used by the shared Provider/SDK-managed status buffer.
                 _statusFlow.distinctUntilChanged()
             }
         }
@@ -58,14 +58,17 @@ object OpenFeatureAPI {
         private set
 
     /**
-     * Set the [StateManagingProvider] for the SDK. This method will return immediately and initialize the
-     * provider in a coroutine scope. Status becomes Ready or Error when a [StateManagingProvider]
-     * updates [StateManagingProvider.status], or when a legacy provider emits on [FeatureProvider.observe].
-     * If the provider fails to initialize it will set the status to Error.
+     * Runs the same logic as [setProviderAndWait] in a new coroutine on [dispatcher],
+     * then returns immediately. Calling again cancels the previous registration job.
      *
-     * This method requires you to manually wait for the status to be Ready before using the SDK
-     * for flag evaluations. This can be done by using [statusFlow] and waiting for the first Ready
-     * status, or by accessing [getStatus].
+     * [StateManagingProvider]: after [FeatureProvider.initialize] returns,
+     * the coroutine waits until [StateManagingProvider.status] emits something other than
+     * [OpenFeatureStatus.NotReady] (e.g. [OpenFeatureStatus.Ready], [OpenFeatureStatus.Inactive], or
+     * [OpenFeatureStatus.Error]).
+     *
+     * Legacy providers: the SDK sets shared status to [OpenFeatureStatus.NotReady], collects
+     * [FeatureProvider.observe], runs `initialize`, then emits [OpenFeatureStatus.Ready] on success or
+     * [OpenFeatureStatus.Error] on failure.
      *
      * @param provider the provider to set
      * @param dispatcher the dispatcher to use for the provider initialization coroutine. Defaults to [Dispatchers.Default] if not set.
@@ -83,9 +86,14 @@ object OpenFeatureAPI {
     }
 
     /**
-     * Set the [StateManagingProvider] for the SDK. This method blocks until the provider
-     * has signalled its initial state: [StateManagingProvider] via [StateManagingProvider.status],
-     * or a legacy provider via when [FeatureProvider.initialize] finishes, it may throw an exception).
+     * Suspends until provider swap, previous provider shutdown, and initialization
+     * complete (same steps as [setProvider], but on the caller's coroutine).
+     *
+     * [StateManagingProvider]: suspends after `initialize` until [StateManagingProvider.status]
+     * emits a non-[OpenFeatureStatus.NotReady] value.
+     *
+     * Legacy providers: subscribes to [FeatureProvider.observe], runs `initialize`, then emits
+     * [OpenFeatureStatus.Ready] or [OpenFeatureStatus.Error].
      *
      * @param provider the [FeatureProvider] to set
      * @param initialContext the initial [EvaluationContext] to use for the provider initialization. Defaults to null context if not set.
@@ -130,23 +138,25 @@ object OpenFeatureAPI {
         if (oldProvider is StateManagingProvider) {
             oldProvider.shutdown()
         } else {
-            // Legacy path: mirror shutdown failures into _statusFlow;
+            // Legacy path: run shutdown while observe() is still collected so emissions from shutdown
+            // (e.g. ProviderNotReady) still update _statusFlow via handleProviderEvents; then stop
+            // mirroring before initializing the new provider. Mirror shutdown failures into _statusFlow.
             tryWithStatusEmitErrorHandling {
                 oldProvider.shutdown()
             }
+            observeProviderEventsJob?.cancel(
+                CancellationException("Legacy provider replaced: stop observe() mirroring to SDK status")
+            )
+            observeProviderEventsJob = null
         }
 
         // Initialize the new provider
         if (provider is StateManagingProvider) {
-            // Stop any legacy listener from a previous provider so it cannot propagate to _statusFlow
-            observeProviderEventsJob?.cancel(
-                CancellationException("State-managing provider: SDK does not mirror observe() into status")
-            )
-            observeProviderEventsJob = null
             getProvider().initialize(context)
             provider.status.first { it !is OpenFeatureStatus.NotReady }
         } else {
             // Legacy path
+            tryWithStatusEmitErrorHandling {
                 listenToProviderEvents(provider, dispatcher)
                 getProvider().initialize(context)
                 _statusFlow.emit(OpenFeatureStatus.Ready)

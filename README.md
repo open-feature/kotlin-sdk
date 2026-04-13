@@ -141,7 +141,7 @@ coroutineScope.launch(Dispatchers.Default) {
 
 Asynchronous API that doesn't wait is also available. It's useful when you want to set a provider and continue with other tasks.
 
-However, flag evaluations are only possible after the provider is Ready.
+However, flag evaluations are only possible after the provider is `OpenFeatureStatus.Ready`. The built-in `NoOpProvider` uses `OpenFeatureStatus.Inactive` after initialization so `setProviderAndWait` can complete without implying a real flag backend is active (evaluations are still blocked, same as `NotReady`).
 
 ```kotlin
 OpenFeatureAPI.setProvider(MyProvider()) // can pass a dispatcher here
