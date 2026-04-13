@@ -41,29 +41,9 @@ interface FeatureProvider {
 
     fun getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?): ProviderEvaluation<String>
     fun getIntegerEvaluation(key: String, defaultValue: Int, context: EvaluationContext?): ProviderEvaluation<Int>
+    fun getLongEvaluation(key: String, defaultValue: Long, context: EvaluationContext?): ProviderEvaluation<Long>
     fun getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?): ProviderEvaluation<Double>
     fun getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?): ProviderEvaluation<Value>
-
-    /**
-     * Providers should implement this properly, following
-     * the patterns of other evaluation methods.
-     * Note: This default will be removed at 1.0 release.
-     */
-    fun getLongEvaluation(key: String, defaultValue: Long, context: EvaluationContext?): ProviderEvaluation<Long> {
-        require(defaultValue in Int.MIN_VALUE..Int.MAX_VALUE) {
-            "provider does not implement getLongEvaluation and we're unable to delegate to getIntegerEvaluation " +
-                "because defaultValue $defaultValue exceeds Int range"
-        }
-        val intResult = getIntegerEvaluation(key, defaultValue.toInt(), context)
-        return ProviderEvaluation(
-            value = intResult.value.toLong(),
-            variant = intResult.variant,
-            reason = intResult.reason,
-            errorCode = intResult.errorCode,
-            errorMessage = intResult.errorMessage,
-            metadata = intResult.metadata
-        )
-    }
 
     /**
      * Feature provider implementations can opt in for to support Tracking by implementing this method.
