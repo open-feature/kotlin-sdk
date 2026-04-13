@@ -204,14 +204,6 @@ public final class dev/openfeature/kotlin/sdk/HookContext {
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class dev/openfeature/kotlin/sdk/HookSupport {
-	public fun <init> ()V
-	public final fun afterAllHooks (Ldev/openfeature/kotlin/sdk/FlagValueType;Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/List;Ljava/util/Map;)V
-	public final fun afterHooks (Ldev/openfeature/kotlin/sdk/FlagValueType;Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/List;Ljava/util/Map;)V
-	public final fun beforeHooks (Ldev/openfeature/kotlin/sdk/FlagValueType;Ldev/openfeature/kotlin/sdk/HookContext;Ljava/util/List;Ljava/util/Map;)V
-	public final fun errorHooks (Ldev/openfeature/kotlin/sdk/FlagValueType;Ldev/openfeature/kotlin/sdk/HookContext;Ljava/lang/Exception;Ljava/util/List;Ljava/util/Map;)V
-}
-
 public final class dev/openfeature/kotlin/sdk/ImmutableContext : dev/openfeature/kotlin/sdk/EvaluationContext {
 	public fun <init> ()V
 	public fun <init> (Ljava/lang/String;Ljava/util/Map;)V

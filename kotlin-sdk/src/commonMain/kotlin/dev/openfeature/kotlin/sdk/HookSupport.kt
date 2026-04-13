@@ -1,7 +1,7 @@
 package dev.openfeature.kotlin.sdk
 
 @Suppress("UNCHECKED_CAST") // TODO can we do better here?
-class HookSupport {
+internal class HookSupport {
     fun <T> beforeHooks(
         flagValueType: FlagValueType,
         hookCtx: HookContext<T>,
