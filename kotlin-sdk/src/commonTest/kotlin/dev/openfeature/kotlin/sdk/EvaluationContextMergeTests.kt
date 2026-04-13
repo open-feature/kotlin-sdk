@@ -70,7 +70,7 @@ class EvaluationContextMergeTests {
         client.getBooleanValue(
             "flag",
             false,
-            evaluationContext = overlay,
+            evaluationContext = overlay
         )
 
         val seen = provider.lastBooleanContext!!

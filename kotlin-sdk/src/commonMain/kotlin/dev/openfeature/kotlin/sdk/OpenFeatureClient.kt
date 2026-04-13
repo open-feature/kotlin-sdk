@@ -36,7 +36,7 @@ class OpenFeatureClient(
         key: String,
         defaultValue: Boolean,
         options: FlagEvaluationOptions,
-        evaluationContext: EvaluationContext?,
+        evaluationContext: EvaluationContext?
     ): Boolean = getBooleanDetails(key, defaultValue, options, evaluationContext).value
 
     override fun getBooleanDetails(key: String, defaultValue: Boolean): FlagEvaluationDetails<Boolean> =
@@ -52,7 +52,7 @@ class OpenFeatureClient(
         key: String,
         defaultValue: Boolean,
         options: FlagEvaluationOptions,
-        evaluationContext: EvaluationContext?,
+        evaluationContext: EvaluationContext?
     ): FlagEvaluationDetails<Boolean> = evaluateFlag(BOOLEAN, key, defaultValue, evaluationContext, options)
 
     override fun getStringValue(key: String, defaultValue: String): String =
@@ -65,7 +65,7 @@ class OpenFeatureClient(
         key: String,
         defaultValue: String,
         options: FlagEvaluationOptions,
-        evaluationContext: EvaluationContext?,
+        evaluationContext: EvaluationContext?
     ): String = getStringDetails(key, defaultValue, options, evaluationContext).value
 
     override fun getStringDetails(key: String, defaultValue: String): FlagEvaluationDetails<String> =
@@ -81,7 +81,7 @@ class OpenFeatureClient(
         key: String,
         defaultValue: String,
         options: FlagEvaluationOptions,
-        evaluationContext: EvaluationContext?,
+        evaluationContext: EvaluationContext?
     ): FlagEvaluationDetails<String> = evaluateFlag(STRING, key, defaultValue, evaluationContext, options)
 
     override fun getIntegerValue(key: String, defaultValue: Int): Int =
@@ -94,7 +94,7 @@ class OpenFeatureClient(
         key: String,
         defaultValue: Int,
         options: FlagEvaluationOptions,
-        evaluationContext: EvaluationContext?,
+        evaluationContext: EvaluationContext?
     ): Int = getIntegerDetails(key, defaultValue, options, evaluationContext).value
 
     override fun getIntegerDetails(key: String, defaultValue: Int): FlagEvaluationDetails<Int> =
@@ -110,7 +110,7 @@ class OpenFeatureClient(
         key: String,
         defaultValue: Int,
         options: FlagEvaluationOptions,
-        evaluationContext: EvaluationContext?,
+        evaluationContext: EvaluationContext?
     ): FlagEvaluationDetails<Int> = evaluateFlag(INTEGER, key, defaultValue, evaluationContext, options)
 
     override fun getDoubleValue(key: String, defaultValue: Double): Double =
@@ -123,7 +123,7 @@ class OpenFeatureClient(
         key: String,
         defaultValue: Double,
         options: FlagEvaluationOptions,
-        evaluationContext: EvaluationContext?,
+        evaluationContext: EvaluationContext?
     ): Double = getDoubleDetails(key, defaultValue, options, evaluationContext).value
 
     override fun getDoubleDetails(key: String, defaultValue: Double): FlagEvaluationDetails<Double> =
@@ -139,7 +139,7 @@ class OpenFeatureClient(
         key: String,
         defaultValue: Double,
         options: FlagEvaluationOptions,
-        evaluationContext: EvaluationContext?,
+        evaluationContext: EvaluationContext?
     ): FlagEvaluationDetails<Double> = evaluateFlag(DOUBLE, key, defaultValue, evaluationContext, options)
 
     override fun getObjectValue(key: String, defaultValue: Value): Value =
@@ -152,7 +152,7 @@ class OpenFeatureClient(
         key: String,
         defaultValue: Value,
         options: FlagEvaluationOptions,
-        evaluationContext: EvaluationContext?,
+        evaluationContext: EvaluationContext?
     ): Value = getObjectDetails(key, defaultValue, options, evaluationContext).value
 
     override fun getObjectDetails(key: String, defaultValue: Value): FlagEvaluationDetails<Value> =
@@ -168,7 +168,7 @@ class OpenFeatureClient(
         key: String,
         defaultValue: Value,
         options: FlagEvaluationOptions,
-        evaluationContext: EvaluationContext?,
+        evaluationContext: EvaluationContext?
     ): FlagEvaluationDetails<Value> = evaluateFlag(OBJECT, key, defaultValue, evaluationContext, options)
 
     override fun track(trackingEventName: String, details: TrackingEventDetails?) {

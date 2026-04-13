@@ -7,7 +7,7 @@ interface Features {
         key: String,
         defaultValue: Boolean,
         options: FlagEvaluationOptions = FlagEvaluationOptions(),
-        evaluationContext: EvaluationContext? = null,
+        evaluationContext: EvaluationContext? = null
     ): Boolean
 
     fun getBooleanDetails(key: String, defaultValue: Boolean): FlagEvaluationDetails<Boolean>
@@ -20,7 +20,7 @@ interface Features {
         key: String,
         defaultValue: Boolean,
         options: FlagEvaluationOptions = FlagEvaluationOptions(),
-        evaluationContext: EvaluationContext? = null,
+        evaluationContext: EvaluationContext? = null
     ): FlagEvaluationDetails<Boolean>
 
     fun getStringValue(key: String, defaultValue: String): String
@@ -29,7 +29,7 @@ interface Features {
         key: String,
         defaultValue: String,
         options: FlagEvaluationOptions = FlagEvaluationOptions(),
-        evaluationContext: EvaluationContext? = null,
+        evaluationContext: EvaluationContext? = null
     ): String
 
     fun getStringDetails(key: String, defaultValue: String): FlagEvaluationDetails<String>
@@ -42,7 +42,7 @@ interface Features {
         key: String,
         defaultValue: String,
         options: FlagEvaluationOptions = FlagEvaluationOptions(),
-        evaluationContext: EvaluationContext? = null,
+        evaluationContext: EvaluationContext? = null
     ): FlagEvaluationDetails<String>
 
     fun getIntegerValue(key: String, defaultValue: Int): Int
@@ -51,7 +51,7 @@ interface Features {
         key: String,
         defaultValue: Int,
         options: FlagEvaluationOptions = FlagEvaluationOptions(),
-        evaluationContext: EvaluationContext? = null,
+        evaluationContext: EvaluationContext? = null
     ): Int
 
     fun getIntegerDetails(key: String, defaultValue: Int): FlagEvaluationDetails<Int>
@@ -60,7 +60,7 @@ interface Features {
         key: String,
         defaultValue: Int,
         options: FlagEvaluationOptions = FlagEvaluationOptions(),
-        evaluationContext: EvaluationContext? = null,
+        evaluationContext: EvaluationContext? = null
     ): FlagEvaluationDetails<Int>
 
     fun getDoubleValue(key: String, defaultValue: Double): Double
@@ -69,7 +69,7 @@ interface Features {
         key: String,
         defaultValue: Double,
         options: FlagEvaluationOptions = FlagEvaluationOptions(),
-        evaluationContext: EvaluationContext? = null,
+        evaluationContext: EvaluationContext? = null
     ): Double
 
     fun getDoubleDetails(key: String, defaultValue: Double): FlagEvaluationDetails<Double>
@@ -82,7 +82,7 @@ interface Features {
         key: String,
         defaultValue: Double,
         options: FlagEvaluationOptions = FlagEvaluationOptions(),
-        evaluationContext: EvaluationContext? = null,
+        evaluationContext: EvaluationContext? = null
     ): FlagEvaluationDetails<Double>
 
     fun getObjectValue(key: String, defaultValue: Value): Value
@@ -91,7 +91,7 @@ interface Features {
         key: String,
         defaultValue: Value,
         options: FlagEvaluationOptions = FlagEvaluationOptions(),
-        evaluationContext: EvaluationContext? = null,
+        evaluationContext: EvaluationContext? = null
     ): Value
 
     fun getObjectDetails(key: String, defaultValue: Value): FlagEvaluationDetails<Value>
@@ -100,6 +100,6 @@ interface Features {
         key: String,
         defaultValue: Value,
         options: FlagEvaluationOptions = FlagEvaluationOptions(),
-        evaluationContext: EvaluationContext? = null,
+        evaluationContext: EvaluationContext? = null
     ): FlagEvaluationDetails<Value>
 }
