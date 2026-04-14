@@ -28,7 +28,9 @@ class StatusTests {
     }
 
     @Test
-    fun testNoProviderSet() {
+    fun testNoProviderSet() = runTest {
+        // Run shutdown in the same runTest as the assertion so JS targets don’t race @BeforeTest’s runTest.
+        OpenFeatureAPI.shutdown()
         assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
     }
 

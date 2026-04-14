@@ -22,7 +22,7 @@ open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : StateMan
 
     override fun shutdown() {
         _status.value = OpenFeatureStatus.NotReady
-        events.emit(OpenFeatureProviderEvents.ProviderNotReady())
+        events.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
     }
 
     override suspend fun onContextSet(

@@ -350,12 +350,12 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Fatal : dev/open
 	public final fun getError ()Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;
 }
 
-public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$NotReady : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
-	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$NotReady;
-}
-
 public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Inactive : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
 	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$Inactive;
+}
+
+public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$NotReady : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$NotReady;
 }
 
 public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Ready : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
@@ -837,6 +837,38 @@ public final class dev/openfeature/kotlin/sdk/exceptions/OpenFeatureError$TypeMi
 	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun errorCode ()Ldev/openfeature/kotlin/sdk/exceptions/ErrorCode;
 	public fun getMessage ()Ljava/lang/String;
+}
+
+public abstract interface class dev/openfeature/kotlin/sdk/logging/Logger {
+	public abstract fun debug (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun debug$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public abstract fun error (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun error$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public abstract fun info (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun info$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public abstract fun warn (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun warn$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+}
+
+public final class dev/openfeature/kotlin/sdk/logging/Logger$DefaultImpls {
+	public static synthetic fun debug$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public static synthetic fun error$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public static synthetic fun info$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public static synthetic fun warn$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+}
+
+public final class dev/openfeature/kotlin/sdk/logging/LoggerFactory {
+	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/logging/LoggerFactory;
+	public final fun getLogger (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/logging/Logger;
+	public static synthetic fun getLogger$default (Ldev/openfeature/kotlin/sdk/logging/LoggerFactory;Ljava/lang/String;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/logging/Logger;
+}
+
+public final class dev/openfeature/kotlin/sdk/logging/NoOpLogger : dev/openfeature/kotlin/sdk/logging/Logger {
+	public fun <init> ()V
+	public fun debug (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public fun error (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public fun info (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public fun warn (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
 }
 
 public final class dev/openfeature/kotlin/sdk/multiprovider/FirstMatchStrategy : dev/openfeature/kotlin/sdk/multiprovider/MultiProvider$Strategy {

@@ -178,7 +178,7 @@ object OpenFeatureAPI {
         getProvider().shutdown()
         provider = NOOP_PROVIDER
         providersFlow.value = NOOP_PROVIDER
-        
+
         if (provider !is StateManagingProvider) {
             // Legacy path: reset Provider/SDK-managed status.
             _statusFlow.emit(OpenFeatureStatus.NotReady)
