@@ -149,6 +149,7 @@ class LoggingHook(
         return when (value) {
             is Value.String -> "'${value.string.replace("'", "''")}'"
             is Value.Integer -> value.integer.toString()
+            is Value.Long -> value.long.toString()
             is Value.Double -> value.double.toString()
             is Value.Boolean -> value.boolean.toString()
             is Value.Instant -> value.instant.toString()
