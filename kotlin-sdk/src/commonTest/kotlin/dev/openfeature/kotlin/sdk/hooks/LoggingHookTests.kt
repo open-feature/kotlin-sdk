@@ -264,6 +264,7 @@ class LoggingHookTests {
 
         hook.finallyAfter(context, details, emptyMap())
 
+        assertEquals(1, testLogger.debugMessages.size)
         val entry = testLogger.debugMessages[0]
         assertFalse(entry.attributes.containsKey("context.targetingKey"))
         assertFalse(entry.attributes.containsKey("context.region"))
@@ -323,6 +324,7 @@ class LoggingHookTests {
 
         hook.after(context, details, emptyMap())
 
+        assertEquals(1, testLogger.debugMessages.size)
         val entry = testLogger.debugMessages[0]
         assertFalse(entry.attributes.containsKey("variant"))
         assertFalse(entry.attributes.containsKey("reason"))
@@ -343,6 +345,7 @@ class LoggingHookTests {
 
         hook.before(context, emptyMap())
 
+        assertEquals(1, testLogger.debugMessages.size)
         val entry = testLogger.debugMessages[0]
         assertFalse(entry.attributes.containsKey("client"))
     }

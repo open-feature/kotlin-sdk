@@ -31,6 +31,10 @@ class TestLogger : Logger {
     data class LogEntry(val message: String, val attributes: Map<String, Any?>, val throwable: Throwable?)
 
     override fun debug(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
+        // Lambdas are evaluated before acquiring the lock. In this test context they only
+        // capture immutable hook context data, so there is no data race in practice.
+        // Evaluating inside the lock would be unsafe if a lambda itself tried to acquire
+        // another lock, which simple test lambdas never do.
         val entry = LogEntry(message(), attributes(), throwable)
         synchronized(lock) {
             _debugMessages.add(entry)

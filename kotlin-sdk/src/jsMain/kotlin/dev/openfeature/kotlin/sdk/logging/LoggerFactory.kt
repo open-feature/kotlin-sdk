@@ -26,7 +26,11 @@ internal class JsLogger(private val tag: String) : Logger {
         val msg = "[$tag] ${message()}"
         val attrs = attributes()
         if (throwable != null) {
-            console.log(msg, toJsObject(attrs), throwable)
+            if (attrs.isNotEmpty()) {
+                console.log(msg, toJsObject(attrs), throwable)
+            } else {
+                console.log(msg, throwable)
+            }
         } else if (attrs.isNotEmpty()) {
             console.log(msg, toJsObject(attrs))
         } else {
@@ -38,7 +42,11 @@ internal class JsLogger(private val tag: String) : Logger {
         val msg = "[$tag] ${message()}"
         val attrs = attributes()
         if (throwable != null) {
-            console.info(msg, toJsObject(attrs), throwable)
+            if (attrs.isNotEmpty()) {
+                console.info(msg, toJsObject(attrs), throwable)
+            } else {
+                console.info(msg, throwable)
+            }
         } else if (attrs.isNotEmpty()) {
             console.info(msg, toJsObject(attrs))
         } else {
@@ -50,7 +58,11 @@ internal class JsLogger(private val tag: String) : Logger {
         val msg = "[$tag] ${message()}"
         val attrs = attributes()
         if (throwable != null) {
-            console.warn(msg, toJsObject(attrs), throwable)
+            if (attrs.isNotEmpty()) {
+                console.warn(msg, toJsObject(attrs), throwable)
+            } else {
+                console.warn(msg, throwable)
+            }
         } else if (attrs.isNotEmpty()) {
             console.warn(msg, toJsObject(attrs))
         } else {
@@ -62,7 +74,11 @@ internal class JsLogger(private val tag: String) : Logger {
         val msg = "[$tag] ${message()}"
         val attrs = attributes()
         if (throwable != null) {
-            console.error(msg, toJsObject(attrs), throwable)
+            if (attrs.isNotEmpty()) {
+                console.error(msg, toJsObject(attrs), throwable)
+            } else {
+                console.error(msg, throwable)
+            }
         } else if (attrs.isNotEmpty()) {
             console.error(msg, toJsObject(attrs))
         } else {
