@@ -30,7 +30,7 @@ internal class HookSupport {
                     }
 
                     FlagValueType.LONG -> {
-                        safeLet(hook as? Hook<Long>, hookCtx as? HookContext<Long>) { longHook, longCtx ->
+                        safeLet(hook as? Hook<Long>, ctx as? HookContext<Long>) { longHook, longCtx ->
                             longHook.before(longCtx, hints)
                         }
                     }
@@ -91,7 +91,7 @@ internal class HookSupport {
                 FlagValueType.LONG -> {
                     safeLet(
                         hook as? Hook<Long>,
-                        hookCtx as? HookContext<Long>,
+                        ctx as? HookContext<Long>,
                         details as? FlagEvaluationDetails<Long>
                     ) { longHook, longCtx, longDetails ->
                         longHook.after(longCtx, longDetails, hints)
@@ -101,7 +101,7 @@ internal class HookSupport {
                 FlagValueType.DOUBLE -> {
                     safeLet(
                         hook as? Hook<Double>,
-                        hookCtx as? HookContext<Double>,
+                        ctx as? HookContext<Double>,
                         details as? FlagEvaluationDetails<Double>
                     ) { doubleHook, doubleCtx, doubleDetails ->
                         doubleHook.after(doubleCtx, doubleDetails, hints)
@@ -162,7 +162,7 @@ internal class HookSupport {
                 FlagValueType.LONG -> {
                     safeLet(
                         hook as? Hook<Long>,
-                        hookCtx as? HookContext<Long>,
+                        ctx as? HookContext<Long>,
                         details as? FlagEvaluationDetails<Long>
                     ) { longHook, longCtx, longDetails ->
                         longHook.finallyAfter(longCtx, longDetails, hints)
@@ -172,7 +172,7 @@ internal class HookSupport {
                 FlagValueType.DOUBLE -> {
                     safeLet(
                         hook as? Hook<Double>,
-                        hookCtx as? HookContext<Double>,
+                        ctx as? HookContext<Double>,
                         details as? FlagEvaluationDetails<Double>
                     ) { doubleHook, doubleCtx, doubleDetails ->
                         doubleHook.finallyAfter(doubleCtx, doubleDetails, hints)
@@ -230,7 +230,7 @@ internal class HookSupport {
                 FlagValueType.LONG -> {
                     safeLet(
                         hook as? Hook<Long>,
-                        hookCtx as? HookContext<Long>
+                        ctx as? HookContext<Long>
                     ) { longHook, longCtx ->
                         longHook.error(longCtx, error, hints)
                     }
@@ -239,7 +239,7 @@ internal class HookSupport {
                 FlagValueType.DOUBLE -> {
                     safeLet(
                         hook as? Hook<Double>,
-                        hookCtx as? HookContext<Double>
+                        ctx as? HookContext<Double>
                     ) { doubleHook, doubleCtx ->
                         doubleHook.error(doubleCtx, error, hints)
                     }
