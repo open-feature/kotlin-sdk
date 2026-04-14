@@ -31,7 +31,7 @@ interface Logger {
      * @param attributes lambda producing a map of structured key-value pairs
      * @param throwable optional throwable to associate with the log record
      */
-    fun debug(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable? = null)
+    fun debug(message: () -> String, attributes: () -> Map<String, Any?> = { emptyMap() }, throwable: Throwable? = null)
 
     /**
      * Log an info message.
@@ -40,7 +40,7 @@ interface Logger {
      * @param attributes lambda producing a map of structured key-value pairs
      * @param throwable optional throwable to associate with the log record
      */
-    fun info(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable? = null)
+    fun info(message: () -> String, attributes: () -> Map<String, Any?> = { emptyMap() }, throwable: Throwable? = null)
 
     /**
      * Log a warning message.
@@ -49,7 +49,7 @@ interface Logger {
      * @param attributes lambda producing a map of structured key-value pairs
      * @param throwable optional throwable to associate with the log record
      */
-    fun warn(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable? = null)
+    fun warn(message: () -> String, attributes: () -> Map<String, Any?> = { emptyMap() }, throwable: Throwable? = null)
 
     /**
      * Log an error message.
@@ -58,7 +58,7 @@ interface Logger {
      * @param attributes lambda producing a map of structured key-value pairs
      * @param throwable optional throwable to associate with the log record
      */
-    fun error(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable? = null)
+    fun error(message: () -> String, attributes: () -> Map<String, Any?> = { emptyMap() }, throwable: Throwable? = null)
 }
 
 /**

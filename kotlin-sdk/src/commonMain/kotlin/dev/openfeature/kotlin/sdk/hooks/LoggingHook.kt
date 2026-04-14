@@ -4,11 +4,9 @@ import dev.openfeature.kotlin.sdk.EvaluationContext
 import dev.openfeature.kotlin.sdk.FlagEvaluationDetails
 import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.HookContext
-import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.logging.LogLevel
 import dev.openfeature.kotlin.sdk.logging.Logger
 import dev.openfeature.kotlin.sdk.logging.NoOpLogger
-import kotlin.time.ExperimentalTime
 
 /**
  * A hook that logs detailed information during flag evaluation lifecycle.
@@ -135,28 +133,17 @@ class LoggingHook(
         }
     }
 
-    @OptIn(ExperimentalTime::class)
     private fun contextAttributes(context: EvaluationContext): Map<String, Any?> = buildMap {
-        // getTargetingKey() returns "" when not set (non-nullable), so check isNotEmpty
+        // asObjectMap() unwraps Value subtypes to native Kotlin types (String, Int, Boolean,
+        // Instant, List<Any?>, Map<String, Any?>) — reuses the SDK's own conversion logic.
+        // ImmutableContext stores the targeting key separately from its attributes map, so
+        // asObjectMap() will not include it for the standard implementation.
+        context.asObjectMap().forEach { (key, value) ->
+            put("context.$key", value)
+        }
+        // getTargetingKey() returns "" when not set (non-nullable), so check isNotEmpty.
+        // Put after asObjectMap() so that targeting key always wins if a custom
+        // EvaluationContext also returns it from asObjectMap().
         context.getTargetingKey().takeIf { it.isNotEmpty() }?.let { put("context.targetingKey", it) }
-        context.asMap().forEach { (key, value) ->
-            put("context.$key", valueToNative(value))
-        }
-    }
-
-    @OptIn(ExperimentalTime::class)
-    private fun valueToNative(value: Value): Any? = when (value) {
-        is Value.String -> value.string
-        is Value.Integer -> value.integer
-        is Value.Double -> value.double
-        is Value.Boolean -> value.boolean
-        is Value.Instant -> value.instant.toString()
-        is Value.List -> value.list.joinToString(", ", "[", "]") { valueToNative(it).toString() }
-        is Value.Structure -> value.structure.entries.joinToString(", ", "{", "}") {
-            "${it.key}=${valueToNative(
-                it.value
-            )}"
-        }
-        is Value.Null -> null
     }
 }

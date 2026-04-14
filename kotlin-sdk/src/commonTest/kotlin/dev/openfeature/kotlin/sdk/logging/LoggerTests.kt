@@ -11,16 +11,16 @@ class LoggerTests {
     fun `NoOpLogger executes without throwing`() {
         val logger = NoOpLogger()
 
-        logger.debug({ "test message" }, { emptyMap() })
-        logger.info({ "test message" }, { emptyMap() })
-        logger.warn({ "test message" }, { emptyMap() })
-        logger.error({ "test message" }, { emptyMap() })
+        logger.debug({ "test message" })
+        logger.info({ "test message" })
+        logger.warn({ "test message" })
+        logger.error({ "test message" })
 
         val throwable = RuntimeException("test exception")
-        logger.debug({ "test message" }, { emptyMap() }, throwable)
-        logger.info({ "test message" }, { emptyMap() }, throwable)
-        logger.warn({ "test message" }, { emptyMap() }, throwable)
-        logger.error({ "test message" }, { emptyMap() }, throwable)
+        logger.debug({ "test message" }, throwable = throwable)
+        logger.info({ "test message" }, throwable = throwable)
+        logger.warn({ "test message" }, throwable = throwable)
+        logger.error({ "test message" }, throwable = throwable)
     }
 
     @Test
@@ -28,7 +28,7 @@ class LoggerTests {
         val logger = NoOpLogger()
         var evaluated = false
 
-        logger.debug({ evaluated = true; "should not be evaluated" }, { emptyMap() })
+        logger.debug({ evaluated = true; "should not be evaluated" })
 
         assertEquals(false, evaluated)
     }
@@ -38,6 +38,7 @@ class LoggerTests {
         val logger = NoOpLogger()
         var evaluated = false
 
+        // Keep explicit attributes lambda to verify NoOpLogger skips it
         logger.debug({ "msg" }, { evaluated = true; emptyMap() })
 
         assertEquals(false, evaluated)
@@ -86,7 +87,7 @@ class LoggerTests {
         val throwable = RuntimeException("test exception")
 
         logger.debug({ "debug message" }, { attrs })
-        logger.debug({ "debug with throwable" }, { emptyMap() }, throwable)
+        logger.debug({ "debug with throwable" }, throwable = throwable)
 
         assertEquals(2, logger.debugMessages.size)
         assertEquals("debug message", logger.debugMessages[0].message)
@@ -140,10 +141,10 @@ class LoggerTests {
     fun `TestLogger clear removes all messages`() {
         val logger = TestLogger()
 
-        logger.debug({ "debug" }, { emptyMap() })
-        logger.info({ "info" }, { emptyMap() })
-        logger.warn({ "warn" }, { emptyMap() })
-        logger.error({ "error" }, { emptyMap() })
+        logger.debug({ "debug" })
+        logger.info({ "info" })
+        logger.warn({ "warn" })
+        logger.error({ "error" })
 
         assertEquals(4, logger.getAllMessages().size)
 
@@ -160,10 +161,10 @@ class LoggerTests {
     fun `TestLogger getAllMessages returns all messages in order`() {
         val logger = TestLogger()
 
-        logger.debug({ "message 1" }, { emptyMap() })
-        logger.info({ "message 2" }, { emptyMap() })
-        logger.warn({ "message 3" }, { emptyMap() })
-        logger.error({ "message 4" }, { emptyMap() })
+        logger.debug({ "message 1" })
+        logger.info({ "message 2" })
+        logger.warn({ "message 3" })
+        logger.error({ "message 4" })
 
         val allMessages = logger.getAllMessages()
         assertEquals(4, allMessages.size)
@@ -194,6 +195,13 @@ class LoggerTests {
 
         assertTrue(logger.debugMessages[0].attributes.containsKey("nullKey"))
         assertNull(logger.debugMessages[0].attributes["nullKey"])
+    }
+
+    @Test
+    fun `Logger default attributes produce emptyMap`() {
+        val logger = TestLogger()
+        logger.debug({ "msg" })
+        assertEquals(emptyMap<String, Any?>(), logger.debugMessages[0].attributes)
     }
 
     @Test
