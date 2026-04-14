@@ -101,7 +101,6 @@ class MultiProvider(
         get() = when (this) {
             is OpenFeatureStatus.Fatal -> 5
             is OpenFeatureStatus.NotReady -> 4
-            is OpenFeatureStatus.Inactive -> 4
             is OpenFeatureStatus.Error -> 3
             is OpenFeatureStatus.Reconciling -> 2 // Not specified in precedence; treat similar to Stale
             is OpenFeatureStatus.Stale -> 2

@@ -63,8 +63,8 @@ object OpenFeatureAPI {
      *
      * [StateManagingProvider]: after [FeatureProvider.initialize] returns,
      * the coroutine waits until [StateManagingProvider.status] emits something other than
-     * [OpenFeatureStatus.NotReady] (e.g. [OpenFeatureStatus.Ready], [OpenFeatureStatus.Inactive], or
-     * [OpenFeatureStatus.Error]).
+     * [OpenFeatureStatus.NotReady] (e.g. [OpenFeatureStatus.Ready], [OpenFeatureStatus.Error], or
+     * other non-[OpenFeatureStatus.NotReady] states).
      *
      * Legacy providers: the SDK sets shared status to [OpenFeatureStatus.NotReady], collects
      * [FeatureProvider.observe], runs `initialize`, then emits [OpenFeatureStatus.Ready] on success or

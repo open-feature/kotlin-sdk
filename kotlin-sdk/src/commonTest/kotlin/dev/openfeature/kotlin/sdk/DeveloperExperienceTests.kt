@@ -72,7 +72,8 @@ class DeveloperExperienceTests {
         )
         testScheduler.advanceUntilIdle() // Make sure coroutine in setProvider is called
         val booleanDetails = OpenFeatureAPI.getClient().getBooleanDetails("test", false)
-        assertEquals(ErrorCode.PROVIDER_NOT_READY, booleanDetails.errorCode)
+        assertNull(booleanDetails.errorCode)
+        assertNull(booleanDetails.errorMessage)
     }
 
     @Test
