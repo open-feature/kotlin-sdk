@@ -8,9 +8,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** Legacy provider with immediate init so [OpenFeatureAPI.setProviderAndWait]
- * // surfaces [OpenFeatureStatus.Ready]
- * // (unlike [NoOpProvider], which is [OpenFeatureStatus.Inactive]). */
+/** Plain [FeatureProvider] (non-SMP) for tests that need the legacy SDK status path
+ * or provider hook wiring without using [NoOpProvider]. */
 private class LegacyNoOpProvider(
     override val hooks: List<Hook<*>> = listOf(),
     override val metadata: ProviderMetadata = object : ProviderMetadata {
@@ -131,7 +130,7 @@ class HookSpecTests {
 
     @Test
     fun hookDataIsSharedAcrossStagesForSameHook() = runTest {
-        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
+        OpenFeatureAPI.setProviderAndWait(LegacyNoOpProvider())
         val client = OpenFeatureAPI.getClient()
         var afterValue: Any? = null
         var finallyValue: Any? = null
@@ -165,7 +164,7 @@ class HookSpecTests {
 
     @Test
     fun hookDataIsNotSharedBetweenDifferentHooks() = runTest {
-        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
+        OpenFeatureAPI.setProviderAndWait(LegacyNoOpProvider())
         val client = OpenFeatureAPI.getClient()
         val hookA = object : Hook<Boolean> {
             override fun before(ctx: HookContext<Boolean>, hints: Map<String, Any>) {

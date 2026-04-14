@@ -17,7 +17,8 @@ open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : StateMan
     private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
-        _status.value = OpenFeatureStatus.Inactive
+        _status.value = OpenFeatureStatus.Ready
+        events.emit(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override fun shutdown() {

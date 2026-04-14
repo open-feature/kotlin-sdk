@@ -345,10 +345,6 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Fatal : dev/open
 	public final fun getError ()Ldev/openfeature/kotlin/sdk/exceptions/OpenFeatureError;
 }
 
-public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$Inactive : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
-	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$Inactive;
-}
-
 public final class dev/openfeature/kotlin/sdk/OpenFeatureStatus$NotReady : dev/openfeature/kotlin/sdk/OpenFeatureStatus {
 	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureStatus$NotReady;
 }

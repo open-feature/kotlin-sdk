@@ -103,6 +103,26 @@ class MultiProviderTests {
     }
 
     @Test
+    fun successfulShutdownEmitsProviderNotReady() = runTest {
+        val provider = FakeEventProvider(
+            name = "p",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady())
+        )
+        val multi = MultiProvider(listOf(provider))
+        val initJob = launch { multi.initialize(null) }
+        advanceUntilIdle()
+        initJob.cancelAndJoin()
+
+        val collected = mutableListOf<OpenFeatureProviderEvents>()
+        val collectJob = launch { multi.observe().collect { collected.add(it) } }
+        advanceUntilIdle()
+        multi.shutdown()
+        advanceUntilIdle()
+        assertTrue(collected.any { it is OpenFeatureProviderEvents.ProviderNotReady })
+        collectJob.cancelAndJoin()
+    }
+
+    @Test
     fun observesEventsAndAppliesPrecedenceAfterConfigurationChange() = runTest {
         // Including ProviderConfigurationChanged first allows subsequent lower-precedence READY to emit
         val provider = FakeEventProvider(

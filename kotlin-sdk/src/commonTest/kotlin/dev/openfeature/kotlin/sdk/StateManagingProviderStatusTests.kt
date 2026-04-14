@@ -30,11 +30,11 @@ class StateManagingProviderStatusTests {
     }
 
     @Test
-    fun smp_noop_is_state_managing_and_reports_inactive_after_init() = runTest {
+    fun smp_noop_is_state_managing_and_reports_ready_after_init() = runTest {
         val provider = NoOpProvider()
         OpenFeatureAPI.setProviderAndWait(provider)
-        waitAssert { assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus()) }
-        assertEquals(OpenFeatureStatus.Inactive, provider.status.value)
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
+        assertEquals(OpenFeatureStatus.Ready, provider.status.value)
     }
 
     @Test
@@ -45,8 +45,8 @@ class StateManagingProviderStatusTests {
         }
 
         OpenFeatureAPI.setProviderAndWait(NoOpProvider())
-        waitAssert { assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus()) }
-        waitAssert { assertTrue(seen.any { it is OpenFeatureStatus.Inactive }, "expected Inactive in $seen") }
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
+        waitAssert { assertTrue(seen.any { it is OpenFeatureStatus.Ready }, "expected Ready in $seen") }
 
         OpenFeatureAPI.clearProvider()
         waitAssert { assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus()) }
@@ -133,10 +133,10 @@ class StateManagingProviderStatusTests {
     @Test
     fun smp_context_set_updates_status_via_provider() = runTest {
         OpenFeatureAPI.setProviderAndWait(NoOpProvider(), initialContext = ImmutableContext("a"))
-        waitAssert { assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus()) }
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
 
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("b"))
-        waitAssert { assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus()) }
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
     }
 
     @Test
@@ -147,9 +147,9 @@ class StateManagingProviderStatusTests {
 
         val noop = NoOpProvider()
         OpenFeatureAPI.setProviderAndWait(noop)
-        waitAssert { assertEquals(OpenFeatureStatus.Inactive, OpenFeatureAPI.getStatus()) }
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
         assertTrue(OpenFeatureAPI.getProvider() is StateManagingProvider)
-        assertEquals(OpenFeatureStatus.Inactive, noop.status.value)
+        assertEquals(OpenFeatureStatus.Ready, noop.status.value)
     }
 
     @Test
