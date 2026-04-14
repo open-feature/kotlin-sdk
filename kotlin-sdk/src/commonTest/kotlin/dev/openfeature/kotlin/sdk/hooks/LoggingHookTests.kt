@@ -12,6 +12,7 @@ import dev.openfeature.kotlin.sdk.logging.LogLevel
 import dev.openfeature.kotlin.sdk.logging.TestLogger
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class LoggingHookTests {
@@ -43,13 +44,13 @@ class LoggingHookTests {
         hook.before(context, emptyMap())
 
         assertEquals(1, testLogger.debugMessages.size)
-        val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("Flag evaluation starting"))
-        assertTrue(message.contains("flag='my-flag'"))
-        assertTrue(message.contains("type=BOOLEAN"))
-        assertTrue(message.contains("defaultValue=false"))
-        assertTrue(message.contains("provider='test-provider'"))
-        assertTrue(message.contains("client='test-client'"))
+        val entry = testLogger.debugMessages[0]
+        assertTrue(entry.message.contains("Flag evaluation starting"))
+        assertEquals("my-flag", entry.attributes["flag"])
+        assertEquals("BOOLEAN", entry.attributes["type"])
+        assertEquals(false, entry.attributes["defaultValue"])
+        assertEquals("test-provider", entry.attributes["provider"])
+        assertEquals("test-client", entry.attributes["client"])
     }
 
     @Test
@@ -67,13 +68,13 @@ class LoggingHookTests {
         hook.after(context, details, emptyMap())
 
         assertEquals(1, testLogger.debugMessages.size)
-        val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("Flag evaluation completed"))
-        assertTrue(message.contains("flag='my-flag'"))
-        assertTrue(message.contains("value=true"))
-        assertTrue(message.contains("variant='on'"))
-        assertTrue(message.contains("reason='TARGETING_MATCH'"))
-        assertTrue(message.contains("provider='test-provider'"))
+        val entry = testLogger.debugMessages[0]
+        assertTrue(entry.message.contains("Flag evaluation completed"))
+        assertEquals("my-flag", entry.attributes["flag"])
+        assertEquals(true, entry.attributes["value"])
+        assertEquals("on", entry.attributes["variant"])
+        assertEquals("TARGETING_MATCH", entry.attributes["reason"])
+        assertEquals("test-provider", entry.attributes["provider"])
     }
 
     @Test
@@ -86,14 +87,14 @@ class LoggingHookTests {
         hook.error(context, exception, emptyMap())
 
         assertEquals(1, testLogger.errorMessages.size)
-        val message = testLogger.errorMessages[0].message
-        assertTrue(message.contains("Flag evaluation error"))
-        assertTrue(message.contains("flag='my-flag'"))
-        assertTrue(message.contains("type=BOOLEAN"))
-        assertTrue(message.contains("defaultValue=false"))
-        assertTrue(message.contains("provider='test-provider'"))
-        assertTrue(message.contains("error='Connection timeout'"))
-        assertEquals(exception, testLogger.errorMessages[0].throwable)
+        val entry = testLogger.errorMessages[0]
+        assertTrue(entry.message.contains("Flag evaluation error"))
+        assertEquals("my-flag", entry.attributes["flag"])
+        assertEquals("BOOLEAN", entry.attributes["type"])
+        assertEquals(false, entry.attributes["defaultValue"])
+        assertEquals("test-provider", entry.attributes["provider"])
+        assertEquals("Connection timeout", entry.attributes["error"])
+        assertEquals(exception, entry.throwable)
     }
 
     @Test
@@ -109,9 +110,11 @@ class LoggingHookTests {
         hook.finallyAfter(context, details, emptyMap())
 
         assertEquals(1, testLogger.debugMessages.size)
-        val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("Flag evaluation finalized"))
-        assertTrue(message.contains("flag='my-flag'"))
+        val entry = testLogger.debugMessages[0]
+        assertTrue(entry.message.contains("Flag evaluation finalized"))
+        assertEquals("my-flag", entry.attributes["flag"])
+        assertFalse(entry.attributes.containsKey("errorCode"))
+        assertFalse(entry.attributes.containsKey("errorMessage"))
     }
 
     @Test
@@ -129,11 +132,11 @@ class LoggingHookTests {
         hook.finallyAfter(context, details, emptyMap())
 
         assertEquals(1, testLogger.debugMessages.size)
-        val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("Flag evaluation finalized"))
-        assertTrue(message.contains("flag='my-flag'"))
-        assertTrue(message.contains("errorCode=PROVIDER_NOT_READY"))
-        assertTrue(message.contains("errorMessage='Provider not initialized'"))
+        val entry = testLogger.debugMessages[0]
+        assertTrue(entry.message.contains("Flag evaluation finalized"))
+        assertEquals("my-flag", entry.attributes["flag"])
+        assertEquals("PROVIDER_NOT_READY", entry.attributes["errorCode"])
+        assertEquals("Provider not initialized", entry.attributes["errorMessage"])
     }
 
     @Test
@@ -149,10 +152,9 @@ class LoggingHookTests {
         hook.before(context, emptyMap())
 
         assertEquals(1, testLogger.debugMessages.size)
-        val message = testLogger.debugMessages[0].message
-        assertTrue(!message.contains("context="))
-        assertTrue(!message.contains("user-123"))
-        assertTrue(!message.contains("email"))
+        val entry = testLogger.debugMessages[0]
+        assertFalse(entry.attributes.containsKey("context.targetingKey"))
+        assertFalse(entry.attributes.containsKey("context.email"))
     }
 
     @Test
@@ -168,12 +170,10 @@ class LoggingHookTests {
         hook.before(context, emptyMap())
 
         assertEquals(1, testLogger.debugMessages.size)
-        val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("context="))
-        assertTrue(message.contains("targetingKey='user-123'"))
-        assertTrue(message.contains("attributes="))
-        assertTrue(message.contains("email='user@example.com'"))
-        assertTrue(message.contains("plan='premium'"))
+        val entry = testLogger.debugMessages[0]
+        assertEquals("user-123", entry.attributes["context.targetingKey"])
+        assertEquals("user@example.com", entry.attributes["context.email"])
+        assertEquals("premium", entry.attributes["context.plan"])
     }
 
     @Test
@@ -190,9 +190,8 @@ class LoggingHookTests {
         hook.before(context, hints)
 
         assertEquals(1, testLogger.debugMessages.size)
-        val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("context="))
-        assertTrue(message.contains("targetingKey='user-123'"))
+        val entry = testLogger.debugMessages[0]
+        assertEquals("user-123", entry.attributes["context.targetingKey"])
     }
 
     @Test
@@ -209,9 +208,9 @@ class LoggingHookTests {
         hook.before(context, hints)
 
         assertEquals(1, testLogger.debugMessages.size)
-        val message = testLogger.debugMessages[0].message
-        assertTrue(!message.contains("context="))
-        assertTrue(!message.contains("user-123"))
+        val entry = testLogger.debugMessages[0]
+        assertFalse(entry.attributes.containsKey("context.targetingKey"))
+        assertFalse(entry.attributes.containsKey("context.email"))
     }
 
     @Test
@@ -230,9 +229,8 @@ class LoggingHookTests {
         hook.after(context, details, emptyMap())
 
         assertEquals(1, testLogger.debugMessages.size)
-        val message = testLogger.debugMessages[0].message
-        assertTrue(message.contains("context="))
-        assertTrue(message.contains("targetingKey='user-123'"))
+        val entry = testLogger.debugMessages[0]
+        assertEquals("user-123", entry.attributes["context.targetingKey"])
     }
 
     @Test
@@ -248,9 +246,27 @@ class LoggingHookTests {
         hook.error(context, exception, emptyMap())
 
         assertEquals(1, testLogger.errorMessages.size)
-        val message = testLogger.errorMessages[0].message
-        assertTrue(message.contains("context="))
-        assertTrue(message.contains("targetingKey='user-123'"))
+        val entry = testLogger.errorMessages[0]
+        assertEquals("user-123", entry.attributes["context.targetingKey"])
+    }
+
+    @Test
+    fun `finallyAfter does not include context even when logEvaluationContext is true`() {
+        // finallyAfter intentionally omits context — it only logs completion status
+        val testLogger = TestLogger()
+        val hook = LoggingHook(logger = testLogger, logEvaluationContext = true)
+        val evaluationContext = ImmutableContext(
+            targetingKey = "user-123",
+            attributes = mapOf("region" to Value.String("us-east"))
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+        val details = FlagEvaluationDetails<Any>(flagKey = "my-flag", value = false)
+
+        hook.finallyAfter(context, details, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertFalse(entry.attributes.containsKey("context.targetingKey"))
+        assertFalse(entry.attributes.containsKey("context.region"))
     }
 
     @Test
@@ -293,5 +309,41 @@ class LoggingHookTests {
 
         assertEquals(3, testLogger.debugMessages.size)
         assertEquals(1, testLogger.errorMessages.size)
+    }
+
+    @Test
+    fun `after stage omits null variant and reason`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(logger = testLogger)
+        val context = createHookContext("my-flag")
+        val details = FlagEvaluationDetails<Any>(
+            flagKey = "my-flag",
+            value = true
+        )
+
+        hook.after(context, details, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertFalse(entry.attributes.containsKey("variant"))
+        assertFalse(entry.attributes.containsKey("reason"))
+    }
+
+    @Test
+    fun `before stage omits client when clientMetadata is null`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(logger = testLogger)
+        val context = HookContext<Any>(
+            flagKey = "my-flag",
+            type = FlagValueType.BOOLEAN,
+            defaultValue = false,
+            ctx = null,
+            clientMetadata = null,
+            providerMetadata = TestProviderMetadata()
+        )
+
+        hook.before(context, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertFalse(entry.attributes.containsKey("client"))
     }
 }

@@ -46,125 +46,117 @@ class LoggingHook(
     override fun before(ctx: HookContext<Any>, hints: Map<String, Any>) {
         val shouldLogContext = hints[HINT_LOG_EVALUATION_CONTEXT] as? Boolean ?: logEvaluationContext
 
-        val message = buildString {
-            append("Flag evaluation starting: ")
-            append("flag='${ctx.flagKey}', ")
-            append("type=${ctx.type}, ")
-            append("defaultValue=${formatAnyValue(ctx.defaultValue)}")
-            if (shouldLogContext && ctx.ctx != null) {
-                append(", ")
-                append(formatContext(ctx.ctx))
+        logAtLevel(
+            beforeLogLevel,
+            message = { "Flag evaluation starting" },
+            attributes = {
+                buildMap {
+                    put("flag", ctx.flagKey)
+                    put("type", ctx.type.toString())
+                    put("defaultValue", ctx.defaultValue)
+                    put("provider", ctx.providerMetadata.name)
+                    ctx.clientMetadata?.name?.let { put("client", it) }
+                    if (shouldLogContext && ctx.ctx != null) {
+                        putAll(contextAttributes(ctx.ctx))
+                    }
+                }
             }
-            append(", provider='${ctx.providerMetadata.name}'")
-            if (ctx.clientMetadata?.name != null) {
-                append(", client='${ctx.clientMetadata.name}'")
-            }
-        }
-
-        logAtLevel(beforeLogLevel) { message }
+        )
     }
 
     override fun after(ctx: HookContext<Any>, details: FlagEvaluationDetails<Any>, hints: Map<String, Any>) {
         val shouldLogContext = hints[HINT_LOG_EVALUATION_CONTEXT] as? Boolean ?: logEvaluationContext
 
-        val message = buildString {
-            append("Flag evaluation completed: ")
-            append("flag='${details.flagKey}', ")
-            append("value=${formatAnyValue(details.value)}")
-            if (details.variant != null) {
-                append(", variant='${details.variant}'")
+        logAtLevel(
+            afterLogLevel,
+            message = { "Flag evaluation completed" },
+            attributes = {
+                buildMap {
+                    put("flag", details.flagKey)
+                    put("value", details.value)
+                    details.variant?.let { put("variant", it) }
+                    details.reason?.let { put("reason", it) }
+                    put("provider", ctx.providerMetadata.name)
+                    if (shouldLogContext && ctx.ctx != null) {
+                        putAll(contextAttributes(ctx.ctx))
+                    }
+                }
             }
-            if (details.reason != null) {
-                append(", reason='${details.reason}'")
-            }
-            if (shouldLogContext && ctx.ctx != null) {
-                append(", ")
-                append(formatContext(ctx.ctx))
-            }
-            append(", provider='${ctx.providerMetadata.name}'")
-        }
-
-        logAtLevel(afterLogLevel) { message }
+        )
     }
 
     override fun error(ctx: HookContext<Any>, error: Exception, hints: Map<String, Any>) {
         val shouldLogContext = hints[HINT_LOG_EVALUATION_CONTEXT] as? Boolean ?: logEvaluationContext
 
-        val message = buildString {
-            append("Flag evaluation error: ")
-            append("flag='${ctx.flagKey}', ")
-            append("type=${ctx.type}, ")
-            append("defaultValue=${formatAnyValue(ctx.defaultValue)}")
-            if (shouldLogContext && ctx.ctx != null) {
-                append(", ")
-                append(formatContext(ctx.ctx))
+        logAtLevel(
+            errorLogLevel,
+            throwable = error,
+            message = { "Flag evaluation error" },
+            attributes = {
+                buildMap {
+                    put("flag", ctx.flagKey)
+                    put("type", ctx.type.toString())
+                    put("defaultValue", ctx.defaultValue)
+                    put("provider", ctx.providerMetadata.name)
+                    error.message?.let { put("error", it) }
+                    if (shouldLogContext && ctx.ctx != null) {
+                        putAll(contextAttributes(ctx.ctx))
+                    }
+                }
             }
-            append(", provider='${ctx.providerMetadata.name}', ")
-            append("error='${error.message?.replace("'", "''")}'")
-        }
-
-        logAtLevel(errorLogLevel, error) { message }
+        )
     }
 
     override fun finallyAfter(ctx: HookContext<Any>, details: FlagEvaluationDetails<Any>, hints: Map<String, Any>) {
-        val message = buildString {
-            append("Flag evaluation finalized: ")
-            append("flag='${ctx.flagKey}'")
-            if (details.errorCode != null) {
-                append(", errorCode=${details.errorCode}")
+        logAtLevel(
+            finallyLogLevel,
+            message = { "Flag evaluation finalized" },
+            attributes = {
+                buildMap {
+                    put("flag", ctx.flagKey)
+                    details.errorCode?.let { put("errorCode", it.toString()) }
+                    details.errorMessage?.let { put("errorMessage", it) }
+                }
             }
-            if (details.errorMessage != null) {
-                append(", errorMessage='${details.errorMessage.replace("'", "''")}'")
-            }
-        }
-
-        logAtLevel(finallyLogLevel) { message }
+        )
     }
 
-    private fun logAtLevel(level: LogLevel, throwable: Throwable? = null, message: () -> String) {
+    private fun logAtLevel(
+        level: LogLevel,
+        throwable: Throwable? = null,
+        message: () -> String,
+        attributes: () -> Map<String, Any?>
+    ) {
         when (level) {
-            LogLevel.DEBUG -> logger.debug(throwable, message)
-            LogLevel.INFO -> logger.info(throwable, message)
-            LogLevel.WARN -> logger.warn(throwable, message)
-            LogLevel.ERROR -> logger.error(throwable, message)
-        }
-    }
-
-    private fun formatContext(context: EvaluationContext): String {
-        return buildString {
-            append("context={")
-            append("targetingKey='${context.getTargetingKey()}'")
-            val attributes = context.asMap()
-            if (attributes.isNotEmpty()) {
-                append(", attributes={")
-                append(attributes.entries.joinToString(", ") { "${it.key}=${formatValue(it.value)}" })
-                append("}")
-            }
-            append("}")
+            LogLevel.DEBUG -> logger.debug(message, attributes, throwable)
+            LogLevel.INFO -> logger.info(message, attributes, throwable)
+            LogLevel.WARN -> logger.warn(message, attributes, throwable)
+            LogLevel.ERROR -> logger.error(message, attributes, throwable)
         }
     }
 
     @OptIn(ExperimentalTime::class)
-    private fun formatValue(value: Value): String {
-        return when (value) {
-            is Value.String -> "'${value.string.replace("'", "''")}'"
-            is Value.Integer -> value.integer.toString()
-            is Value.Double -> value.double.toString()
-            is Value.Boolean -> value.boolean.toString()
-            is Value.Instant -> value.instant.toString()
-            is Value.List -> "[${value.list.joinToString(", ") { formatValue(it) }}]"
-            is Value.Structure ->
-                "{${value.structure.entries.joinToString(", ") { "${it.key}=${formatValue(it.value)}" }}}"
-            is Value.Null -> "null"
+    private fun contextAttributes(context: EvaluationContext): Map<String, Any?> = buildMap {
+        // getTargetingKey() returns "" when not set (non-nullable), so check isNotEmpty
+        context.getTargetingKey().takeIf { it.isNotEmpty() }?.let { put("context.targetingKey", it) }
+        context.asMap().forEach { (key, value) ->
+            put("context.$key", valueToNative(value))
         }
     }
 
-    private fun formatAnyValue(value: Any?): String {
-        return when (value) {
-            null -> "null"
-            is String -> "'${value.replace("'", "''")}'"
-            is Number, is Boolean -> value.toString()
-            else -> "'${value.toString().replace("'", "''")}'"
+    @OptIn(ExperimentalTime::class)
+    private fun valueToNative(value: Value): Any? = when (value) {
+        is Value.String -> value.string
+        is Value.Integer -> value.integer
+        is Value.Double -> value.double
+        is Value.Boolean -> value.boolean
+        is Value.Instant -> value.instant.toString()
+        is Value.List -> value.list.joinToString(", ", "[", "]") { valueToNative(it).toString() }
+        is Value.Structure -> value.structure.entries.joinToString(", ", "{", "}") {
+            "${it.key}=${valueToNative(
+                it.value
+            )}"
         }
+        is Value.Null -> null
     }
 }
