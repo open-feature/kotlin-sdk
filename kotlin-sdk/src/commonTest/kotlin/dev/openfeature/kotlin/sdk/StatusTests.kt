@@ -82,6 +82,7 @@ class StatusTests {
         job.cancelAndJoin()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun testSpamSetContextWithoutAwait() = runTest {
         waitAssert {
@@ -100,6 +101,9 @@ class StatusTests {
             OpenFeatureAPI.setEvaluationContext(ImmutableContext("test_$i"))
             delay(Duration.randomMs(0, 10))
         }
+
+        // Advance the test scheduler to process all pending operations
+        advanceUntilIdle()
 
         waitAssert {
             assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())

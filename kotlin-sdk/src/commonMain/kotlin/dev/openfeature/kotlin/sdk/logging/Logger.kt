@@ -1,6 +1,11 @@
 package dev.openfeature.kotlin.sdk.logging
 
 /**
+ * Log levels supported by the [Logger] interface.
+ */
+enum class LogLevel { DEBUG, INFO, WARN, ERROR }
+
+/**
  * Logger interface for OpenFeature SDK logging.
  * Defines a minimal logging contract that can be implemented by platform-specific loggers
  * or used with built-in adapters for common logging frameworks.
