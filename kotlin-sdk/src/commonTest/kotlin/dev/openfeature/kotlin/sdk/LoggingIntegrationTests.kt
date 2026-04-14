@@ -63,6 +63,14 @@ class LoggingIntegrationTests {
             return ProviderEvaluation(value = defaultValue)
         }
 
+        override fun getLongEvaluation(
+            key: String,
+            defaultValue: Long,
+            context: EvaluationContext?
+        ): ProviderEvaluation<Long> {
+            return ProviderEvaluation(value = defaultValue)
+        }
+
         override fun getDoubleEvaluation(
             key: String,
             defaultValue: Double,
@@ -310,6 +318,14 @@ class LoggingIntegrationTests {
                 defaultValue: Int,
                 context: EvaluationContext?
             ): ProviderEvaluation<Int> {
+                return ProviderEvaluation(value = defaultValue)
+            }
+
+            override fun getLongEvaluation(
+                key: String,
+                defaultValue: Long,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Long> {
                 return ProviderEvaluation(value = defaultValue)
             }
 
