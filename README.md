@@ -104,7 +104,7 @@ coroutineScope.launch(Dispatchers.Default) {
   val client = OpenFeatureAPI.getClient()
 
   // get a bool flag value
-  client.getBooleanValue("boolFlag", default = false)
+  client.getBooleanValue("boolFlag", defaultValue = false)
 }
 ```
 
@@ -232,7 +232,7 @@ Please refer to the documentation of the provider you're using to see what event
 Example usage:
 ```kotlin
 viewModelScope.launch {
-  OpenFeatureAPI.observe().collect {
+  OpenFeatureAPI.observe<OpenFeatureProviderEvents>().collect {
     println(">> Provider event received")
   }
 }
@@ -240,8 +240,8 @@ viewModelScope.launch {
 viewModelScope.launch {
   OpenFeatureAPI.setProviderAndWait(
     MyFeatureProvider(),
-    Dispatchers.Default,
-    myEvaluationContext
+    myEvaluationContext,
+    Dispatchers.Default
   )
 }
 ```
@@ -264,7 +264,9 @@ The OpenFeature API provides a close function to perform a cleanup of the regist
 This should only be called when your application is in the process of shutting down.
 
 ```kotlin
-OpenFeatureAPI.shutdown()
+coroutineScope.launch {
+    OpenFeatureAPI.shutdown()
+}
 ```
 ## Sample app
 
@@ -283,7 +285,7 @@ To develop a provider, you need to create a new project and include the OpenFeat
 You’ll then need to write the provider by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
 
 ```kotlin
-class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Metadata) : FeatureProvider {
+class NewProvider(override val hooks: List<Hook<*>>, override val metadata: ProviderMetadata) : FeatureProvider {
     override fun getBooleanEvaluation(
         key: String,
         defaultValue: Boolean,
