@@ -282,6 +282,8 @@ in an Android app.
 To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
 You’ll then need to write the provider by implementing the `StateManagingProvider` interface exported by the OpenFeature SDK.
 
+`FeatureProvider` is still fully supported. StateManagingProvider is preferred for new providers that want authoritative status ownership.
+
 Keep `status` and the flow from `observe()` aligned: when you transition between `NotReady`, `Reconciling`, and `Ready`, update `_status` and emit the matching `OpenFeatureProviderEvents` for code that listens via `OpenFeatureAPI.observe()`.
 
 ```kotlin
