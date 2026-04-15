@@ -175,11 +175,12 @@ object OpenFeatureAPI {
      * Clear the current [FeatureProvider] for the SDK and set it to a no-op provider.
      */
     suspend fun clearProvider() {
-        getProvider().shutdown()
+        val previous = getProvider()
+        previous.shutdown()
         provider = NOOP_PROVIDER
         providersFlow.value = NOOP_PROVIDER
 
-        if (provider !is StateManagingProvider) {
+        if (previous !is StateManagingProvider) {
             // Legacy path: reset Provider/SDK-managed status.
             _statusFlow.emit(OpenFeatureStatus.NotReady)
         }

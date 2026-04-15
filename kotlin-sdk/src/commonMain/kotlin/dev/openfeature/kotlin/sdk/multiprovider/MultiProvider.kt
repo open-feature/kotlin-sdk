@@ -97,7 +97,6 @@ class MultiProvider(
     }
 
     private val OpenFeatureStatus.precedence: Int
-        // not sure if I understand this precedence logic
         get() = when (this) {
             is OpenFeatureStatus.Fatal -> 5
             is OpenFeatureStatus.NotReady -> 4
