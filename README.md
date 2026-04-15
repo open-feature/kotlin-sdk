@@ -236,31 +236,34 @@ Platform-specific loggers are created via `LoggerFactory.getLogger(tag)`:
 | JVM      | `System.out` (DEBUG/INFO) / `System.err` (WARN/ERROR) | `<timestamp> [LEVEL] <tag> - <message> key=value …` |
 | iOS      | `NSLog` | `[LEVEL] <tag> - <message> key=value …` (NSLog adds its own timestamp) |
 | JavaScript | `console` API | `[<tag>] <message>` with attributes as an expandable JS object (browser devtools / Node.js); note: `debug` uses `console.log`, not `console.debug` — browser "Verbose" filter will not capture it |
+| Linux/Native | `stdout` (DEBUG/INFO) / `stderr` (WARN/ERROR) | `[LEVEL] <tag> - <message> key=value …` (no timestamp; systemd/journald provides its own) |
 
 #### Custom Logger
 
 To route SDK logs into your own logging framework, implement `Logger` and pass it wherever a `Logger` is accepted:
 
 ```kotlin
+// SLF4J's {} placeholder calls toString() on the map, producing {key=value, ...}.
+// Use entries.joinToString(" ") { "${it.key}=${it.value}" } to get key=value output instead.
 class MyLogger(private val underlying: org.slf4j.Logger) : Logger {
     override fun debug(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
         if (!underlying.isDebugEnabled) return
-        underlying.debug(message(), attributes().toString(), throwable)
+        underlying.debug("{} {}", message(), attributes(), throwable)
     }
 
     override fun info(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
         if (!underlying.isInfoEnabled) return
-        underlying.info(message(), attributes().toString(), throwable)
+        underlying.info("{} {}", message(), attributes(), throwable)
     }
 
     override fun warn(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
         if (!underlying.isWarnEnabled) return
-        underlying.warn(message(), attributes().toString(), throwable)
+        underlying.warn("{} {}", message(), attributes(), throwable)
     }
 
     override fun error(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
         if (!underlying.isErrorEnabled) return
-        underlying.error(message(), attributes().toString(), throwable)
+        underlying.error("{} {}", message(), attributes(), throwable)
     }
 }
 ```
@@ -270,6 +273,7 @@ class MyLogger(private val underlying: org.slf4j.Logger) : Logger {
 `LoggingHook` logs at each stage of flag evaluation. Register it like any other hook:
 
 ```kotlin
+// dev.openfeature.kotlin.sdk.logging.LoggerFactory — the SDK's platform-specific factory
 val logger = LoggerFactory.getLogger("FeatureFlags")
 
 val hook = LoggingHook(
