@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -66,64 +65,7 @@ class StateManagingProviderStatusTests {
             }
         }
 
-        val emitting = object : StateManagingProvider {
-            override val hooks: List<Hook<*>> = listOf()
-            override val metadata: ProviderMetadata = object : ProviderMetadata {
-                override val name: String? = "emitting-smp"
-            }
-            private val _status = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
-            override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
-            private val ev = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
-
-            override suspend fun initialize(initialContext: EvaluationContext?) {
-                _status.value = OpenFeatureStatus.Ready
-                ev.emit(OpenFeatureProviderEvents.ProviderReady())
-            }
-
-            override fun shutdown() {
-                _status.value = OpenFeatureStatus.NotReady
-            }
-
-            override suspend fun onContextSet(
-                oldContext: EvaluationContext?,
-                newContext: EvaluationContext
-            ) {
-            }
-
-            override fun observe(): Flow<OpenFeatureProviderEvents> = ev
-
-            override fun getBooleanEvaluation(
-                key: String,
-                defaultValue: Boolean,
-                context: EvaluationContext?
-            ): ProviderEvaluation<Boolean> = ProviderEvaluation(defaultValue)
-
-            override fun getStringEvaluation(
-                key: String,
-                defaultValue: String,
-                context: EvaluationContext?
-            ): ProviderEvaluation<String> = ProviderEvaluation(defaultValue)
-
-            override fun getIntegerEvaluation(
-                key: String,
-                defaultValue: Int,
-                context: EvaluationContext?
-            ): ProviderEvaluation<Int> = ProviderEvaluation(defaultValue)
-
-            override fun getDoubleEvaluation(
-                key: String,
-                defaultValue: Double,
-                context: EvaluationContext?
-            ): ProviderEvaluation<Double> = ProviderEvaluation(defaultValue)
-
-            override fun getObjectEvaluation(
-                key: String,
-                defaultValue: Value,
-                context: EvaluationContext?
-            ): ProviderEvaluation<Value> = ProviderEvaluation(defaultValue)
-        }
-
-        OpenFeatureAPI.setProviderAndWait(emitting)
+        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
         waitAssert { assertTrue(events.isNotEmpty()) }
 
         job.cancelAndJoin()
@@ -161,13 +103,16 @@ class StateManagingProviderStatusTests {
             }
             private val _status = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
             override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
+            private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
 
             override suspend fun initialize(initialContext: EvaluationContext?) {
                 _status.value = OpenFeatureStatus.Ready
+                events.emit(OpenFeatureProviderEvents.ProviderReady())
             }
 
             override fun shutdown() {
                 _status.value = OpenFeatureStatus.NotReady
+                events.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
             }
 
             override suspend fun onContextSet(
@@ -177,7 +122,7 @@ class StateManagingProviderStatusTests {
                 // no-op
             }
 
-            override fun observe(): Flow<OpenFeatureProviderEvents> = emptyFlow()
+            override fun observe(): Flow<OpenFeatureProviderEvents> = events
 
             override fun getBooleanEvaluation(
                 key: String,
