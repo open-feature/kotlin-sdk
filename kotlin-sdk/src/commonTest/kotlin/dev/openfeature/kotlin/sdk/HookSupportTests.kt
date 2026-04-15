@@ -23,36 +23,34 @@ class HookSupportTests {
             false,
             ImmutableContext(),
             metadata,
-            NoOpProvider().metadata
+            NoOpProvider().metadata,
+            mutableMapOf()
         )
 
         val hookSupport = HookSupport()
+        val hooksWithContext = listOf(hook to hookContext)
 
         hookSupport.beforeHooks(
             FlagValueType.BOOLEAN,
-            hookContext,
-            listOf(hook),
+            hooksWithContext,
             mapOf()
         )
         hookSupport.afterHooks(
             FlagValueType.BOOLEAN,
-            hookContext,
             FlagEvaluationDetails("", false),
-            listOf(hook),
+            hooksWithContext,
             mapOf()
         )
         hookSupport.afterAllHooks(
             FlagValueType.BOOLEAN,
-            hookContext,
             FlagEvaluationDetails("", false),
-            listOf(hook),
+            hooksWithContext,
             mapOf()
         )
         hookSupport.errorHooks(
             FlagValueType.BOOLEAN,
-            hookContext,
             InvalidContextError(),
-            listOf(hook),
+            hooksWithContext,
             mapOf()
         )
 
