@@ -116,8 +116,8 @@ coroutineScope.launch(Dispatchers.Default) {
 | ✅      | [Targeting](#targeting)           | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
 | ✅      | [Hooks](#hooks)                   | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
 | ✅      | [Tracking](#tracking)             | Associate user actions with feature flag evaluations.                                                                              |
-| ❌      | [Logging](#logging)               | Integrate with popular logging packages.                                                                                           |
-| ❌      | [Domains](#domains)               | Logically bind clients with providers.                                                                                             |
+| ✅      | [Logging](#logging)               | Integrate with popular logging packages.                                                                                           |
+| ⚠️      | [Domains](#domains)               | Logically bind clients with providers.                                                                                             |
 | ✅      | [Eventing](#eventing)             | React to state changes in the provider or flag management system.                                                                  |
 | ✅      | [Shutdown](#shutdown)             | Gracefully clean up a provider during application shutdown.                                                                        |
 | ✅      | [Extending](#extending)           | Extend OpenFeature with custom providers and hooks.                                                                                |
@@ -213,14 +213,18 @@ Tracking is optionally implemented by Providers.
 
 ### Logging
 
-Logging customization is not yet available in the Kotlin SDK.
+The Kotlin SDK includes a `LoggingHook` and a structured `Logger` interface. Pass a `Logger` implementation when constructing `LoggingHook`, then register it as a hook to capture flag evaluation events. Without a `Logger`, `LoggingHook` uses a no-op logger by default and produces no output.
 
-It is possible to write and inject logging `Hook`s to log events at different stages of the flag evaluation life-cycle.
+```kotlin
+// use a platform-specific logger (Android, JVM, iOS, JS, Linux)
+val logger = LoggerFactory.getLogger(tag = "MyApp")
+OpenFeatureAPI.addHooks(listOf(LoggingHook(logger = logger)))
+```
 
 ### Domains
 
-Domains allow you to logically bind clients with providers.
-Support for domains is not yet available in the Kotlin SDK.
+[Domains](https://openfeature.dev/docs/reference/concepts/domain) allow you to logically bind clients with providers, enabling multiple provider configurations within the same application.
+Support for domains is currently in development.
 
 ### Eventing
 
