@@ -15,29 +15,24 @@ actual object LoggerFactory {
 /**
  * JVM-specific logger implementation using System.out and System.err.
  * Logs include timestamps and follow standard formatting.
+ * Attributes are appended to the message as key=value pairs.
  */
 internal class JvmLogger(private val tag: String) : Logger {
-    private fun formatMessage(level: String, message: String, throwable: Throwable?): String =
-        buildString {
-            append("${Instant.now()} [$level] $tag - $message")
-            if (throwable != null) {
-                append("\n${throwable.stackTraceToString()}")
-            }
-        }
+    private fun prefix(level: String) = "${Instant.now()} [$level] $tag - "
 
-    override fun debug(throwable: Throwable?, message: () -> String) {
-        println(formatMessage("DEBUG", message(), throwable))
+    override fun debug(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
+        println(formatLogLine(prefix("DEBUG") + message(), attributes(), throwable))
     }
 
-    override fun info(throwable: Throwable?, message: () -> String) {
-        println(formatMessage("INFO", message(), throwable))
+    override fun info(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
+        println(formatLogLine(prefix("INFO") + message(), attributes(), throwable))
     }
 
-    override fun warn(throwable: Throwable?, message: () -> String) {
-        System.err.println(formatMessage("WARN", message(), throwable))
+    override fun warn(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
+        System.err.println(formatLogLine(prefix("WARN") + message(), attributes(), throwable))
     }
 
-    override fun error(throwable: Throwable?, message: () -> String) {
-        System.err.println(formatMessage("ERROR", message(), throwable))
+    override fun error(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
+        System.err.println(formatLogLine(prefix("ERROR") + message(), attributes(), throwable))
     }
 }
