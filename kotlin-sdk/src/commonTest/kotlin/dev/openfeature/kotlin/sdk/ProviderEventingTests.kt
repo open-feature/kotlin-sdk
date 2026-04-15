@@ -142,4 +142,59 @@ class ProviderEventingTests {
             emittedEvents
         )
     }
+
+    @Test
+    fun clientObserveMatchesApiObserveWhenCollectingAllProviderEvents() = runTest {
+        val provider = OverlyEmittingProvider("Client parity provider")
+        val fromApi = mutableListOf<OpenFeatureProviderEvents>()
+        val fromClient = mutableListOf<OpenFeatureProviderEvents>()
+        val client = OpenFeatureAPI.getClient("test")
+
+        val apiJob = launch {
+            OpenFeatureAPI.observe<OpenFeatureProviderEvents>().collect { fromApi.add(it) }
+        }
+        val clientJob = launch {
+            client.observe<OpenFeatureProviderEvents>().collect { fromClient.add(it) }
+        }
+
+        OpenFeatureAPI.setProviderAndWait(provider, initialContext = ImmutableContext("ctx"))
+        testScheduler.advanceUntilIdle()
+        OpenFeatureAPI.shutdown()
+        apiJob.cancelAndJoin()
+        clientJob.cancelAndJoin()
+
+        assertEquals(fromApi, fromClient)
+    }
+
+    @Test
+    fun clientObserveFiltersByReifiedEventType() = runTest {
+        val provider = OverlyEmittingProvider("filter-by-type")
+        val client = OpenFeatureAPI.getClient("filter-by-type")
+        val staleEvents = mutableListOf<OpenFeatureProviderEvents.ProviderStale>()
+        val configurationChangedEvents =
+            mutableListOf<OpenFeatureProviderEvents.ProviderConfigurationChanged>()
+
+        val staleJob = launch {
+            client.observe<OpenFeatureProviderEvents.ProviderStale>().collect { staleEvents.add(it) }
+        }
+        val configJob = launch {
+            client.observe<OpenFeatureProviderEvents.ProviderConfigurationChanged>().collect {
+                configurationChangedEvents.add(it)
+            }
+        }
+
+        OpenFeatureAPI.setProviderAndWait(provider, initialContext = ImmutableContext("ctx"))
+        testScheduler.advanceUntilIdle()
+        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("ctx.v2"))
+        testScheduler.advanceUntilIdle()
+        OpenFeatureAPI.shutdown()
+        staleJob.cancelAndJoin()
+        configJob.cancelAndJoin()
+
+        assertEquals(listOf(OpenFeatureProviderEvents.ProviderStale()), staleEvents)
+        assertEquals(
+            listOf(OpenFeatureProviderEvents.ProviderConfigurationChanged()),
+            configurationChangedEvents
+        )
+    }
 }
