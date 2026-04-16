@@ -1,25 +1,66 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * Manages its own OpenFeatureStatus.
+ * Provider that owns lifecycle [OpenFeatureStatus] in [status] and reports changes on [observe].
  *
- * The SDK reads status directly from `status`. The implementation must update it during
- * lifecycle events such as initialize, onContextSet, and shutdown.
- *
- * Implementations that don’t follow this use the deprecated shared Provider/SDK-managed
- * status system.
+ * Implementations must update [status] first, then emit on [observe], so readers of either see a
+ * consistent order. Providers without this contract use the SDK-managed status path instead.
  */
 interface StateManagingProvider : FeatureProvider {
+    /**
+     * Holds the current [OpenFeatureStatus]. The SDK reads this [StateFlow] directly; for each
+     * lifecycle step, update [status], then emit the matching event on [observe].
+     */
     val status: StateFlow<OpenFeatureStatus>
 
     /**
-     * Lifecycle events for this provider. Implementations must define this explicitly so
-     * callers do not silently inherit [FeatureProvider.observe]'s empty default, and so
-     * emissions stay consistent with how [status] is updated.
+     * Called by [OpenFeatureAPI] when the provider is registered.
+     *
+     * Update [status] first, then emit [OpenFeatureProviderEvents.ProviderReady] or
+     * [OpenFeatureProviderEvents.ProviderError] on [observe]. The SDK waits until [status] is not
+     * [OpenFeatureStatus.NotReady].
+     * Omitting those events leaves [OpenFeatureAPI.setProviderAndWait] waiting indefinitely.
+     *
+     * @param initialContext optional initial [EvaluationContext]
+     */
+    @Throws(OpenFeatureError::class, CancellationException::class)
+    override suspend fun initialize(initialContext: EvaluationContext?)
+
+    /**
+     * Called when the client lifecycle ends; release resources and threads.
+     *
+     * Before returning: set [status] to [OpenFeatureStatus.NotReady], then emit
+     * [OpenFeatureProviderEvents.ProviderNotReady] on [observe].
+     */
+    override fun shutdown()
+
+    /**
+     * Called by [OpenFeatureAPI] when the [EvaluationContext] changes.
+     *
+     * Reconcile as needed. For each transition, update [status] first, then emit the matching event
+     * on [observe] (for example [OpenFeatureStatus.Reconciling], then [OpenFeatureStatus.Ready] or
+     * [OpenFeatureStatus.Error]).
+     *
+     * @param oldContext previous context, if any
+     * @param newContext new context
+     * @throws OpenFeatureError if the update cannot complete
+     */
+    @Throws(OpenFeatureError::class, CancellationException::class)
+    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext)
+
+    /**
+     * Provider lifecycle events. Replace [FeatureProvider.observe]'s empty default.
+     *
+     * Implementations update [status] before each matching emission. For [initialize], set [status]
+     * first, then emit [OpenFeatureProviderEvents.ProviderReady] or
+     * [OpenFeatureProviderEvents.ProviderError], or the SDK remains [OpenFeatureStatus.NotReady]. Other
+     * events surface through [OpenFeatureAPI.observe].
      */
     override fun observe(): Flow<OpenFeatureProviderEvents>
 }

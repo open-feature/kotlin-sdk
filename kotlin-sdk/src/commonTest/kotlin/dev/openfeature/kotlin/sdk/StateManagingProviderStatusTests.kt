@@ -1,8 +1,10 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import dev.openfeature.kotlin.sdk.helpers.LegacyMinimalProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -10,10 +12,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
@@ -157,5 +162,141 @@ class StateManagingProviderStatusTests {
 
         OpenFeatureAPI.setProviderAndWait(impl)
         assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+    }
+
+    @Test
+    fun smp_setProviderAndWait_propagates_when_initialize_throws_without_leaving_not_ready() = runTest {
+        val impl = object : StateManagingProvider {
+            override val hooks: List<Hook<*>> = listOf()
+            override val metadata: ProviderMetadata = object : ProviderMetadata {
+                override val name: String? = "init-throws-smp"
+            }
+            private val _status = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
+            override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
+            private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                throw OpenFeatureError.GeneralError("init failed")
+            }
+
+            override fun shutdown() {
+                _status.value = OpenFeatureStatus.NotReady
+                events.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
+            }
+
+            override suspend fun onContextSet(
+                oldContext: EvaluationContext?,
+                newContext: EvaluationContext
+            ) {
+            }
+
+            override fun observe(): Flow<OpenFeatureProviderEvents> = events
+
+            override fun getBooleanEvaluation(
+                key: String,
+                defaultValue: Boolean,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Boolean> = ProviderEvaluation(defaultValue)
+
+            override fun getStringEvaluation(
+                key: String,
+                defaultValue: String,
+                context: EvaluationContext?
+            ): ProviderEvaluation<String> = ProviderEvaluation(defaultValue)
+
+            override fun getIntegerEvaluation(
+                key: String,
+                defaultValue: Int,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Int> = ProviderEvaluation(defaultValue)
+
+            override fun getDoubleEvaluation(
+                key: String,
+                defaultValue: Double,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Double> = ProviderEvaluation(defaultValue)
+
+            override fun getObjectEvaluation(
+                key: String,
+                defaultValue: Value,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Value> = ProviderEvaluation(defaultValue)
+        }
+
+        assertFailsWith<OpenFeatureError.GeneralError> {
+            OpenFeatureAPI.setProviderAndWait(impl)
+        }
+        assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+        assertEquals(OpenFeatureStatus.NotReady, impl.status.value)
+    }
+
+    @Test
+    fun smp_setProviderAndWait_times_out_when_initialize_never_moves_status_off_not_ready() = runTest {
+        val impl = object : StateManagingProvider {
+            override val hooks: List<Hook<*>> = listOf()
+            override val metadata: ProviderMetadata = object : ProviderMetadata {
+                override val name: String? = "init-hangs-smp"
+            }
+            private val _status = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
+            override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
+            private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                // Leaves [status] at NotReady and emits no Ready/Error — SDK waits forever on status.
+            }
+
+            override fun shutdown() {
+                _status.value = OpenFeatureStatus.NotReady
+                events.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
+            }
+
+            override suspend fun onContextSet(
+                oldContext: EvaluationContext?,
+                newContext: EvaluationContext
+            ) {
+            }
+
+            override fun observe(): Flow<OpenFeatureProviderEvents> = events
+
+            override fun getBooleanEvaluation(
+                key: String,
+                defaultValue: Boolean,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Boolean> = ProviderEvaluation(defaultValue)
+
+            override fun getStringEvaluation(
+                key: String,
+                defaultValue: String,
+                context: EvaluationContext?
+            ): ProviderEvaluation<String> = ProviderEvaluation(defaultValue)
+
+            override fun getIntegerEvaluation(
+                key: String,
+                defaultValue: Int,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Int> = ProviderEvaluation(defaultValue)
+
+            override fun getDoubleEvaluation(
+                key: String,
+                defaultValue: Double,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Double> = ProviderEvaluation(defaultValue)
+
+            override fun getObjectEvaluation(
+                key: String,
+                defaultValue: Value,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Value> = ProviderEvaluation(defaultValue)
+        }
+
+        launch {
+            advanceTimeBy(600)
+        }
+        assertFailsWith<TimeoutCancellationException> {
+            withTimeout(500) {
+                OpenFeatureAPI.setProviderAndWait(impl)
+            }
+        }
+        assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
     }
 }

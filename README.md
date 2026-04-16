@@ -279,12 +279,9 @@ in an Android app.
 
 ### Develop a provider
 
-To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
-You’ll then need to write the provider by implementing the `StateManagingProvider` interface exported by the OpenFeature SDK.
+Providers are developed in dedicated projects that declare the OpenFeature SDK as a dependency. Each provider must implement the `StateManagingProvider` interface exported by the OpenFeature SDK.
 
-`FeatureProvider` is still fully supported. StateManagingProvider is preferred for new providers that want authoritative status ownership.
-
-Keep `status` and the flow from `observe()` aligned: when you transition between `NotReady`, `Reconciling`, and `Ready`, update `_status` and emit the matching `OpenFeatureProviderEvents` for code that listens via `OpenFeatureAPI.observe()`.
+The provider must keep `status` and `observe()` consistent: each time the provider transitions between `OpenFeatureStatus.NotReady`, `OpenFeatureStatus.Reconciling`, and `OpenFeatureStatus.Ready`, it must update `_status` and emit the corresponding `OpenFeatureProviderEvents` (for example, `OpenFeatureStatus.Reconciling` paired with `ProviderReconciling()`). The SDK derives `statusFlow` from `status`, and application-level handlers registered via `OpenFeatureAPI.observe()` receive the emitted events — inconsistency between the two will produce contradictory state to callers.
 
 ```kotlin
 class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Metadata) : StateManagingProvider {
@@ -352,6 +349,7 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
 
     override fun shutdown() {
         _status.value = OpenFeatureStatus.NotReady
+        events.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
         // add necessary closure on shutdown
     }
   
@@ -366,6 +364,10 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Meta
     override fun observe(): Flow<OpenFeatureProviderEvents> = events
 }
 ```
+
+#### `FeatureProvider` DEPRECATION
+
+`FeatureProvider` is still supported although `StateManagingProvider` is preferred for new providers. Must be noted that `FeatureProvider` is a legacy behavior and will be removed in the next major version, due to its possible race condition in the presence of multi-threading.
 
 > Built a new provider? [Let us know](https://github.com/open-feature/openfeature.dev/issues/new?assignees=&labels=provider&projects=&template=document-provider.yaml&title=%5BProvider%5D%3A+) so we can add it to the docs!
 

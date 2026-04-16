@@ -195,14 +195,14 @@ class DeveloperExperienceTests {
         testScheduler.advanceUntilIdle()
         job.cancelAndJoin()
         // State-managing SlowProvider drives status from its StateFlow; after shutdown, flatMapLatest
-        // switches to the no-op provider and replays NotReady again (no distinctUntilChanged on SMP).
+        // switches to the no-op provider (also NotReady) — inner flow uses distinctUntilChanged, so the
+        // duplicate NotReady is not emitted twice.
         assertEquals(
             listOf(
                 OpenFeatureStatus.NotReady,
                 OpenFeatureStatus.Ready,
                 OpenFeatureStatus.Reconciling,
                 OpenFeatureStatus.Ready,
-                OpenFeatureStatus.NotReady,
                 OpenFeatureStatus.NotReady
             ),
             emittedStatuses

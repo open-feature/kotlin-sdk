@@ -16,8 +16,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -47,7 +49,12 @@ object OpenFeatureAPI {
     val statusFlow: Flow<OpenFeatureStatus>
         get() = providersFlow.flatMapLatest { p ->
             if (p is StateManagingProvider) {
-                p.status
+                // Seed with the current value so emissions during the flatMapLatest handoff
+                // are not missed (e.g. NotReady → Ready before emitAll subscribes).
+                flow {
+                    emit(p.status.value)
+                    emitAll(p.status)
+                }.distinctUntilChanged()
             } else {
                 // Legacy path: used by the shared Provider/SDK-managed status buffer.
                 _statusFlow.distinctUntilChanged()
@@ -119,19 +126,16 @@ object OpenFeatureAPI {
         dispatcher: CoroutineDispatcher,
         initialContext: EvaluationContext? = null
     ) {
-        // Atomically swap the old and new provider to prevent race conditions
+        // Atomically swap the old and new provider to prevent race conditions.
         val oldProvider = providerMutex.withLock {
             val current = this@OpenFeatureAPI.provider
             this@OpenFeatureAPI.provider = provider
             providersFlow.value = provider
             if (initialContext != null) context = initialContext
+            if (provider !is StateManagingProvider) {
+                _statusFlow.emit(OpenFeatureStatus.NotReady)
+            }
             current
-        }
-
-        // Emit NotReady status after swapping provider
-        // Legacy path: reset Provider/SDK-managed status.
-        if (provider !is StateManagingProvider) {
-            _statusFlow.emit(OpenFeatureStatus.NotReady)
         }
 
         // Shutdown the previous provider outside the mutex
@@ -175,12 +179,16 @@ object OpenFeatureAPI {
      * Clear the current [FeatureProvider] for the SDK and set it to a no-op provider.
      */
     suspend fun clearProvider() {
-        val previous = getProvider()
-        previous.shutdown()
-        provider = NOOP_PROVIDER
-        providersFlow.value = NOOP_PROVIDER
+        val oldProvider = providerMutex.withLock {
+            val current = getProvider()
+            provider = NOOP_PROVIDER
+            providersFlow.value = NOOP_PROVIDER
+            current
+        }
 
-        if (previous !is StateManagingProvider) {
+        oldProvider.shutdown()
+
+        if (oldProvider !is StateManagingProvider) {
             // Legacy path: reset Provider/SDK-managed status.
             _statusFlow.emit(OpenFeatureStatus.NotReady)
         }
