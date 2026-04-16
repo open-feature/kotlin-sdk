@@ -16,4 +16,9 @@ interface Client : Features, Tracking {
     fun observe(): Flow<OpenFeatureProviderEvents>
 
     fun addHooks(hooks: List<Hook<*>>)
+
+    /**
+     * Get the current [OpenFeatureStatus] of the Provider handling this client's evaluations.
+     */
+    fun getProviderStatus(): OpenFeatureStatus
 }
