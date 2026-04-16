@@ -103,7 +103,6 @@ class MultiProvider(
             is OpenFeatureStatus.Error -> 3
             is OpenFeatureStatus.Reconciling -> 2 // Not specified in precedence; treat similar to Stale
             is OpenFeatureStatus.Stale -> 2
-            is OpenFeatureStatus.ConfigurationChanged -> 2
             is OpenFeatureStatus.Ready -> 1
         }
 
