@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -143,14 +143,14 @@ object OpenFeatureAPI {
             oldProvider.shutdown()
         } else {
             // Legacy path: run shutdown while observe() is still collected so emissions from shutdown
-            // (e.g. ProviderNotReady) still update _statusFlow via handleProviderEvents; then stop
+            // still update _statusFlow via handleProviderEvents; then stop
             // mirroring before initializing the new provider. Mirror shutdown failures into _statusFlow.
             tryWithStatusEmitErrorHandling {
                 oldProvider.shutdown()
+                observeProviderEventsJob?.cancel(
+                    CancellationException("Legacy provider replaced: stop observe() mirroring to SDK status")
+                )
             }
-            observeProviderEventsJob?.cancel(
-                CancellationException("Legacy provider replaced: stop observe() mirroring to SDK status")
-            )
             observeProviderEventsJob = null
         }
 
@@ -251,27 +251,22 @@ object OpenFeatureAPI {
         }
     }
 
+    // Legacy path: only non-state-managing providers use _statusFlow for surfaced errors.
     private suspend fun tryWithStatusEmitErrorHandling(function: suspend () -> Unit) {
         try {
             function()
         } catch (e: CancellationException) {
             // This happens by design and shouldn't be treated as an error
         } catch (e: OpenFeatureError) {
-            // Legacy path: only non-state-managing providers use _statusFlow for surfaced errors.
-            if (getProvider() !is StateManagingProvider) {
-                _statusFlow.emit(OpenFeatureStatus.Error(e))
-            }
+            _statusFlow.emit(OpenFeatureStatus.Error(e))
         } catch (e: Throwable) {
-            // Legacy path: only non-state-managing providers use _statusFlow for surfaced errors.
-            if (getProvider() !is StateManagingProvider) {
-                _statusFlow.emit(
-                    OpenFeatureStatus.Error(
-                        OpenFeatureError.GeneralError(
-                            e.message ?: "Unknown error"
-                        )
+            _statusFlow.emit(
+                OpenFeatureStatus.Error(
+                    OpenFeatureError.GeneralError(
+                        e.message ?: "Unknown error"
                     )
                 )
-            }
+            )
         }
     }
 
