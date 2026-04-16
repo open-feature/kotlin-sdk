@@ -8,4 +8,9 @@ interface Client : Features, Tracking {
     val statusFlow: Flow<OpenFeatureStatus>
 
     fun addHooks(hooks: List<Hook<*>>)
+
+    /**
+     * Get the current [OpenFeatureStatus] of the Provider handling this client's evaluations.
+     */
+    fun getProviderStatus(): OpenFeatureStatus
 }
