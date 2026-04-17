@@ -210,7 +210,6 @@ class MultiProvider(
             }
 
             is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
-            is OpenFeatureProviderEvents.ProviderNotReady -> OpenFeatureStatus.NotReady
             is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
             is OpenFeatureProviderEvents.ProviderError -> event.toOpenFeatureStatusError()
         }

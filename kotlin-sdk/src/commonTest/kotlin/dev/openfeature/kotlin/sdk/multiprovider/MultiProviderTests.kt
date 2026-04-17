@@ -160,7 +160,6 @@ class MultiProviderTests {
             name = "C",
             eventsToEmitOnInit = listOf(
                 OpenFeatureProviderEvents.ProviderConfigurationChanged(),
-                OpenFeatureProviderEvents.ProviderNotReady,
                 OpenFeatureProviderEvents.ProviderError(
                     OpenFeatureProviderEvents.EventDetails(
                         message = "boom",
@@ -174,7 +173,7 @@ class MultiProviderTests {
         val initJob = launch { multi.initialize(null) }
         advanceUntilIdle()
 
-        // Final aggregate status should be ERROR (no providers remain NOT_READY)
+        // Final aggregate status should be ERROR (C ends in ERROR; beats READY and STALE)
         val finalStatus = multi.statusFlow.value
         assertIs<OpenFeatureStatus.Error>(finalStatus)
         initJob.cancelAndJoin()
@@ -253,11 +252,11 @@ class MultiProviderTests {
 
     @Test
     fun notReadyOutRanksErrorAndStale() = runTest {
+        // A never emits Ready/Error/Stale, so it stays at initial NOT_READY (per spec there is no PROVIDER_NOT_READY event)
         val a = FakeEventProvider(
             name = "A",
             eventsToEmitOnInit = listOf(
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
-                OpenFeatureProviderEvents.ProviderNotReady
+                OpenFeatureProviderEvents.ProviderConfigurationChanged()
             )
         )
         val b = FakeEventProvider(

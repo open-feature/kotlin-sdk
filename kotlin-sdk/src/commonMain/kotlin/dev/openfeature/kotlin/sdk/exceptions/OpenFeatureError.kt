@@ -63,7 +63,7 @@ sealed class OpenFeatureError : Exception() {
     companion object {
         internal fun fromMessageAndErrorCode(errorMessage: String, errorCode: ErrorCode): OpenFeatureError {
             return when (errorCode) {
-                ErrorCode.PROVIDER_NOT_READY -> ProviderNotReadyError()
+                ErrorCode.PROVIDER_NOT_READY -> ProviderNotReadyError(errorMessage)
                 ErrorCode.FLAG_NOT_FOUND -> FlagNotFoundError(flagKey = null, errorMessage)
                 ErrorCode.PARSE_ERROR -> ParseError(errorMessage)
                 ErrorCode.TYPE_MISMATCH -> TypeMismatchError(errorMessage)

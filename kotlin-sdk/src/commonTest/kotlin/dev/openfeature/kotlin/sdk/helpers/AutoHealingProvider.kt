@@ -7,6 +7,7 @@ import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -25,8 +26,9 @@ class AutoHealingProvider(
         ready = false
         _events.emit(
             OpenFeatureProviderEvents.ProviderError(
-                error = OpenFeatureError.ProviderNotReadyError(
-                    "AutoHealingProvider got an error. trying to heal"
+                OpenFeatureProviderEvents.EventDetails(
+                    message = "AutoHealingProvider got an error. trying to heal",
+                    errorCode = ErrorCode.PROVIDER_NOT_READY
                 )
             )
         )

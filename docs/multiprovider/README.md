@@ -60,7 +60,7 @@ Pick the strategy that best matches your failure-policy:
 Children are evaluated in the order provided. Put the most authoritative or fastest provider first. For example, place a small in-memory override provider before a remote provider to reduce latency.
 
 ### Events and status aggregation
-`MultiProvider` listens to child provider events and emits a single, aggregate status via `OpenFeatureAPI.statusFlow`. The highest-precedence status among children wins:
+`MultiProvider` listens to child provider events and emits a single, aggregate status via `OpenFeatureAPI.statusFlow`. Per the OpenFeature specification: a child stays `NOT_READY` until it emits `PROVIDER_READY`, `PROVIDER_ERROR`, or `PROVIDER_STALE` (or only `PROVIDER_CONFIGURATION_CHANGED`, which does not change readiness). The highest-precedence status among children wins:
 
 1. Fatal
 2. NotReady
