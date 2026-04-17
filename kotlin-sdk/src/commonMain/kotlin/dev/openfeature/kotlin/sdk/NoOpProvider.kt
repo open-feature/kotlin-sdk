@@ -1,6 +1,7 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,14 @@ open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : StateMan
 
     override fun shutdown() {
         _status.value = OpenFeatureStatus.NotReady
-        events.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
+        events.tryEmit(
+            OpenFeatureProviderEvents.ProviderError(
+                OpenFeatureProviderEvents.EventDetails(
+                    message = "No-op provider shut down; not ready for evaluation",
+                    errorCode = ErrorCode.PROVIDER_NOT_READY
+                )
+            )
+        )
     }
 
     override suspend fun onContextSet(
