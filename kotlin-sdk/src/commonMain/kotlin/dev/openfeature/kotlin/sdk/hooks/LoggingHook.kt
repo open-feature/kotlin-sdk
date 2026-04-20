@@ -26,7 +26,9 @@ import dev.openfeature.kotlin.sdk.logging.NoOpLogger
  * @param logTargetingKey If true, includes the targeting key when logging context (default: true).
  *                        Set to false if targeting keys contain PII such as user IDs or emails.
  * @param includeAttributes If specified, only these attributes are logged. Takes precedence over excludeAttributes.
- * @param excludeAttributes Attributes to exclude from logging. Defaults to common PII fields.
+ *                          An empty set logs no attributes. Attribute name matching is case-sensitive.
+ * @param excludeAttributes Attributes to exclude from logging. Defaults to common PII fields ([DEFAULT_SENSITIVE_KEYS]).
+ *                          Attribute name matching is case-sensitive.
  */
 class LoggingHook(
     private val logger: Logger = NoOpLogger(),
