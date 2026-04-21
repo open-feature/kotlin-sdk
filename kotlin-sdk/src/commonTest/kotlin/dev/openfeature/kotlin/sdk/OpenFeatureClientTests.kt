@@ -2,6 +2,7 @@ package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.helpers.BrokenInitProvider
 import dev.openfeature.kotlin.sdk.helpers.GenericSpyHookMock
+import dev.openfeature.kotlin.sdk.helpers.OverlyEmittingProvider
 import dev.openfeature.kotlin.sdk.helpers.SlowProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -74,5 +75,40 @@ class OpenFeatureClientTests {
         // Wait out the remaining 2000ms for slow context update finish
         advanceTimeBy(2001)
         assertEquals(OpenFeatureStatus.Ready, client.getProviderStatus())
+    }
+
+    @Test
+    fun testClientGetProviderStatusShouldReturnFatalWhenProviderFailsFatal() = runTest {
+        val fatalProvider = object : FeatureProvider by NoOpProvider() {
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                throw dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.ProviderFatalError("test fatal error")
+            }
+        }
+        OpenFeatureAPI.setProviderAndWait(fatalProvider)
+        val client = OpenFeatureAPI.getClient()
+        assertTrue(client.getProviderStatus() is OpenFeatureStatus.Fatal)
+    }
+
+    @Test
+    fun testClientGetProviderStatusShouldReturnNotReadyBeforeProviderIsSet() = runTest {
+        val client = OpenFeatureAPI.getClient()
+        // No provider is set, so it should be NotReady
+        assertEquals(OpenFeatureStatus.NotReady, client.getProviderStatus())
+    }
+
+    @Test
+    fun testClientGetProviderStatusShouldReturnStaleWhenProviderEmitsStale() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val emittingProvider = OverlyEmittingProvider("emitting_provider")
+        OpenFeatureAPI.setProviderAndWait(emittingProvider, dispatcher = dispatcher)
+
+        val client = OpenFeatureAPI.getClient()
+        assertEquals(OpenFeatureStatus.Ready, client.getProviderStatus())
+
+        // Call track which forces the OverlyEmittingProvider to emit ProviderStale events
+        client.track("test-stale-event")
+        runCurrent()
+
+        assertEquals(OpenFeatureStatus.Stale, client.getProviderStatus())
     }
 }
