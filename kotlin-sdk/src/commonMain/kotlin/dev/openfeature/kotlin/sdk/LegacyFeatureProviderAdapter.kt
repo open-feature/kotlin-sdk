@@ -1,14 +1,13 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusOrNull
+import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,11 +20,15 @@ import kotlinx.coroutines.yield
  * by deriving [status] from [FeatureProvider.observe]
  * while preserving legacy initialization and context
  * semantics (errors surface on [status] instead of throwing).
+ *
+ * [FeatureProvider] members (evaluations, [Hook]s, [ProviderMetadata], [track], etc.) delegate to
+ * [inner]; lifecycle methods below are wrapped for status and error behavior.
  */
 internal class LegacyFeatureProviderAdapter(
     val inner: FeatureProvider,
     private val eventDispatcher: CoroutineDispatcher
-) : StateManagingProvider by inner {
+) : StateManagingProvider,
+    FeatureProvider by inner {
 
     private val _status = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
     override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
@@ -40,8 +43,7 @@ internal class LegacyFeatureProviderAdapter(
         _status.value = OpenFeatureStatus.NotReady
         observeJob = scope.launch {
             inner.observe().collect { event ->
-                // null = non-lifecycle events (e.g. ProviderConfigurationChanged): leave [status] unchanged
-                event.toOpenFeatureStatusOrNull()?.let { _status.value = it }
+                event.toOpenFeatureStatus()?.let { _status.value = it }
             }
         }
         try {
@@ -54,24 +56,28 @@ internal class LegacyFeatureProviderAdapter(
         }
     }
 
+    /**
+     * [inner] is shut down first while the [observeJob] is still running so a provider can emit
+     * a final [OpenFeatureProviderEvents] on [FeatureProvider.observe] and this adapter can still
+     * apply [toOpenFeatureStatus] to [_status]. The job is cancelled in [finally] so cleanup always runs.
+     */
     override fun shutdown() {
         try {
             inner.shutdown()
+            _status.value = OpenFeatureStatus.NotReady
         } catch (e: Throwable) {
             handleError(e)
         } finally {
             observeJob?.cancel(CancellationException("Provider event observe job was cancelled due to shutdown"))
             observeJob = null
-            scope.cancel()
-            _status.value = OpenFeatureStatus.NotReady
         }
     }
 
     override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
         try {
             _status.value = OpenFeatureStatus.Reconciling
-            // MutableStateFlow conflates rapid updates; yield so [status] collectors see Reconciling before Ready.
-            // and avoid flag evaluation against an inconsistent context
+            // MutableStateFlow conflates rapid updates; yield so [status] collectors see Reconciling
+            // before Ready. and avoid flag evaluation against an inconsistent context
             yield()
             inner.onContextSet(oldContext, newContext)
             _status.value = OpenFeatureStatus.Ready

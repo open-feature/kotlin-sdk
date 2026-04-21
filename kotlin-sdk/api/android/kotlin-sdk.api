@@ -274,7 +274,7 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureAPI {
 	public final fun getHooks ()Ljava/util/List;
 	public final fun getProvider ()Ldev/openfeature/kotlin/sdk/FeatureProvider;
 	public final fun getProviderMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
-	public final fun getProvidersFlow ()Lkotlinx/coroutines/flow/MutableStateFlow;
+	public final fun getProvidersFlow ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun getStatus ()Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;
 	public final fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
 	public final fun setEvaluationContext (Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;)V
@@ -833,8 +833,8 @@ public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook : dev/openfeatur
 	public static final field Companion Ldev/openfeature/kotlin/sdk/hooks/LoggingHook$Companion;
 	public static final field HINT_LOG_EVALUATION_CONTEXT Ljava/lang/String;
 	public fun <init> ()V
-	public fun <init> (Ldev/openfeature/kotlin/sdk/logging/Logger;ZLdev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;)V
-	public synthetic fun <init> (Ldev/openfeature/kotlin/sdk/logging/Logger;ZLdev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ldev/openfeature/kotlin/sdk/logging/Logger;ZLdev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;ZLjava/util/Set;Ljava/util/Set;)V
+	public synthetic fun <init> (Ldev/openfeature/kotlin/sdk/logging/Logger;ZLdev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;ZLjava/util/Set;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun after (Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
 	public fun before (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/util/Map;)V
 	public fun error (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/lang/Exception;Ljava/util/Map;)V
@@ -843,6 +843,7 @@ public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook : dev/openfeatur
 }
 
 public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook$Companion {
+	public final fun getDEFAULT_SENSITIVE_KEYS ()Ljava/util/Set;
 }
 
 public final class dev/openfeature/kotlin/sdk/logging/LogLevel : java/lang/Enum {
@@ -856,21 +857,21 @@ public final class dev/openfeature/kotlin/sdk/logging/LogLevel : java/lang/Enum 
 }
 
 public abstract interface class dev/openfeature/kotlin/sdk/logging/Logger {
-	public abstract fun debug (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
-	public static synthetic fun debug$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-	public abstract fun error (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
-	public static synthetic fun error$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-	public abstract fun info (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
-	public static synthetic fun info$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-	public abstract fun warn (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
-	public static synthetic fun warn$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public abstract fun debug (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;)V
+	public static synthetic fun debug$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;ILjava/lang/Object;)V
+	public abstract fun error (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;)V
+	public static synthetic fun error$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;ILjava/lang/Object;)V
+	public abstract fun info (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;)V
+	public static synthetic fun info$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;ILjava/lang/Object;)V
+	public abstract fun warn (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;)V
+	public static synthetic fun warn$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;ILjava/lang/Object;)V
 }
 
 public final class dev/openfeature/kotlin/sdk/logging/Logger$DefaultImpls {
-	public static synthetic fun debug$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-	public static synthetic fun error$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-	public static synthetic fun info$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
-	public static synthetic fun warn$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public static synthetic fun debug$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;ILjava/lang/Object;)V
+	public static synthetic fun error$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;ILjava/lang/Object;)V
+	public static synthetic fun info$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;ILjava/lang/Object;)V
+	public static synthetic fun warn$default (Ldev/openfeature/kotlin/sdk/logging/Logger;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;ILjava/lang/Object;)V
 }
 
 public final class dev/openfeature/kotlin/sdk/logging/LoggerFactory {
@@ -881,10 +882,10 @@ public final class dev/openfeature/kotlin/sdk/logging/LoggerFactory {
 
 public final class dev/openfeature/kotlin/sdk/logging/NoOpLogger : dev/openfeature/kotlin/sdk/logging/Logger {
 	public fun <init> ()V
-	public fun debug (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
-	public fun error (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
-	public fun info (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
-	public fun warn (Ljava/lang/Throwable;Lkotlin/jvm/functions/Function0;)V
+	public fun debug (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;)V
+	public fun error (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;)V
+	public fun info (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;)V
+	public fun warn (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Ljava/lang/Throwable;)V
 }
 
 public final class dev/openfeature/kotlin/sdk/multiprovider/FirstMatchStrategy : dev/openfeature/kotlin/sdk/multiprovider/MultiProvider$Strategy {

@@ -10,7 +10,8 @@ import dev.openfeature.kotlin.sdk.StateManagingProvider
 import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
+import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -208,19 +209,13 @@ class MultiProvider(
     }
 
     private suspend fun handleProviderEvent(provider: ChildFeatureProvider, event: OpenFeatureProviderEvents) {
-        val newChildStatus = when (event) {
-            // ProviderConfigurationChanged events should always re-emit
-            is OpenFeatureProviderEvents.ProviderConfigurationChanged -> {
-                eventFlow.emit(event)
-                return
-            }
-
-            is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
-            is OpenFeatureProviderEvents.ProviderNotReady -> OpenFeatureStatus.NotReady
-            is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
-            is OpenFeatureProviderEvents.ProviderReconciling -> OpenFeatureStatus.Reconciling
-            is OpenFeatureProviderEvents.ProviderError -> event.toOpenFeatureStatusError()
+        if (event is OpenFeatureProviderEvents.ProviderConfigurationChanged) {
+            // Configuration-only: forward to observers; aggregate readiness is unchanged.
+            eventFlow.emit(event)
+            return
         }
+
+        val newChildStatus = event.toOpenFeatureStatus() ?: return
 
         val previousStatus = _statusFlow.value
         childProviderStatuses[provider] = newChildStatus
@@ -273,7 +268,14 @@ class MultiProvider(
             throw aggregate
         }
         _statusFlow.value = OpenFeatureStatus.NotReady
-        eventFlow.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
+        eventFlow.tryEmit(
+            OpenFeatureProviderEvents.ProviderError(
+                OpenFeatureProviderEvents.EventDetails(
+                    message = "MultiProvider shut down; not ready for evaluation",
+                    errorCode = ErrorCode.PROVIDER_NOT_READY
+                )
+            )
+        )
     }
 
     override suspend fun onContextSet(

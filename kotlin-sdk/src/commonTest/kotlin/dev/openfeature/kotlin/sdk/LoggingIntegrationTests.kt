@@ -86,13 +86,11 @@ class LoggingIntegrationTests {
 
     @BeforeTest
     fun setup() {
-        // Clear hooks and reset API state before each test
         OpenFeatureAPI.clearHooks()
     }
 
     @AfterTest
     fun teardown() = runTest {
-        // Clean up after tests
         OpenFeatureAPI.clearHooks()
         OpenFeatureAPI.shutdown()
     }
@@ -113,9 +111,9 @@ class LoggingIntegrationTests {
         assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation completed") })
         assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation finalized") })
 
-        // Verify flag details
-        assertTrue(testLogger.debugMessages.any { it.message.contains("flag='test-flag'") })
-        assertTrue(testLogger.debugMessages.any { it.message.contains("value=true") })
+        // Verify flag key and value in structured attributes
+        assertTrue(testLogger.debugMessages.any { it.attributes["flag"] == "test-flag" })
+        assertTrue(testLogger.debugMessages.any { it.attributes["value"] == true })
     }
 
     @Test
@@ -129,9 +127,8 @@ class LoggingIntegrationTests {
 
         client.getBooleanValue("client-flag", false)
 
-        // Verify logging happened
         assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
-        assertTrue(testLogger.debugMessages.any { it.message.contains("flag='client-flag'") })
+        assertTrue(testLogger.debugMessages.any { it.attributes["flag"] == "client-flag" })
     }
 
     @Test
@@ -150,9 +147,8 @@ class LoggingIntegrationTests {
             )
         )
 
-        // Verify logging happened
         assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
-        assertTrue(testLogger.debugMessages.any { it.message.contains("flag='invocation-flag'") })
+        assertTrue(testLogger.debugMessages.any { it.attributes["flag"] == "invocation-flag" })
     }
 
     @Test
@@ -177,11 +173,10 @@ class LoggingIntegrationTests {
             )
         )
 
-        // Verify context was logged
+        // Verify context was included in structured attributes
         assertTrue(
             testLogger.debugMessages.any {
-                it.message.contains("context=") &&
-                    it.message.contains("targetingKey='user-456'")
+                it.attributes["context.targetingKey"] == "user-456"
             }
         )
     }
@@ -199,12 +194,10 @@ class LoggingIntegrationTests {
 
         assertEquals("test-value", value)
 
-        // Verify logging happened
         assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
         assertTrue(
             testLogger.debugMessages.any {
-                it.message.contains("flag='string-flag'") &&
-                    it.message.contains("value='test-value'")
+                it.attributes["flag"] == "string-flag" && it.attributes["value"] == "test-value"
             }
         )
     }
@@ -224,8 +217,7 @@ class LoggingIntegrationTests {
         assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
         assertTrue(
             testLogger.debugMessages.any {
-                it.message.contains("flag='integer-flag'") &&
-                    it.message.contains("value=42")
+                it.attributes["flag"] == "integer-flag" && it.attributes["value"] == 42
             }
         )
     }
@@ -245,8 +237,7 @@ class LoggingIntegrationTests {
         assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
         assertTrue(
             testLogger.debugMessages.any {
-                it.message.contains("flag='double-flag'") &&
-                    it.message.contains("value=3.14")
+                it.attributes["flag"] == "double-flag" && it.attributes["value"] == 3.14
             }
         )
     }
@@ -265,8 +256,7 @@ class LoggingIntegrationTests {
         assertTrue(testLogger.debugMessages.any { it.message.contains("Flag evaluation starting") })
         assertTrue(
             testLogger.debugMessages.any {
-                it.message.contains("flag='object-flag'") &&
-                    it.message.contains("value=")
+                it.attributes["flag"] == "object-flag" && it.attributes.containsKey("value")
             }
         )
     }
@@ -345,11 +335,11 @@ class LoggingIntegrationTests {
             // Expected
         }
 
-        // Verify error was logged
+        // Verify error was logged with structured attributes
         assertTrue(
             testLogger.errorMessages.any {
                 it.message.contains("Flag evaluation error") &&
-                    it.message.contains("flag='error-flag'")
+                    it.attributes["flag"] == "error-flag"
             }
         )
     }
@@ -367,7 +357,6 @@ class LoggingIntegrationTests {
         val client = OpenFeatureAPI.getClient()
         client.getBooleanValue("multi-hook-flag", false)
 
-        // Both loggers should have captured the evaluation
         assertTrue(testLogger1.debugMessages.any { it.message.contains("Flag evaluation starting") })
         assertTrue(testLogger2.debugMessages.any { it.message.contains("Flag evaluation starting") })
     }

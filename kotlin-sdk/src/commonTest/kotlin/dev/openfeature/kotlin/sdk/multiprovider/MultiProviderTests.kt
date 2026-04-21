@@ -10,6 +10,7 @@ import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
@@ -103,7 +104,7 @@ class MultiProviderTests {
     }
 
     @Test
-    fun successfulShutdownEmitsProviderNotReady() = runTest {
+    fun successfulShutdownEmitsProviderErrorWithProviderNotReadyCode() = runTest {
         val provider = FakeEventProvider(
             name = "p",
             eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady())
@@ -118,7 +119,12 @@ class MultiProviderTests {
         advanceUntilIdle()
         multi.shutdown()
         advanceUntilIdle()
-        assertTrue(collected.any { it is OpenFeatureProviderEvents.ProviderNotReady })
+        assertTrue(
+            collected.any {
+                it is OpenFeatureProviderEvents.ProviderError &&
+                    it.eventDetails?.errorCode == ErrorCode.PROVIDER_NOT_READY
+            }
+        )
         collectJob.cancelAndJoin()
     }
 
@@ -180,7 +186,12 @@ class MultiProviderTests {
             name = "C",
             eventsToEmitOnInit = listOf(
                 OpenFeatureProviderEvents.ProviderConfigurationChanged(),
-                OpenFeatureProviderEvents.ProviderNotReady,
+                OpenFeatureProviderEvents.ProviderError(
+                    OpenFeatureProviderEvents.EventDetails(
+                        message = "not ready",
+                        errorCode = ErrorCode.PROVIDER_NOT_READY
+                    )
+                ),
                 OpenFeatureProviderEvents.ProviderError(
                     OpenFeatureProviderEvents.EventDetails(
                         message = "boom",
@@ -277,7 +288,12 @@ class MultiProviderTests {
             name = "A",
             eventsToEmitOnInit = listOf(
                 OpenFeatureProviderEvents.ProviderConfigurationChanged(),
-                OpenFeatureProviderEvents.ProviderNotReady
+                OpenFeatureProviderEvents.ProviderError(
+                    OpenFeatureProviderEvents.EventDetails(
+                        message = "not ready",
+                        errorCode = ErrorCode.PROVIDER_NOT_READY
+                    )
+                )
             )
         )
         val b = FakeEventProvider(

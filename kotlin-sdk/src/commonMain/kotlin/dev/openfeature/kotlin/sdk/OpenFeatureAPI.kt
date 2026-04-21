@@ -10,12 +10,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -29,20 +28,21 @@ object OpenFeatureAPI {
     private val NOOP_PROVIDER = NoOpProvider()
     private var provider: StateManagingProvider = NOOP_PROVIDER
     private var context: EvaluationContext? = null
-    val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(NOOP_PROVIDER)
+
+    private val _providersFlow: MutableStateFlow<StateManagingProvider> = MutableStateFlow(NOOP_PROVIDER)
+
+    /**
+     * The active [StateManagingProvider], including when the SDK swaps or clears the provider. This is
+     * read-only for consumers; use [setProvider], [setProviderAndWait], or [clearProvider] to change it.
+     */
+    val providersFlow: StateFlow<StateManagingProvider> = _providersFlow
 
     /**
      * Get the current [OpenFeatureStatus] for the SDK.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     val statusFlow: Flow<OpenFeatureStatus>
-        get() = providersFlow.flatMapLatest { p ->
-            val smp = p as StateManagingProvider
-            flow<OpenFeatureStatus> {
-                emit(smp.status.value)
-                emitAll(smp.status)
-            }.distinctUntilChanged()
-        }.distinctUntilChanged()
+        get() = providersFlow.flatMapLatest { it.status }.distinctUntilChanged()
 
     var hooks: List<Hook<*>> = listOf()
         private set
@@ -51,8 +51,12 @@ object OpenFeatureAPI {
      * Runs the same logic as [setProviderAndWait] in a new coroutine on [dispatcher],
      * then returns immediately. Calling again cancels the previous registration job.
      *
-     * After [FeatureProvider.initialize] returns, the coroutine waits until [StateManagingProvider.status]
-     * emits something other than [OpenFeatureStatus.NotReady].
+     * After [FeatureProvider.initialize] returns, the coroutine waits until [StateManagingProvider.status] is
+     * neither [OpenFeatureStatus.NotReady] nor [OpenFeatureStatus.Reconciling]. The SDK does not impose a
+     * time limit: meeting that contract is the provider’s responsibility. A provider that never updates
+     * [StateManagingProvider.status] accordingly can keep this coroutine waiting indefinitely. Application
+     * code that needs a wall-clock bound can use [kotlinx.coroutines.withTimeout] (or a similar policy)
+     * around the whole registration flow, if appropriate for your app.
      *
      * Plain [FeatureProvider] implementations (not [StateManagingProvider]) are wrapped; their status is
      * derived from [FeatureProvider.observe] with the legacy lifecycle rules as before.
@@ -76,11 +80,21 @@ object OpenFeatureAPI {
      * Suspends until provider swap, previous provider shutdown, and initialization
      * complete (same steps as [setProvider], but on the caller's coroutine).
      *
-     * After `initialize` returns, suspends until [StateManagingProvider.status] emits a non-
-     * [OpenFeatureStatus.NotReady] value (for example [OpenFeatureStatus.Ready] or [OpenFeatureStatus.Error]).
+     * After `initialize` returns, suspends until [StateManagingProvider.status] is neither
+     * [OpenFeatureStatus.NotReady] nor [OpenFeatureStatus.Reconciling] (for example
+     * [OpenFeatureStatus.Ready] or [OpenFeatureStatus.Error]).
+     *
+     * The SDK does not enforce a time limit for that wait: the provider is responsible for updating
+     * [StateManagingProvider.status] after [FeatureProvider.initialize] as required by
+     * [StateManagingProvider]. If the provider never does, this function never completes. If your
+     * application needs a maximum wait time, wrap the call in [kotlinx.coroutines.withTimeout] (or
+     * equivalent) at the call site; that is an application policy, not part of the provider contract.
      *
      * @param provider the [FeatureProvider] to set
-     * @param initialContext the initial [EvaluationContext] to use for the provider initialization. Defaults to null context if not set.
+     * @param initialContext the initial [EvaluationContext] to use for the
+     * provider initialization. Defaults to null context if not set.
+     * @param dispatcher used when a plain [FeatureProvider] is wrapped in
+     * [LegacyFeatureProviderAdapter] (event observation is scheduled on this dispatcher).
      */
     suspend fun setProviderAndWait(
         provider: FeatureProvider,
@@ -90,6 +104,7 @@ object OpenFeatureAPI {
         setProviderInternal(provider, dispatcher, initialContext)
     }
 
+    // Error handling is done in the caller's coroutine to avoid crashing async flows
     @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun setProviderInternal(
         newProvider: FeatureProvider,
@@ -104,17 +119,22 @@ object OpenFeatureAPI {
         val oldProvider = providerMutex.withLock {
             val current = provider
             provider = normalizedProvider
-            providersFlow.value = normalizedProvider
+            _providersFlow.value = normalizedProvider
             if (initialContext != null) context = initialContext
             current
         }
 
-        try {
+        // Shutdown the previous provider outside the mutex
+        tryWithErrorHandling {
             oldProvider.shutdown()
+        }
+
+        // Initialize the new provider
+        tryWithErrorHandling {
             normalizedProvider.initialize(context)
-            normalizedProvider.status.first { it !is OpenFeatureStatus.NotReady }
-        } catch (e: CancellationException) {
-            // Cancelled by design (new provider set or shutdown) - not an error
+            normalizedProvider.status.first {
+                it !is OpenFeatureStatus.NotReady && it !is OpenFeatureStatus.Reconciling
+            }
         }
     }
 
@@ -135,7 +155,7 @@ object OpenFeatureAPI {
         val oldProvider = providerMutex.withLock {
             val current = provider
             provider = NOOP_PROVIDER
-            providersFlow.value = NOOP_PROVIDER
+            _providersFlow.value = NOOP_PROVIDER
             current
         }
 
@@ -185,11 +205,20 @@ object OpenFeatureAPI {
         context = evaluationContext
 
         if (oldContext != evaluationContext) {
-            try {
+            tryWithErrorHandling {
                 provider.onContextSet(oldContext, evaluationContext)
-            } catch (e: CancellationException) {
-                // Cancelled by design (new context set or shutdown) - not an error
             }
+        }
+    }
+
+    private suspend fun tryWithErrorHandling(function: suspend () -> Unit) {
+        try {
+            function()
+        } catch (e: CancellationException) {
+            // This happens by design and shouldn't be treated as an error
+        } catch (e: Throwable) {
+            // This happens by design - provider is responsible for its error handling
+            throw e
         }
     }
 
@@ -253,5 +282,6 @@ object OpenFeatureAPI {
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> = providersFlow
-        .flatMapLatest { it.observe() }.filterIsInstance<T>()
+        .flatMapLatest { it.observe() }
+        .filterIsInstance<T>()
 }

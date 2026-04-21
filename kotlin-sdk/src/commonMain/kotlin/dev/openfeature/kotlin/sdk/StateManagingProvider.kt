@@ -24,9 +24,11 @@ interface StateManagingProvider : FeatureProvider {
      * Called by [OpenFeatureAPI] when the provider is registered.
      *
      * Update [status] first, then emit [OpenFeatureProviderEvents.ProviderReady] or
-     * [OpenFeatureProviderEvents.ProviderError] on [observe]. The SDK waits until [status] is not
-     * [OpenFeatureStatus.NotReady].
-     * Omitting those events leaves [OpenFeatureAPI.setProviderAndWait] waiting indefinitely.
+     * [OpenFeatureProviderEvents.ProviderError] on [observe]. The SDK waits until [status] is neither
+     * [OpenFeatureStatus.NotReady] nor [OpenFeatureStatus.Reconciling]. Failing to update [status] after
+     * initialization (so the wait never ends) is a provider bug; the SDK does not time out. Consumers of
+     * [OpenFeatureAPI] may apply their own deadlines (for example [kotlinx.coroutines.withTimeout]) if
+     * they need one.
      *
      * @param initialContext optional initial [EvaluationContext]
      */
@@ -37,7 +39,7 @@ interface StateManagingProvider : FeatureProvider {
      * Called when the client lifecycle ends; release resources and threads.
      *
      * Before returning: set [status] to [OpenFeatureStatus.NotReady], then emit
-     * [OpenFeatureProviderEvents.ProviderNotReady] on [observe].
+     * [OpenFeatureProviderEvents.ProviderError] on [observe].
      */
     override fun shutdown()
 

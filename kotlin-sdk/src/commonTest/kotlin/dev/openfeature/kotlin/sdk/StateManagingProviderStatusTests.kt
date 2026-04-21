@@ -1,6 +1,7 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import dev.openfeature.kotlin.sdk.helpers.LegacyMinimalProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -117,7 +118,14 @@ class StateManagingProviderStatusTests {
 
             override fun shutdown() {
                 _status.value = OpenFeatureStatus.NotReady
-                events.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
+                events.tryEmit(
+                    OpenFeatureProviderEvents.ProviderError(
+                        OpenFeatureProviderEvents.EventDetails(
+                            message = "shut down",
+                            errorCode = ErrorCode.PROVIDER_NOT_READY
+                        )
+                    )
+                )
             }
 
             override suspend fun onContextSet(
@@ -181,7 +189,14 @@ class StateManagingProviderStatusTests {
 
             override fun shutdown() {
                 _status.value = OpenFeatureStatus.NotReady
-                events.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
+                events.tryEmit(
+                    OpenFeatureProviderEvents.ProviderError(
+                        OpenFeatureProviderEvents.EventDetails(
+                            message = "shut down",
+                            errorCode = ErrorCode.PROVIDER_NOT_READY
+                        )
+                    )
+                )
             }
 
             override suspend fun onContextSet(
@@ -247,7 +262,14 @@ class StateManagingProviderStatusTests {
 
             override fun shutdown() {
                 _status.value = OpenFeatureStatus.NotReady
-                events.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
+                events.tryEmit(
+                    OpenFeatureProviderEvents.ProviderError(
+                        OpenFeatureProviderEvents.EventDetails(
+                            message = "shut down",
+                            errorCode = ErrorCode.PROVIDER_NOT_READY
+                        )
+                    )
+                )
             }
 
             override suspend fun onContextSet(

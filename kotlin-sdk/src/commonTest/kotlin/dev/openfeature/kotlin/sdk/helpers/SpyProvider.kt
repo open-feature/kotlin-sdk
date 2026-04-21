@@ -9,6 +9,7 @@ import dev.openfeature.kotlin.sdk.Reason
 import dev.openfeature.kotlin.sdk.StateManagingProvider
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -39,7 +40,14 @@ class SpyProvider(
     override fun shutdown() {
         shutdownCalls.incrementAndGet()
         _status.value = OpenFeatureStatus.NotReady
-        events.tryEmit(OpenFeatureProviderEvents.ProviderNotReady)
+        events.tryEmit(
+            OpenFeatureProviderEvents.ProviderError(
+                OpenFeatureProviderEvents.EventDetails(
+                    message = "Spy provider shut down; not ready for evaluation",
+                    errorCode = ErrorCode.PROVIDER_NOT_READY
+                )
+            )
+        )
     }
 
     override suspend fun onContextSet(
