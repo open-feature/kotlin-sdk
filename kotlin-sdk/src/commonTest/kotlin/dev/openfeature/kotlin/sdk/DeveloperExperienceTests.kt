@@ -214,7 +214,6 @@ class DeveloperExperienceTests {
         val emittedStatuses = mutableListOf<OpenFeatureStatus>()
         val job = launch {
             OpenFeatureAPI.statusFlow.collect {
-                println(it)
                 emittedStatuses.add(it)
             }
         }

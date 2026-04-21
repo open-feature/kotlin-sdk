@@ -17,7 +17,7 @@ import kotlin.test.assertTrue
 
 /**
  * Integration tests for **legacy** providers: [FeatureProvider] without [StateManagingProvider].
- * Status is driven by the SDK-managed buffer and mirroring of [FeatureProvider.observe].
+ * Status is derived from [FeatureProvider.observe] via the SDK adapter (same as other OpenFeature SDKs).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class LegacyFeatureProviderStatusTests {

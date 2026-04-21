@@ -10,7 +10,8 @@ import kotlin.coroutines.cancellation.CancellationException
  * Provider that owns lifecycle [OpenFeatureStatus] in [status] and reports changes on [observe].
  *
  * Implementations must update [status] first, then emit on [observe], so readers of either see a
- * consistent order. Providers without this contract use the SDK-managed status path instead.
+ * consistent order. Plain [FeatureProvider] implementations are wrapped internally; their status is
+ * derived from [observe] via an SDK adapter.
  */
 interface StateManagingProvider : FeatureProvider {
     /**

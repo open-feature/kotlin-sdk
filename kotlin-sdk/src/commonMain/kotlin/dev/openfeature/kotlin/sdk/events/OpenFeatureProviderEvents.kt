@@ -54,6 +54,20 @@ sealed class OpenFeatureProviderEvents {
     }
 }
 
+/**
+ * Maps lifecycle events to [OpenFeatureStatus], or null when the event
+ * does not correspond to a valid [OpenFeatureStatus] transition (for
+ * example [OpenFeatureProviderEvents.ProviderConfigurationChanged]).
+ */
+internal fun OpenFeatureProviderEvents.toOpenFeatureStatusOrNull(): OpenFeatureStatus? = when (this) {
+    is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
+    is OpenFeatureProviderEvents.ProviderNotReady -> OpenFeatureStatus.NotReady
+    is OpenFeatureProviderEvents.ProviderReconciling -> OpenFeatureStatus.Reconciling
+    is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
+    is OpenFeatureProviderEvents.ProviderError -> toOpenFeatureStatusError()
+    else -> null
+}
+
 internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError(): OpenFeatureStatus {
     return when {
         eventDetails?.errorCode != null -> {
