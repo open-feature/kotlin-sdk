@@ -19,8 +19,12 @@ public abstract interface class dev/openfeature/kotlin/sdk/Client : dev/openfeat
 	public abstract fun addHooks (Ljava/util/List;)V
 	public abstract fun getHooks ()Ljava/util/List;
 	public abstract fun getMetadata ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
-	public abstract fun getProviderStatus ()Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;
+	public fun getProviderStatus ()Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;
 	public abstract fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
+}
+
+public final class dev/openfeature/kotlin/sdk/Client$DefaultImpls {
+	public static fun getProviderStatus (Ldev/openfeature/kotlin/sdk/Client;)Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;
 }
 
 public abstract interface class dev/openfeature/kotlin/sdk/ClientMetadata {

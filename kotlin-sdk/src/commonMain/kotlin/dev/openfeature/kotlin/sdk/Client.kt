@@ -10,7 +10,7 @@ interface Client : Features, Tracking {
     fun addHooks(hooks: List<Hook<*>>)
 
     /**
-     * Get the current [OpenFeatureStatus] of the Provider handling this client's evaluations.
+     * Get the current [OpenFeatureStatus] of the Provider handling this client's evaluations, or [OpenFeatureStatus.NotReady] if no Provider has been initialized.
      */
-    fun getProviderStatus(): OpenFeatureStatus
+    fun getProviderStatus(): OpenFeatureStatus = OpenFeatureStatus.NotReady
 }
