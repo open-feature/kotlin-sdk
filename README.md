@@ -116,7 +116,7 @@ coroutineScope.launch(Dispatchers.Default) {
 | ✅      | [Targeting](#targeting)           | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
 | ✅      | [Hooks](#hooks)                   | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
 | ✅      | [Tracking](#tracking)             | Associate user actions with feature flag evaluations.                                                                              |
-| ❌      | [Logging](#logging)               | Integrate with popular logging packages.                                                                                           |
+| ✅      | [Logging](#logging)               | Integrate with popular logging packages.                                                                                           |
 | ❌      | [Domains](#domains)               | Logically bind clients with providers.                                                                                             |
 | ✅      | [Eventing](#eventing)             | React to state changes in the provider or flag management system.                                                                  |
 | ✅      | [Shutdown](#shutdown)             | Gracefully clean up a provider during application shutdown.                                                                        |
@@ -213,9 +213,140 @@ Tracking is optionally implemented by Providers.
 
 ### Logging
 
-Logging customization is not yet available in the Kotlin SDK.
+The SDK ships a `Logger` interface and a built-in `LoggingHook` that emits structured log records at each stage of the flag evaluation life-cycle.
 
-It is possible to write and inject logging `Hook`s to log events at different stages of the flag evaluation life-cycle.
+#### Logger interface
+
+```kotlin
+interface Logger {
+    fun debug(message: () -> String, attributes: () -> Map<String, Any?> = { emptyMap() }, throwable: Throwable? = null)
+    fun info(message: () -> String, attributes: () -> Map<String, Any?> = { emptyMap() }, throwable: Throwable? = null)
+    fun warn(message: () -> String, attributes: () -> Map<String, Any?> = { emptyMap() }, throwable: Throwable? = null)
+    fun error(message: () -> String, attributes: () -> Map<String, Any?> = { emptyMap() }, throwable: Throwable? = null)
+}
+```
+
+Both `message` and `attributes` are lambdas — they are evaluated lazily and only invoked if the logger decides to emit the record. This means inactive log levels incur no allocation overhead.
+
+Platform-specific loggers are created via `LoggerFactory.getLogger(tag)`:
+
+| Platform | Backend | Format |
+|----------|---------|--------|
+| Android  | `android.util.Log` | Logcat with tag; attributes appended as `key=value` pairs |
+| JVM      | `System.out` (DEBUG/INFO) / `System.err` (WARN/ERROR) | `<timestamp> [LEVEL] <tag> - <message> key=value …` |
+| iOS      | `NSLog` | `[LEVEL] <tag> - <message> key=value …` (NSLog adds its own timestamp) |
+| JavaScript | `console` API | `[<tag>] <message>` with attributes as an expandable JS object (browser devtools / Node.js); note: `debug` uses `console.log`, not `console.debug` — browser "Verbose" filter will not capture it |
+| Linux/Native | `stdout` (DEBUG/INFO) / `stderr` (WARN/ERROR) | `[LEVEL] <tag> - <message> key=value …` (no timestamp; systemd/journald provides its own) |
+
+#### Custom Logger
+
+To route SDK logs into your own logging framework, implement `Logger` and pass it wherever a `Logger` is accepted:
+
+```kotlin
+// SLF4J's {} placeholder calls toString() on the map, producing {key=value, ...}.
+// Use entries.joinToString(" ") { "${it.key}=${it.value}" } to get key=value output instead.
+class MyLogger(private val underlying: org.slf4j.Logger) : Logger {
+    override fun debug(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
+        if (!underlying.isDebugEnabled) return
+        underlying.debug("{} {}", message(), attributes(), throwable)
+    }
+
+    override fun info(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
+        if (!underlying.isInfoEnabled) return
+        underlying.info("{} {}", message(), attributes(), throwable)
+    }
+
+    override fun warn(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
+        if (!underlying.isWarnEnabled) return
+        underlying.warn("{} {}", message(), attributes(), throwable)
+    }
+
+    override fun error(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
+        if (!underlying.isErrorEnabled) return
+        underlying.error("{} {}", message(), attributes(), throwable)
+    }
+}
+```
+
+#### LoggingHook
+
+`LoggingHook` logs at each stage of flag evaluation. Register it like any other hook:
+
+```kotlin
+// dev.openfeature.kotlin.sdk.logging.LoggerFactory — the SDK's platform-specific factory
+val logger = LoggerFactory.getLogger("FeatureFlags")
+
+val hook = LoggingHook(
+    logger = logger,
+    logEvaluationContext = false,   // set true to include context attributes in logs
+    beforeLogLevel = LogLevel.DEBUG,
+    afterLogLevel = LogLevel.DEBUG,
+    errorLogLevel = LogLevel.ERROR,
+    finallyLogLevel = LogLevel.DEBUG,
+)
+
+// register globally
+OpenFeatureAPI.addHooks(listOf(hook))
+```
+
+#### PII filtering
+
+When `logEvaluationContext = true`, context attributes are included in log records. By default, attributes matching common PII field names (see `LoggingHook.DEFAULT_SENSITIVE_KEYS`) are excluded. Two optional parameters let you customize this behaviour:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `logTargetingKey` | `Boolean` | `true` | Include the targeting key in context logs. Set to `false` if targeting keys contain PII such as user IDs or email addresses. |
+| `includeAttributes` | `Set<String>?` | `null` | Allowlist: only attributes with these names are logged. An empty set logs no attributes. Takes precedence over `excludeAttributes`. Attribute name matching is case-sensitive. |
+| `excludeAttributes` | `Set<String>` | `DEFAULT_SENSITIVE_KEYS` | Denylist: attributes with these names are omitted. Attribute name matching is case-sensitive. |
+
+`LoggingHook.DEFAULT_SENSITIVE_KEYS` contains: `email`, `phone`, `phoneNumber`, `ssn`, `socialSecurityNumber`, `creditCard`, `creditCardNumber`, `password`, `address`, `streetAddress`, `zipCode`, `postalCode`, `ipAddress`, `firstName`, `lastName`, `fullName`, `dateOfBirth`.
+
+```kotlin
+// Log only a specific set of safe attributes
+val hook = LoggingHook(
+    logger = logger,
+    logEvaluationContext = true,
+    logTargetingKey = false,                              // targeting key contains a user ID
+    includeAttributes = setOf("region", "plan", "tier"), // allowlist — only these are logged
+)
+
+// Or extend the default denylist
+val hook = LoggingHook(
+    logger = logger,
+    logEvaluationContext = true,
+    excludeAttributes = LoggingHook.DEFAULT_SENSITIVE_KEYS + setOf("internalId", "accountNumber"),
+)
+```
+
+The hook logs the following at each lifecycle stage:
+
+| Stage | Message | Attributes |
+|-------|---------|------------|
+| `before` | `Flag evaluation starting` | `flag`, `type`, `defaultValue`, `provider`, `client` (if set), `context.*` (if enabled) |
+| `after` | `Flag evaluation completed` | `flag`, `value`, `variant` (if set), `reason` (if set), `provider`, `context.*` (if enabled) |
+| `error` | `Flag evaluation error` | `flag`, `type`, `defaultValue`, `provider`, `error` (if set), `context.*` (if enabled) |
+| `finallyAfter` | `Flag evaluation finalized` | `flag`, `errorCode` (if set), `errorMessage` (if set) |
+
+Example JVM output for a successful evaluation:
+
+```
+2026-04-15T10:00:00.123Z [DEBUG] FeatureFlags - Flag evaluation starting flag=my-flag type=BOOLEAN defaultValue=false provider=MyProvider
+2026-04-15T10:00:00.124Z [DEBUG] FeatureFlags - Flag evaluation completed flag=my-flag value=true variant=on reason=TARGETING_MATCH provider=MyProvider
+2026-04-15T10:00:00.124Z [DEBUG] FeatureFlags - Flag evaluation finalized flag=my-flag
+```
+
+To include evaluation context in logs for a single call, pass a hook hint:
+
+```kotlin
+client.getBooleanValue(
+    "my-flag",
+    false,
+    FlagEvaluationOptions(
+        hooks = listOf(hook),
+        hookHints = mapOf(LoggingHook.HINT_LOG_EVALUATION_CONTEXT to true)
+    )
+)
+```
 
 ### Domains
 
