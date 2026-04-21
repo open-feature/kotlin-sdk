@@ -289,6 +289,35 @@ val hook = LoggingHook(
 OpenFeatureAPI.addHooks(listOf(hook))
 ```
 
+#### PII filtering
+
+When `logEvaluationContext = true`, context attributes are included in log records. By default, attributes matching common PII field names (see `LoggingHook.DEFAULT_SENSITIVE_KEYS`) are excluded. Two optional parameters let you customize this behaviour:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `logTargetingKey` | `Boolean` | `true` | Include the targeting key in context logs. Set to `false` if targeting keys contain PII such as user IDs or email addresses. |
+| `includeAttributes` | `Set<String>?` | `null` | Allowlist: only attributes with these names are logged. An empty set logs no attributes. Takes precedence over `excludeAttributes`. Attribute name matching is case-sensitive. |
+| `excludeAttributes` | `Set<String>` | `DEFAULT_SENSITIVE_KEYS` | Denylist: attributes with these names are omitted. Attribute name matching is case-sensitive. |
+
+`LoggingHook.DEFAULT_SENSITIVE_KEYS` contains: `email`, `phone`, `phoneNumber`, `ssn`, `socialSecurityNumber`, `creditCard`, `creditCardNumber`, `password`, `address`, `streetAddress`, `zipCode`, `postalCode`, `ipAddress`, `firstName`, `lastName`, `fullName`, `dateOfBirth`.
+
+```kotlin
+// Log only a specific set of safe attributes
+val hook = LoggingHook(
+    logger = logger,
+    logEvaluationContext = true,
+    logTargetingKey = false,                              // targeting key contains a user ID
+    includeAttributes = setOf("region", "plan", "tier"), // allowlist — only these are logged
+)
+
+// Or extend the default denylist
+val hook = LoggingHook(
+    logger = logger,
+    logEvaluationContext = true,
+    excludeAttributes = LoggingHook.DEFAULT_SENSITIVE_KEYS + setOf("internalId", "accountNumber"),
+)
+```
+
 The hook logs the following at each lifecycle stage:
 
 | Stage | Message | Attributes |
