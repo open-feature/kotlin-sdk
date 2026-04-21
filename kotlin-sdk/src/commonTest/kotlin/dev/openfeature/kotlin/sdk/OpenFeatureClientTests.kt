@@ -1,5 +1,6 @@
 package dev.openfeature.kotlin.sdk
 
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import dev.openfeature.kotlin.sdk.helpers.BrokenInitProvider
 import dev.openfeature.kotlin.sdk.helpers.GenericSpyHookMock
 import dev.openfeature.kotlin.sdk.helpers.OverlyEmittingProvider
@@ -46,7 +47,11 @@ class OpenFeatureClientTests {
     fun testClientGetProviderStatusShouldReturnErrorWhenProviderFailsToInitialize() = runTest {
         OpenFeatureAPI.setProviderAndWait(BrokenInitProvider())
         val client = OpenFeatureAPI.getClient()
-        assertTrue(client.getProviderStatus() is OpenFeatureStatus.Error)
+        val status = client.getProviderStatus()
+        assertTrue(status is OpenFeatureStatus.Error)
+        assertTrue(
+            (status as OpenFeatureStatus.Error).error is OpenFeatureError.ProviderNotReadyError
+        )
     }
 
     /**
@@ -81,12 +86,16 @@ class OpenFeatureClientTests {
     fun testClientGetProviderStatusShouldReturnFatalWhenProviderFailsFatal() = runTest {
         val fatalProvider = object : FeatureProvider by NoOpProvider() {
             override suspend fun initialize(initialContext: EvaluationContext?) {
-                throw dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.ProviderFatalError("test fatal error")
+                throw OpenFeatureError.ProviderFatalError("test fatal error")
             }
         }
         OpenFeatureAPI.setProviderAndWait(fatalProvider)
         val client = OpenFeatureAPI.getClient()
-        assertTrue(client.getProviderStatus() is OpenFeatureStatus.Fatal)
+        val status = client.getProviderStatus()
+        assertTrue(status is OpenFeatureStatus.Fatal)
+        assertTrue(
+            (status as OpenFeatureStatus.Fatal).error is OpenFeatureError.ProviderFatalError
+        )
     }
 
     @Test
