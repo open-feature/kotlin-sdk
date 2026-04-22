@@ -1,12 +1,15 @@
 package dev.openfeature.kotlin.sdk
 
+import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.helpers.GenericSpyHookMock
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class OpenFeatureClientTests {
 
@@ -88,5 +91,41 @@ class OpenFeatureClientTests {
         assertNotNull(captured)
         assertEquals("globalVal", captured.getValue("global")?.asString())
         assertEquals("domainVal", captured.getValue("domain")?.asString())
+    }
+
+    /**
+     * Rationale:
+     * When hot-swapping providers, the OpenFeatureAPI correctly executes `oldProvider.shutdown()`.
+     * However, the domain's live `statusFlow` has already been allocated to represent the incoming new provider.
+     * If the old provider's shutdown implementation dynamically throws an unhandled exception, it must be
+     * safely discarded. It must NEVER emit an `OpenFeatureStatus.Error` onto the live streaming pipeline,
+     * which would falsely signal to subscribers that the newly bound active provider crashed.
+     */
+    @Test
+    fun testUncaughtExceptionInOldProviderShutdownDoesNotEmitError() = runTest {
+        var shutdownCalled = false
+        val trapProvider = object : FeatureProvider by NoOpProvider() {
+            override fun shutdown() {
+                shutdownCalled = true
+                throw RuntimeException("Explosion during teardown")
+            }
+        }
+
+        OpenFeatureAPI.setProviderAndWait("crash-domain", trapProvider)
+
+        val events = mutableListOf<OpenFeatureProviderEvents>()
+        val job = launch {
+            OpenFeatureAPI.observe<OpenFeatureProviderEvents>("crash-domain").collect { events.add(it) }
+        }
+
+        testScheduler.advanceUntilIdle()
+        events.clear()
+
+        val newProvider = NoOpProvider()
+        OpenFeatureAPI.setProviderAndWait("crash-domain", newProvider)
+
+        assertTrue(shutdownCalled)
+        assertTrue(events.none { it is OpenFeatureProviderEvents.ProviderError }, "Emitted stray error!")
+        job.cancel()
     }
 }

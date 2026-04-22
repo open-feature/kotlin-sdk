@@ -108,13 +108,19 @@ internal class DomainState {
     suspend fun shutdown() {
         setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to shutdown"))
         setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to shutdown"))
-        providerMutex.withLock {
+        val providerToShutdown = providerMutex.withLock {
             domainScope?.cancel(CancellationException("DomainScope was cancelled due to shutdown"))
             domainScope = null
             currentDispatcher = null
+            val current = provider
+            providersFlow.value = NoOpProvider()
+            current
         }
-        provider.shutdown()
-        providersFlow.value = NoOpProvider()
+        try {
+            providerToShutdown.shutdown()
+        } catch (e: Exception) {
+            // Safely suppress exceptions crashing custom provider teardown loops
+        }
         _statusFlow.tryEmit(OpenFeatureStatus.NotReady)
     }
 }

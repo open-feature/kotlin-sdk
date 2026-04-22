@@ -138,9 +138,11 @@ object OpenFeatureAPI {
         // Emit NotReady status after swapping provider
         state.emitStatus(OpenFeatureStatus.NotReady)
 
-        // Shutdown the previous provider outside the mutex
-        tryWithStatusEmitErrorHandling(state) {
+        // Shutdown the previous provider isolated from stream errors
+        try {
             oldProvider.shutdown()
+        } catch (e: Exception) {
+            // Ignore termination exceptions from dead configurations natively securely
         }
 
         // Initialize the new provider

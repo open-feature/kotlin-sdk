@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotSame
 import kotlin.test.assertSame
@@ -124,6 +125,32 @@ class ProviderRepositoryTest {
         // Subsequent creation should yield a NEW distinct state reference since the old one was removed
         val newDomainA = repository.getOrCreateState("domainA")
         assertNotEquals(domainA, newDomainA)
+    }
+
+    @Test
+    fun `clearAll should successfully terminate array even if provider shutdown throws`() = runTest {
+        val repository = ProviderRepository()
+
+        val stateA = repository.getOrCreateState("domainA")
+        val stateB = repository.getOrCreateState("domainB")
+
+        val explosiveProvider = object : FeatureProvider by NoOpProvider() {
+            override fun shutdown() {
+                throw RuntimeException("Simulated hostile provider shutdown crash")
+            }
+        }
+
+        stateA.providersFlow.value = explosiveProvider
+
+        // If clearAll crashed upon iterating stateA, stateB wouldn't successfully transition to NotReady securely.
+        repository.clearAll()
+
+        // Assert BOTH safely resolved their inner _statusFlow sequences
+        assertEquals(OpenFeatureStatus.NotReady, stateA.getStatus())
+        assertEquals(OpenFeatureStatus.NotReady, stateB.getStatus())
+
+        // Assert structure correctly purged isolated arrays unconditionally
+        assertEquals(1, repository.getAllStates().size)
     }
 
     @Test
@@ -317,5 +344,49 @@ class ProviderRepositoryTest {
         // If the vulnerability exists, both threads will be permanently blocked!
         assertTrue(threadA.isCompleted)
         assertTrue(threadB.isCompleted)
+    }
+
+    @Test
+    fun `DomainState shutdown should not shut down newly swapped provider during lock release`() = runTest {
+        val state = DomainState()
+
+        var oldProviderShutdownCalled = false
+        val slowOldProvider = object : FeatureProvider by NoOpProvider() {
+            override fun shutdown() {
+                oldProviderShutdownCalled = true
+            }
+        }
+        state.providersFlow.value = slowOldProvider
+
+        var newProviderShutdownCalled = false
+        val newProvider = object : FeatureProvider by NoOpProvider() {
+            override fun shutdown() {
+                newProviderShutdownCalled = true
+            }
+        }
+
+        // Thread A: calls shutdown
+        val threadA = launch(StandardTestDispatcher(testScheduler)) {
+            state.shutdown()
+        }
+
+        // Thread B: simulates setProviderInternal by grabbing the lock and swapping the provider exactly outside the lock boundary
+        val threadB = launch(StandardTestDispatcher(testScheduler)) {
+            // Wait 10ms to ensure Thread A successfully releases the providerMutex but is still waiting on the 100ms shutdown cascade
+            delay(10L)
+            state.providerMutex.withLock {
+                state.providersFlow.value = newProvider
+            }
+        }
+
+        testScheduler.advanceUntilIdle()
+
+        assertTrue(threadA.isCompleted)
+        assertTrue(threadB.isCompleted)
+        assertTrue(oldProviderShutdownCalled, "Old provider natively shut down")
+        assertFalse(
+            newProviderShutdownCalled,
+            "New provider MUST NOT be accidentally shut down due to lock inversion race condition"
+        )
     }
 }
