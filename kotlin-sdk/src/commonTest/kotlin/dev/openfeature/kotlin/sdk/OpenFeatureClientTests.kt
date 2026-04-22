@@ -6,7 +6,9 @@ import dev.openfeature.kotlin.sdk.helpers.GenericSpyHookMock
 import dev.openfeature.kotlin.sdk.helpers.OverlyEmittingProvider
 import dev.openfeature.kotlin.sdk.helpers.SlowProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -62,24 +64,38 @@ class OpenFeatureClientTests {
     fun testClientGetProviderStatusShouldReturnReconcilingWhileContextIsBeingUpdated() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val slowProvider = SlowProvider(dispatcher = dispatcher)
+        val client = OpenFeatureAPI.getClient()
+
+        // 1. Launch a background collector to record the sequential history
+        val emittedStatuses = mutableListOf<OpenFeatureStatus>()
+        val collectorJob = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            client.statusFlow.collect { emittedStatuses.add(it) }
+        }
+
         OpenFeatureAPI.setProvider(slowProvider, dispatcher = dispatcher)
 
         // Wait for SlowProvider initialized (2000ms delay)
         advanceTimeBy(2001)
 
-        val client = OpenFeatureAPI.getClient()
-        assertEquals(OpenFeatureStatus.Ready, client.getProviderStatus())
-
         // Trigger a context update (takes 2000ms natively)
         OpenFeatureAPI.setEvaluationContext(ImmutableContext(targetingKey = "user-123"), dispatcher)
 
-        // Run execution queue deterministically to ensure coroutine reaches emit(Reconciling)
-        runCurrent()
-        assertEquals(OpenFeatureStatus.Reconciling, client.getProviderStatus())
-
         // Wait out the remaining 2000ms for slow context update finish
         advanceTimeBy(2001)
-        assertEquals(OpenFeatureStatus.Ready, client.getProviderStatus())
+
+        // 2. Assert the sequence natively!
+        // Expect: Initial NotReady -> Provider Ready -> Reconciling context -> Provider Ready again
+        assertEquals(
+            listOf(
+                OpenFeatureStatus.NotReady,
+                OpenFeatureStatus.Ready,
+                OpenFeatureStatus.Reconciling,
+                OpenFeatureStatus.Ready
+            ),
+            emittedStatuses
+        )
+
+        collectorJob.cancel()
     }
 
     @Test
