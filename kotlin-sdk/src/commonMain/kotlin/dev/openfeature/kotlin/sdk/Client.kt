@@ -1,9 +1,7 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filterIsInstance
 
 interface Client : Features, Tracking {
     val metadata: ClientMetadata
@@ -12,17 +10,10 @@ interface Client : Features, Tracking {
 
     /**
      * Cold flow of events from the SDK's current [FeatureProvider], same pipeline as
-     * [OpenFeatureAPI.observe]. For a single event type, use the [observe] extension
-     * with a reified type argument (e.g. `observe<ProviderReady>().collect { ... }`).
+     * [OpenFeatureAPI.observe]. To handle a single event type, narrow with
+     * [kotlinx.coroutines.flow.filterIsInstance] (or equivalent) in application code.
      */
     fun observe(): Flow<OpenFeatureProviderEvents>
 
     fun addHooks(hooks: List<Hook<*>>)
 }
-
-/**
- * Observe provider events of type [T], matching [OpenFeatureAPI.observe].
- */
-@OptIn(ExperimentalCoroutinesApi::class)
-inline fun <reified T : OpenFeatureProviderEvents> Client.observe(): Flow<T> =
-    observe().filterIsInstance()

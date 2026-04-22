@@ -186,16 +186,22 @@ class OpenFeatureClient(
         val provider = openFeatureAPI.getProvider()
         val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
         val context = openFeatureAPI.getEvaluationContext()
-        val hookCtx: HookContext<T> = HookContext(
-            key,
-            flagValueType,
-            defaultValue,
-            context,
-            this.metadata,
-            provider.metadata
-        )
+        val hooksWithContext: List<Pair<Hook<*>, HookContext<T>>> =
+            mergedHooks
+                .filter { it.supportsFlagValueType(flagValueType) }
+                .map { hook ->
+                    hook to HookContext(
+                        key,
+                        flagValueType,
+                        defaultValue,
+                        context,
+                        this.metadata,
+                        provider.metadata,
+                        mutableMapOf()
+                    )
+                }
         try {
-            hookSupport.beforeHooks(flagValueType, hookCtx, mergedHooks, hints)
+            hookSupport.beforeHooks(flagValueType, hooksWithContext, hints)
             shortCircuitIfNotReady()
             val providerEval = createProviderEvaluation(
                 flagValueType,
@@ -205,7 +211,7 @@ class OpenFeatureClient(
                 provider
             )
             details = FlagEvaluationDetails.from(providerEval, key)
-            hookSupport.afterHooks(flagValueType, hookCtx, details, mergedHooks, hints)
+            hookSupport.afterHooks(flagValueType, details, hooksWithContext, hints)
         } catch (error: Exception) {
             val errorCode = if (error is OpenFeatureError) {
                 error.errorCode()
@@ -219,9 +225,9 @@ class OpenFeatureClient(
                 errorCode = errorCode
             )
 
-            hookSupport.errorHooks(flagValueType, hookCtx, error, mergedHooks, hints)
+            hookSupport.errorHooks(flagValueType, error, hooksWithContext, hints)
         }
-        hookSupport.afterAllHooks(flagValueType, hookCtx, details, mergedHooks, hints)
+        hookSupport.afterAllHooks(flagValueType, details, hooksWithContext, hints)
         return details
     }
 
