@@ -136,4 +136,42 @@ class OpenFeatureClientTests {
 
         assertEquals(OpenFeatureStatus.Stale, client.providerStatus)
     }
+
+    @Test
+    fun testClientEvaluationShouldReturnProviderNotReadyWhenEvaluatingBeforeProviderIsReady() = runTest {
+        val client = OpenFeatureAPI.getClient()
+        val details = client.getBooleanDetails("test-flag", false)
+        assertEquals(dev.openfeature.kotlin.sdk.exceptions.ErrorCode.PROVIDER_NOT_READY, details.errorCode)
+    }
+
+    @Test
+    fun testClientEvaluationShouldReturnProviderFatalWhenEvaluatingWithFatalProvider() = runTest {
+        val fatalProvider = object : FeatureProvider by NoOpProvider() {
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                throw OpenFeatureError.ProviderFatalError("test fatal error")
+            }
+        }
+        OpenFeatureAPI.setProviderAndWait(fatalProvider)
+        val client = OpenFeatureAPI.getClient()
+        val details = client.getBooleanDetails("test-flag", false)
+        assertEquals(dev.openfeature.kotlin.sdk.exceptions.ErrorCode.PROVIDER_FATAL, details.errorCode)
+    }
+
+    @Test
+    fun testClientEvaluationShouldMapGeneralExceptionsToGeneralErrorCode() = runTest {
+        val throwingProvider = object : FeatureProvider by NoOpProvider() {
+            override fun getBooleanEvaluation(
+                key: String,
+                defaultValue: Boolean,
+                context: EvaluationContext?
+            ): ProviderEvaluation<Boolean> {
+                throw IllegalStateException("Generic unexpected crash")
+            }
+        }
+        OpenFeatureAPI.setProviderAndWait(throwingProvider)
+        val client = OpenFeatureAPI.getClient()
+        val details = client.getBooleanDetails("test-flag", false)
+        assertEquals(dev.openfeature.kotlin.sdk.exceptions.ErrorCode.GENERAL, details.errorCode)
+        assertEquals("Generic unexpected crash", details.errorMessage)
+    }
 }
