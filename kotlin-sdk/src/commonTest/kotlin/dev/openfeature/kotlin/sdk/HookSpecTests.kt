@@ -8,6 +8,56 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
+/** Plain [FeatureProvider] (non-SMP) for tests that need the legacy SDK status path
+ * or provider hook wiring without using [NoOpProvider]. */
+private class LegacyNoOpProvider(
+    override val hooks: List<Hook<*>> = listOf(),
+    override val metadata: ProviderMetadata = object : ProviderMetadata {
+        override val name: String? = "ready-legacy-test"
+    }
+) : FeatureProvider {
+    override suspend fun initialize(initialContext: EvaluationContext?) {}
+
+    override fun shutdown() {}
+
+    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {}
+
+    override fun getBooleanEvaluation(
+        key: String,
+        defaultValue: Boolean,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Boolean> =
+        ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
+
+    override fun getStringEvaluation(
+        key: String,
+        defaultValue: String,
+        context: EvaluationContext?
+    ): ProviderEvaluation<String> =
+        ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
+
+    override fun getIntegerEvaluation(
+        key: String,
+        defaultValue: Int,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Int> =
+        ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
+
+    override fun getDoubleEvaluation(
+        key: String,
+        defaultValue: Double,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Double> =
+        ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
+
+    override fun getObjectEvaluation(
+        key: String,
+        defaultValue: Value,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Value> =
+        ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
+}
+
 class HookSpecTests {
 
     @AfterTest
@@ -17,7 +67,7 @@ class HookSpecTests {
 
     @Test
     fun testNoErrorHookCalled() = runTest {
-        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
+        OpenFeatureAPI.setProviderAndWait(LegacyNoOpProvider())
         val client = OpenFeatureAPI.getClient()
         val hook = GenericSpyHookMock()
 
@@ -47,7 +97,7 @@ class HookSpecTests {
         val evalOrder: MutableList<String> = mutableListOf()
         val addEval: (String) -> Unit = { eval: String -> evalOrder += eval }
 
-        val provider = NoOpProvider(
+        val provider = LegacyNoOpProvider(
             hooks = listOf(GenericSpyHookMock("provider", addEval))
         )
 
@@ -80,7 +130,7 @@ class HookSpecTests {
 
     @Test
     fun hookDataIsSharedAcrossStagesForSameHook() = runTest {
-        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
+        OpenFeatureAPI.setProviderAndWait(LegacyNoOpProvider())
         val client = OpenFeatureAPI.getClient()
         var afterValue: Any? = null
         var finallyValue: Any? = null
@@ -114,7 +164,7 @@ class HookSpecTests {
 
     @Test
     fun hookDataIsNotSharedBetweenDifferentHooks() = runTest {
-        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
+        OpenFeatureAPI.setProviderAndWait(LegacyNoOpProvider())
         val client = OpenFeatureAPI.getClient()
         val hookA = object : Hook<Boolean> {
             override fun before(ctx: HookContext<Boolean>, hints: Map<String, Any>) {

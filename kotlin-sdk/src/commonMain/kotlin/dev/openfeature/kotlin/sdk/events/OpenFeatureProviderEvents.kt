@@ -45,6 +45,39 @@ sealed class OpenFeatureProviderEvents {
     data class ProviderStale(
         override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
+
+    /**
+     * The provider is in the process of reconciling within a context change.
+     */
+    data class ProviderReconciling(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
+
+    @Deprecated("Use ProviderError instead", ReplaceWith("ProviderError"))
+    data object ProviderNotReady : OpenFeatureProviderEvents() {
+        override val eventDetails = null
+    }
+}
+
+/**
+ * Maps lifecycle events to [OpenFeatureStatus], or null when the event does not change readiness
+ * (for example [OpenFeatureProviderEvents.ProviderConfigurationChanged]).
+ *
+ * [OpenFeatureProviderEvents.ProviderError] with [ErrorCode.PROVIDER_NOT_READY] matches the deprecated
+ * [OpenFeatureProviderEvents.ProviderNotReady] object: both map to [OpenFeatureStatus.NotReady] for
+ * aggregation and status derivation.
+ */
+internal fun OpenFeatureProviderEvents.toOpenFeatureStatus(): OpenFeatureStatus? = when (this) {
+    is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
+    is OpenFeatureProviderEvents.ProviderNotReady -> OpenFeatureStatus.NotReady
+    is OpenFeatureProviderEvents.ProviderReconciling -> OpenFeatureStatus.Reconciling
+    is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
+    is OpenFeatureProviderEvents.ProviderError -> when (eventDetails?.errorCode) {
+        ErrorCode.PROVIDER_NOT_READY -> OpenFeatureStatus.NotReady
+        else -> toOpenFeatureStatusError()
+    }
+    is OpenFeatureProviderEvents.ProviderConfigurationChanged -> null
+    else -> null
 }
 
 internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError(): OpenFeatureStatus {

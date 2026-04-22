@@ -1,42 +1,73 @@
 package dev.openfeature.kotlin.sdk.helpers
 
 import dev.openfeature.kotlin.sdk.EvaluationContext
-import dev.openfeature.kotlin.sdk.FeatureProvider
 import dev.openfeature.kotlin.sdk.Hook
+import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.StateManagingProvider
 import dev.openfeature.kotlin.sdk.Value
+import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class SlowProvider(
     override val hooks: List<Hook<*>> = listOf(),
     private var dispatcher: CoroutineDispatcher,
     override val metadata: ProviderMetadata = SlowProviderMetadata("Slow provider")
-) : FeatureProvider {
+) : StateManagingProvider {
     internal var ready = false
+
+    private val _status = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
+    override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
+
+    private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+
     override suspend fun initialize(initialContext: EvaluationContext?) {
         CoroutineScope(dispatcher).async {
             delay(2000)
         }.await()
         ready = true
+        _status.value = OpenFeatureStatus.Ready
+        events.emit(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override fun shutdown() {
-        // no-op
+        ready = false
+        _status.value = OpenFeatureStatus.NotReady
+        events.tryEmit(
+            OpenFeatureProviderEvents.ProviderError(
+                OpenFeatureProviderEvents.EventDetails(
+                    message = "Slow provider shut down; not ready for evaluation",
+                    errorCode = ErrorCode.PROVIDER_NOT_READY
+                )
+            )
+        )
     }
 
     override suspend fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
+        _status.value = OpenFeatureStatus.Reconciling
+        events.emit(OpenFeatureProviderEvents.ProviderReconciling())
         CoroutineScope(dispatcher).async {
             delay(2000)
         }.await()
+        _status.value = OpenFeatureStatus.Ready
+        events.emit(OpenFeatureProviderEvents.ProviderReady())
     }
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = events
 
     override fun getBooleanEvaluation(
         key: String,

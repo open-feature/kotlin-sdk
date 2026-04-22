@@ -194,6 +194,9 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
         job.cancelAndJoin()
+        // State-managing SlowProvider drives status from its StateFlow; after shutdown, flatMapLatest
+        // switches to the no-op provider (also NotReady) — inner flow uses distinctUntilChanged, so the
+        // duplicate NotReady is not emitted twice.
         assertEquals(
             listOf(
                 OpenFeatureStatus.NotReady,
@@ -211,7 +214,6 @@ class DeveloperExperienceTests {
         val emittedStatuses = mutableListOf<OpenFeatureStatus>()
         val job = launch {
             OpenFeatureAPI.statusFlow.collect {
-                println(it)
                 emittedStatuses.add(it)
             }
         }
