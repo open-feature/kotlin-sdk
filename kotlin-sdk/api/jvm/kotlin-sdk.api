@@ -27,27 +27,6 @@ public abstract interface class dev/openfeature/kotlin/sdk/ClientMetadata {
 	public abstract fun getName ()Ljava/lang/String;
 }
 
-public final class dev/openfeature/kotlin/sdk/DomainState {
-	public fun <init> ()V
-	public final fun emitStatus (Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun getContext ()Ldev/openfeature/kotlin/sdk/EvaluationContext;
-	public final fun getMergedContext ()Ldev/openfeature/kotlin/sdk/EvaluationContext;
-	public final fun getProvider ()Ldev/openfeature/kotlin/sdk/FeatureProvider;
-	public final fun getProviderMutex ()Lkotlinx/coroutines/sync/Mutex;
-	public final fun getProvidersFlow ()Lkotlinx/coroutines/flow/MutableStateFlow;
-	public final fun getSetEvaluationContextJob ()Lkotlinx/coroutines/Job;
-	public final fun getSetProviderJob ()Lkotlinx/coroutines/Job;
-	public final fun getStatus ()Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;
-	public final fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
-	public final fun get_statusFlow ()Lkotlinx/coroutines/flow/MutableSharedFlow;
-	public final fun initializeListener (Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun setContext (Ldev/openfeature/kotlin/sdk/EvaluationContext;)V
-	public final fun setMergedContext (Ldev/openfeature/kotlin/sdk/EvaluationContext;)V
-	public final fun setSetEvaluationContextJob (Lkotlinx/coroutines/Job;)V
-	public final fun setSetProviderJob (Lkotlinx/coroutines/Job;)V
-	public final fun shutdown (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-}
-
 public abstract interface class dev/openfeature/kotlin/sdk/EvaluationContext : dev/openfeature/kotlin/sdk/Structure {
 	public abstract fun equals (Ljava/lang/Object;)Z
 	public abstract fun getTargetingKey ()Ljava/lang/String;
@@ -305,6 +284,7 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureAPI {
 	public final fun getProviderStatus (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;
 	public final fun getProviderStatusFlow (Ljava/lang/String;)Lkotlinx/coroutines/flow/Flow;
 	public final fun getProvidersFlow ()Lkotlinx/coroutines/flow/Flow;
+	public final fun getProvidersFlowForDomain (Ljava/lang/String;)Lkotlinx/coroutines/flow/Flow;
 	public final fun getRepository ()Ldev/openfeature/kotlin/sdk/ProviderRepository;
 	public final fun getStatus ()Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;
 	public final fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
@@ -427,17 +407,6 @@ public abstract interface class dev/openfeature/kotlin/sdk/ProviderMetadata {
 
 public final class dev/openfeature/kotlin/sdk/ProviderMetadata$DefaultImpls {
 	public static fun getOriginalMetadata (Ldev/openfeature/kotlin/sdk/ProviderMetadata;)Ljava/util/Map;
-}
-
-public final class dev/openfeature/kotlin/sdk/ProviderRepository {
-	public fun <init> ()V
-	public final fun clearAll (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun getAllStates ()Ljava/util/List;
-	public final fun getOrCreateState (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun getOrCreateState$default (Ldev/openfeature/kotlin/sdk/ProviderRepository;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public final fun getState (Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/DomainState;
-	public static synthetic fun getState$default (Ldev/openfeature/kotlin/sdk/ProviderRepository;Ljava/lang/String;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/DomainState;
-	public final fun getStateFlow (Ljava/lang/String;)Lkotlinx/coroutines/flow/Flow;
 }
 
 public final class dev/openfeature/kotlin/sdk/Reason : java/lang/Enum {

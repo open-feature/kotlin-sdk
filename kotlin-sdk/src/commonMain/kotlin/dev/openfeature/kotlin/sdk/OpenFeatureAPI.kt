@@ -387,13 +387,17 @@ object OpenFeatureAPI {
     fun getProviderStatusFlow(domain: String?): Flow<OpenFeatureStatus> = repository.getStateFlow(domain)
         .flatMapLatest { it.statusFlow }.distinctUntilChanged()
 
+    @PublishedApi
+    @OptIn(ExperimentalCoroutinesApi::class)
+    internal fun getProvidersFlowForDomain(domain: String?): Flow<FeatureProvider> =
+        repository.getStateFlow(domain).flatMapLatest { it.providersFlow }
+
     /**
      * Observe events from currently configured default provider.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> =
-        repository.getStateFlow(null)
-            .flatMapLatest { it.providersFlow }
+        getProvidersFlowForDomain(null)
             .flatMapLatest { it.observe() }
             .filterIsInstance()
 
@@ -402,8 +406,7 @@ object OpenFeatureAPI {
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     inline fun <reified T : OpenFeatureProviderEvents> observe(domain: String?): Flow<T> =
-        repository.getStateFlow(domain)
-            .flatMapLatest { it.providersFlow }
+        getProvidersFlowForDomain(domain)
             .flatMapLatest { it.observe() }
             .filterIsInstance()
 }

@@ -26,7 +26,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.concurrent.Volatile
 
-class DomainState {
+internal class DomainState {
     var setProviderJob: Job? = null
     var setEvaluationContextJob: Job? = null
 
@@ -119,7 +119,7 @@ class DomainState {
     }
 }
 
-class ProviderRepository {
+internal class ProviderRepository {
     private val defaultDomainState = DomainState()
     private val domainsFlow = MutableStateFlow<Map<String, DomainState>>(emptyMap())
     private val repositoryMutex = Mutex()
