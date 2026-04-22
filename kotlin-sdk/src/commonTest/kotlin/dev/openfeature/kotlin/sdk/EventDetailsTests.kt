@@ -63,4 +63,19 @@ class EventDetailsTests {
         val fatal = assertIs<OpenFeatureStatus.Error>(status)
         assertIs<OpenFeatureError.GeneralError>(fatal.error)
     }
+
+    @Test
+    fun providerErrorEventDetailsWithMessageAndNullErrorCodeMapToGeneralError() {
+        val evt = OpenFeatureProviderEvents.ProviderError(
+            OpenFeatureProviderEvents.EventDetails(
+                message = "test",
+                errorCode = null
+            )
+        )
+
+        val status = evt.toOpenFeatureStatusError()
+        val errorStatus = assertIs<OpenFeatureStatus.Error>(status)
+        val err = assertIs<OpenFeatureError.GeneralError>(errorStatus.error)
+        assertEquals("test", err.message)
+    }
 }
