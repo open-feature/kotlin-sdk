@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 interface Client : Features, Tracking {
     val metadata: ClientMetadata
     val hooks: List<Hook<*>>
+
     /**
      * A [Flow] that emits the initial [OpenFeatureStatus] and all subsequent state transitions
      * of the Provider handling this client's evaluations. This enables reactive observation
