@@ -39,7 +39,7 @@ class OpenFeatureClientTests {
     fun testClientGetProviderStatusShouldReturnReadyWhenProviderIsInitialized() = runTest {
         OpenFeatureAPI.setProviderAndWait(NoOpProvider())
         val client = OpenFeatureAPI.getClient()
-        assertEquals(OpenFeatureStatus.Ready, client.getProviderStatus())
+        assertEquals(OpenFeatureStatus.Ready, client.providerStatus)
     }
 
     /**
@@ -49,7 +49,7 @@ class OpenFeatureClientTests {
     fun testClientGetProviderStatusShouldReturnErrorWhenProviderFailsToInitialize() = runTest {
         OpenFeatureAPI.setProviderAndWait(BrokenInitProvider())
         val client = OpenFeatureAPI.getClient()
-        val status = client.getProviderStatus()
+        val status = client.providerStatus
         assertTrue(status is OpenFeatureStatus.Error)
         assertTrue(
             (status as OpenFeatureStatus.Error).error is OpenFeatureError.ProviderNotReadyError
@@ -107,7 +107,7 @@ class OpenFeatureClientTests {
         }
         OpenFeatureAPI.setProviderAndWait(fatalProvider)
         val client = OpenFeatureAPI.getClient()
-        val status = client.getProviderStatus()
+        val status = client.providerStatus
         assertTrue(status is OpenFeatureStatus.Fatal)
         assertTrue(
             (status as OpenFeatureStatus.Fatal).error is OpenFeatureError.ProviderFatalError
@@ -118,7 +118,7 @@ class OpenFeatureClientTests {
     fun testClientGetProviderStatusShouldReturnNotReadyBeforeProviderIsSet() = runTest {
         val client = OpenFeatureAPI.getClient()
         // No provider is set, so it should be NotReady
-        assertEquals(OpenFeatureStatus.NotReady, client.getProviderStatus())
+        assertEquals(OpenFeatureStatus.NotReady, client.providerStatus)
     }
 
     @Test
@@ -128,12 +128,12 @@ class OpenFeatureClientTests {
         OpenFeatureAPI.setProviderAndWait(emittingProvider, dispatcher = dispatcher)
 
         val client = OpenFeatureAPI.getClient()
-        assertEquals(OpenFeatureStatus.Ready, client.getProviderStatus())
+        assertEquals(OpenFeatureStatus.Ready, client.providerStatus)
 
         // Call track which forces the OverlyEmittingProvider to emit ProviderStale events
         client.track("test-stale-event")
         runCurrent()
 
-        assertEquals(OpenFeatureStatus.Stale, client.getProviderStatus())
+        assertEquals(OpenFeatureStatus.Stale, client.providerStatus)
     }
 }
