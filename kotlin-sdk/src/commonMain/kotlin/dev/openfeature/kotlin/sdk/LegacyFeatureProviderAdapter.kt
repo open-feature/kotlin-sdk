@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,7 +60,8 @@ internal class LegacyFeatureProviderAdapter(
     /**
      * [inner] is shut down first while the [observeJob] is still running so a provider can emit
      * a final [OpenFeatureProviderEvents] on [FeatureProvider.observe] and this adapter can still
-     * apply [toOpenFeatureStatus] to [_status]. The job is cancelled in [finally] so cleanup always runs.
+     * apply [toOpenFeatureStatus] to [_status]. The observe job and [scope] (including
+     * [SupervisorJob]) are cancelled in [finally] so cleanup and resource release always run.
      */
     override fun shutdown() {
         try {
@@ -70,6 +72,9 @@ internal class LegacyFeatureProviderAdapter(
         } finally {
             observeJob?.cancel(CancellationException("Provider event observe job was cancelled due to shutdown"))
             observeJob = null
+            scope.cancel(
+                CancellationException("LegacyFeatureProviderAdapter scope cancelled due to shutdown")
+            )
         }
     }
 

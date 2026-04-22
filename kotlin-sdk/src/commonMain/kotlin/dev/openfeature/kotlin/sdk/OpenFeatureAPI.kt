@@ -125,16 +125,11 @@ object OpenFeatureAPI {
         }
 
         // Shutdown the previous provider outside the mutex
-        tryWithErrorHandling {
-            oldProvider.shutdown()
-        }
+        oldProvider.shutdown()
 
-        // Initialize the new provider
-        tryWithErrorHandling {
-            normalizedProvider.initialize(context)
-            normalizedProvider.status.first {
-                it !is OpenFeatureStatus.NotReady && it !is OpenFeatureStatus.Reconciling
-            }
+        normalizedProvider.initialize(context)
+        normalizedProvider.status.first {
+            it !is OpenFeatureStatus.NotReady && it !is OpenFeatureStatus.Reconciling
         }
     }
 
@@ -205,20 +200,7 @@ object OpenFeatureAPI {
         context = evaluationContext
 
         if (oldContext != evaluationContext) {
-            tryWithErrorHandling {
-                provider.onContextSet(oldContext, evaluationContext)
-            }
-        }
-    }
-
-    private suspend fun tryWithErrorHandling(function: suspend () -> Unit) {
-        try {
-            function()
-        } catch (e: CancellationException) {
-            // This happens by design and shouldn't be treated as an error
-        } catch (e: Throwable) {
-            // This happens by design - provider is responsible for its error handling
-            throw e
+            provider.onContextSet(oldContext, evaluationContext)
         }
     }
 
