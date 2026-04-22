@@ -306,7 +306,13 @@ object OpenFeatureAPI {
      * Get the [EvaluationContext] for the specified domain. If not set, returns the global context.
      */
     fun getEvaluationContext(domain: String?): EvaluationContext? {
-        return repository.getState(domain).context ?: context
+        val globalCtx = context
+        val domainCtx = repository.getState(domain).context
+        return when {
+            domainCtx == null -> globalCtx
+            globalCtx == null -> domainCtx
+            else -> globalCtx.mergeWith(domainCtx)
+        }
     }
 
     /**

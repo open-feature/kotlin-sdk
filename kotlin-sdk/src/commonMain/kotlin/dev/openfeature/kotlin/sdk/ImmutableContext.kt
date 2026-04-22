@@ -47,3 +47,14 @@ class ImmutableContext(
         return true
     }
 }
+
+/**
+ * Merges this EvaluationContext with a higher-precedence EvaluationContext.
+ * Keys in the higher-precedence context will overwrite keys in this context.
+ */
+fun EvaluationContext.mergeWith(higher: EvaluationContext): EvaluationContext {
+    val merged = asMap().toMutableMap()
+    merged.putAll(higher.asMap())
+    val newTargetingKey = higher.getTargetingKey().ifEmpty { getTargetingKey() }
+    return ImmutableContext(newTargetingKey, merged)
+}

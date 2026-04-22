@@ -20,4 +20,32 @@ class OpenFeatureClientTests {
         val stringValue = OpenFeatureAPI.getClient().getStringValue("test", "defaultTest")
         assertEquals(stringValue, "defaultTest")
     }
+
+    @Test
+    fun testEvaluationContextMergingPrecedence() = runTest {
+        val globalContext = ImmutableContext(
+            targetingKey = "global-user",
+            attributes = mapOf(
+                "globalKey" to Value.String("globalValue"),
+                "conflictKey" to Value.String("globalConflict")
+            )
+        )
+        val domainContext = ImmutableContext(
+            targetingKey = "domain-user",
+            attributes = mapOf(
+                "domainKey" to Value.String("domainValue"),
+                "conflictKey" to Value.String("domainConflict")
+            )
+        )
+
+        OpenFeatureAPI.setEvaluationContextAndWait(globalContext)
+        OpenFeatureAPI.setEvaluationContextAndWait("test-domain", domainContext)
+
+        val mergedContext = OpenFeatureAPI.getEvaluationContext("test-domain")
+
+        assertEquals("domain-user", mergedContext?.getTargetingKey())
+        assertEquals("globalValue", mergedContext?.getValue("globalKey")?.asString())
+        assertEquals("domainValue", mergedContext?.getValue("domainKey")?.asString())
+        assertEquals("domainConflict", mergedContext?.getValue("conflictKey")?.asString())
+    }
 }
