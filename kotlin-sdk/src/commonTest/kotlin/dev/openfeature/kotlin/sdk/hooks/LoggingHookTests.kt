@@ -18,7 +18,10 @@ import kotlin.test.assertTrue
 class LoggingHookTests {
 
     private class TestProviderMetadata(override val name: String = "test-provider") : ProviderMetadata
-    private class TestClientMetadata(override val name: String = "test-client") : ClientMetadata
+    private class TestClientMetadata(
+        override val domain: String? = "test-client",
+        override val name: String? = domain
+    ) : ClientMetadata
 
     private fun createHookContext(
         flagKey: String = "test-flag",

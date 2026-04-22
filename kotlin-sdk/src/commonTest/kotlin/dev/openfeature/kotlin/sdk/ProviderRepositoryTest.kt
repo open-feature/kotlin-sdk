@@ -449,7 +449,8 @@ class ProviderRepositoryTest {
             // Trigger Context Update first natively queuing onto IO
             OpenFeatureAPI.setEvaluationContext(
                 testDomain,
-                ImmutableContext(attributes = mapOf("key" to Value.Boolean(true)))
+                ImmutableContext(attributes = mapOf("key" to Value.Boolean(true))),
+                dispatcher = StandardTestDispatcher(testScheduler)
             )
         }
 
