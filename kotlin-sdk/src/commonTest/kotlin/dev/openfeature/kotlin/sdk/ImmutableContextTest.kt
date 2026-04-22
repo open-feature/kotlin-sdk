@@ -74,4 +74,23 @@ class ImmutableContextTest {
         assertEquals(42, contextNestedList?.get(1)?.asInteger())
         assertEquals(2, contextNestedList?.size)
     }
+
+    @Test
+    fun `mergeWith should correctly overwrite colliding keys and preserve distinct ones`() {
+        val baseContext = ImmutableContext(
+            targetingKey = "base-user",
+            attributes = mapOf("color" to Value.String("red"), "age" to Value.Integer(30))
+        )
+        val domainContext = ImmutableContext(
+            targetingKey = "domain-user",
+            attributes = mapOf("color" to Value.String("blue"), "planet" to Value.String("mars"))
+        )
+
+        val merged = baseContext.mergeWith(domainContext)
+
+        assertEquals("domain-user", merged.getTargetingKey())
+        assertEquals("blue", merged.getValue("color")?.asString()) // Overwritten
+        assertEquals(30, merged.getValue("age")?.asInteger()) // Preserved
+        assertEquals("mars", merged.getValue("planet")?.asString()) // Appended
+    }
 }

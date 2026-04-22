@@ -14,17 +14,17 @@ private val typeMatchingException =
 
 class OpenFeatureClient(
     private val openFeatureAPI: OpenFeatureAPI,
-    name: String? = null,
+    private val domain: String? = null,
     version: String? = null,
     override val hooks: MutableList<Hook<*>> = mutableListOf()
 ) : Client {
-    override val metadata: ClientMetadata = Metadata(name)
+    override val metadata: ClientMetadata = Metadata(domain, domain)
     private val hookSupport = HookSupport()
     override fun addHooks(hooks: List<Hook<*>>) {
         this.hooks += hooks
     }
 
-    override val statusFlow = openFeatureAPI.statusFlow
+    override val statusFlow = openFeatureAPI.getProviderStatusFlow(domain)
 
     override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
         return getBooleanDetails(key, defaultValue).value
@@ -92,10 +92,7 @@ class OpenFeatureClient(
         return getIntegerDetails(key, defaultValue, options).value
     }
 
-    override fun getIntegerDetails(
-        key: String,
-        defaultValue: Int
-    ): FlagEvaluationDetails<Int> {
+    override fun getIntegerDetails(key: String, defaultValue: Int): FlagEvaluationDetails<Int> {
         return getIntegerDetails(key, defaultValue, FlagEvaluationOptions())
     }
 
@@ -146,10 +143,7 @@ class OpenFeatureClient(
         return getObjectDetails(key, defaultValue, options).value
     }
 
-    override fun getObjectDetails(
-        key: String,
-        defaultValue: Value
-    ): FlagEvaluationDetails<Value> {
+    override fun getObjectDetails(key: String, defaultValue: Value): FlagEvaluationDetails<Value> {
         return getObjectDetails(key, defaultValue, FlagEvaluationOptions())
     }
 
@@ -163,8 +157,9 @@ class OpenFeatureClient(
 
     override fun track(trackingEventName: String, details: TrackingEventDetails?) {
         validateTrackingEventName(trackingEventName)
-        openFeatureAPI.getProvider()
-            .track(trackingEventName, openFeatureAPI.getEvaluationContext(), details)
+        openFeatureAPI
+            .getProvider(domain)
+            .track(trackingEventName, openFeatureAPI.getEvaluationContext(domain), details)
     }
 
     private fun <T> evaluateFlag(
@@ -176,9 +171,9 @@ class OpenFeatureClient(
         val options = optionsIn ?: FlagEvaluationOptions(listOf(), mapOf())
         val hints = options.hookHints
         var details = FlagEvaluationDetails(key, defaultValue)
-        val provider = openFeatureAPI.getProvider()
+        val provider = openFeatureAPI.getProvider(domain)
         val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
-        val context = openFeatureAPI.getEvaluationContext()
+        val context = openFeatureAPI.getEvaluationContext(domain)
         val hooksWithContext: List<Pair<Hook<*>, HookContext<T>>> =
             mergedHooks
                 .filter { it.supportsFlagValueType(flagValueType) }
@@ -196,27 +191,24 @@ class OpenFeatureClient(
         try {
             hookSupport.beforeHooks(flagValueType, hooksWithContext, hints)
             shortCircuitIfNotReady()
-            val providerEval = createProviderEvaluation(
-                flagValueType,
-                key,
-                context,
-                defaultValue,
-                provider
-            )
+            val providerEval =
+                createProviderEvaluation(flagValueType, key, context, defaultValue, provider)
             details = FlagEvaluationDetails.from(providerEval, key)
             hookSupport.afterHooks(flagValueType, details, hooksWithContext, hints)
         } catch (error: Exception) {
-            val errorCode = if (error is OpenFeatureError) {
-                error.errorCode()
-            } else {
-                ErrorCode.GENERAL
-            }
+            val errorCode =
+                if (error is OpenFeatureError) {
+                    error.errorCode()
+                } else {
+                    ErrorCode.GENERAL
+                }
 
-            details = details.copy(
-                errorMessage = error.message,
-                reason = Reason.ERROR.toString(),
-                errorCode = errorCode
-            )
+            details =
+                details.copy(
+                    errorMessage = error.message,
+                    reason = Reason.ERROR.toString(),
+                    errorCode = errorCode
+                )
 
             hookSupport.errorHooks(flagValueType, error, hooksWithContext, hints)
         }
@@ -225,7 +217,7 @@ class OpenFeatureClient(
     }
 
     private fun shortCircuitIfNotReady() {
-        val providerStatus = openFeatureAPI.getStatus()
+        val providerStatus = openFeatureAPI.getProviderStatus(domain)
         if (providerStatus == OpenFeatureStatus.NotReady) {
             throw OpenFeatureError.ProviderNotReadyError()
         } else if (providerStatus is OpenFeatureStatus.Fatal) {
@@ -248,28 +240,24 @@ class OpenFeatureClient(
                     provider.getBooleanEvaluation(key, defaultBoolean, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
-
             STRING -> {
                 val defaultString = defaultValue as? String ?: throw typeMatchingException
                 val eval: ProviderEvaluation<String> =
                     provider.getStringEvaluation(key, defaultString, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
-
             INTEGER -> {
                 val defaultInteger = defaultValue as? Int ?: throw typeMatchingException
                 val eval: ProviderEvaluation<Int> =
                     provider.getIntegerEvaluation(key, defaultInteger, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
-
             DOUBLE -> {
                 val defaultDouble = defaultValue as? Double ?: throw typeMatchingException
                 val eval: ProviderEvaluation<Double> =
                     provider.getDoubleEvaluation(key, defaultDouble, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
-
             OBJECT -> {
                 val defaultObject = defaultValue as? Value ?: throw typeMatchingException
                 val eval: ProviderEvaluation<Value> =
@@ -279,7 +267,10 @@ class OpenFeatureClient(
         }
     }
 
-    data class Metadata(override val name: String?) : ClientMetadata
+    data class Metadata(
+        @Deprecated("Use domain instead", ReplaceWith("domain")) override val name: String?,
+        override val domain: String? = name
+    ) : ClientMetadata
 }
 
 private fun validateTrackingEventName(name: String) {

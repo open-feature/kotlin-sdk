@@ -1,7 +1,6 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -11,9 +10,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -23,126 +19,227 @@ import kotlinx.coroutines.sync.withLock
 
 @Suppress("TooManyFunctions")
 object OpenFeatureAPI {
-    private var setProviderJob: Job? = null
-    private var setEvaluationContextJob: Job? = null
-    private var observeProviderEventsJob: Job? = null
 
-    private val providerMutex = Mutex()
-    private val NOOP_PROVIDER = NoOpProvider()
-    private var provider: FeatureProvider = NOOP_PROVIDER
+    @PublishedApi
+    internal val repository = ProviderRepository()
+    private val globalContextMutex = Mutex()
     private var context: EvaluationContext? = null
-    val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(NOOP_PROVIDER)
 
-    private val _statusFlow: MutableSharedFlow<OpenFeatureStatus> =
-        MutableSharedFlow<OpenFeatureStatus>(replay = 1, extraBufferCapacity = 5)
-            .apply {
-                tryEmit(OpenFeatureStatus.NotReady)
-            }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val providersFlow: Flow<FeatureProvider> get() = repository.getStateFlow(null)
+        .flatMapLatest { it.providersFlow }.distinctUntilChanged()
 
-    val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val statusFlow: Flow<OpenFeatureStatus> get() = repository.getStateFlow(null)
+        .flatMapLatest { it.statusFlow }.distinctUntilChanged()
 
     var hooks: List<Hook<*>> = listOf()
         private set
 
     /**
      * Set the [FeatureProvider] for the SDK. This method will return immediately and initialize the provider in a coroutine scope
-     * When the provider is successfully initialized it will set the status to Ready.
-     * If the provider fails to initialize it will set the status to Error.
+     * @param provider the provider to set
+     * @param dispatcher the dispatcher to use for the provider initialization coroutine
+     * @param initialContext the initial [EvaluationContext] to use for the provider initialization
+     *
+     * When the provider successfully reconciles it will set the status to [OpenFeatureStatus.Ready].
+     * If the provider fails to reconcile it will set the status to [OpenFeatureStatus.Error].
      *
      * This method requires you to manually wait for the status to be Ready before using the SDK for flag evaluations.
-     * This can be done by using the [statusFlow] and waiting for the first Ready status or by accessing [getStatus]
-     *
-     * @param provider the provider to set
-     * @param dispatcher the dispatcher to use for the provider initialization coroutine. Defaults to [Dispatchers.Default] if not set.
-     * @param initialContext the initial [EvaluationContext] to use for the provider initialization. Defaults to an null context if not set.
+     * This can be done by using the [statusFlow] and waiting for the first Ready status or by accessing [getStatus].
      */
     fun setProvider(
         provider: FeatureProvider,
         dispatcher: CoroutineDispatcher = Dispatchers.Default,
         initialContext: EvaluationContext? = null
     ) {
-        setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to new provider"))
-        this.setProviderJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
-            setProviderInternal(provider, dispatcher, initialContext)
+        CoroutineScope(SupervisorJob() + dispatcher).launch {
+            val state = repository.getOrCreateState(null)
+            state.setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to new provider"))
+            state.setProviderJob = coroutineContext[Job]
+            setProviderInternal(state, provider, dispatcher, initialContext, isGlobalContext = true)
+        }
+    }
+
+    /**
+     * Set the [FeatureProvider] for a specific domain.
+     */
+    fun setProvider(
+        domain: String?,
+        provider: FeatureProvider,
+        dispatcher: CoroutineDispatcher = Dispatchers.Default,
+        initialContext: EvaluationContext? = null
+    ) {
+        CoroutineScope(SupervisorJob() + dispatcher).launch {
+            val state = repository.getOrCreateState(domain)
+            state.setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to new provider"))
+            state.setProviderJob = coroutineContext[Job]
+            setProviderInternal(state, provider, dispatcher, initialContext, isGlobalContext = false)
         }
     }
 
     /**
      * Set the [FeatureProvider] for the SDK. This method will block until the provider is initialized.
-     *
-     * @param provider the [FeatureProvider] to set
-     * @param initialContext the initial [EvaluationContext] to use for the provider initialization. Defaults to an null context if not set.
      */
     suspend fun setProviderAndWait(
         provider: FeatureProvider,
         initialContext: EvaluationContext? = null,
         dispatcher: CoroutineDispatcher = Dispatchers.Default
     ) {
-        setProviderInternal(provider, dispatcher, initialContext)
+        setProviderInternal(
+            repository.getOrCreateState(null),
+            provider,
+            dispatcher,
+            initialContext,
+            isGlobalContext = true
+        )
     }
 
-    private fun listenToProviderEvents(provider: FeatureProvider, dispatcher: CoroutineDispatcher) {
-        observeProviderEventsJob?.cancel(CancellationException("Provider job was cancelled due to new provider"))
-        this.observeProviderEventsJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
-            provider.observe().collect(handleProviderEvents)
-        }
+    /**
+     * Set the [FeatureProvider] for a specific domain. This method will block until the provider is initialized.
+     */
+    suspend fun setProviderAndWait(
+        domain: String?,
+        provider: FeatureProvider,
+        initialContext: EvaluationContext? = null,
+        dispatcher: CoroutineDispatcher = Dispatchers.Default
+    ) {
+        setProviderInternal(
+            repository.getOrCreateState(domain),
+            provider,
+            dispatcher,
+            initialContext,
+            isGlobalContext = false
+        )
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun setProviderInternal(
+        state: DomainState,
         provider: FeatureProvider,
         dispatcher: CoroutineDispatcher,
-        initialContext: EvaluationContext? = null
+        initialContext: EvaluationContext? = null,
+        isGlobalContext: Boolean = false
     ) {
         // Atomically swap the old and new provider to prevent race conditions
-        val oldProvider = providerMutex.withLock {
-            val current = this@OpenFeatureAPI.provider
-            this@OpenFeatureAPI.provider = provider
-            providersFlow.value = provider
-            if (initialContext != null) context = initialContext
+        val oldProvider = state.providerMutex.withLock {
+            val current = state.provider
+            state.providersFlow.value = provider
+            state.emitStatus(OpenFeatureStatus.NotReady)
             current
         }
 
-        // Emit NotReady status after swapping provider
-        _statusFlow.emit(OpenFeatureStatus.NotReady)
-
-        // Shutdown the previous provider outside the mutex
-        tryWithStatusEmitErrorHandling {
-            oldProvider.shutdown()
+        if (initialContext != null) {
+            updateContextOnProviderSet(state, initialContext, isGlobalContext, dispatcher)
         }
 
-        // Initialize the new provider
-        tryWithStatusEmitErrorHandling {
-            listenToProviderEvents(provider, dispatcher)
-            getProvider().initialize(context)
-            _statusFlow.emit(OpenFeatureStatus.Ready)
+        // Shutdown the previous provider isolated from stream errors
+        try {
+            oldProvider.shutdown()
+        } catch (e: Exception) {
+            // Ignore termination exceptions from dead configurations natively securely
+        }
+
+        initializeProvider(state, provider, dispatcher)
+    }
+
+    private suspend fun updateContextOnProviderSet(
+        state: DomainState,
+        initialContext: EvaluationContext,
+        isGlobalContext: Boolean,
+        dispatcher: CoroutineDispatcher
+    ) {
+        if (!isGlobalContext) {
+            val globalCtx = globalContextMutex.withLock { context }
+            state.contextMutex.withLock {
+                state.context = initialContext
+                state.mergedContext = globalCtx?.mergeWith(initialContext) ?: initialContext
+            }
+            return
+        }
+
+        val states = globalContextMutex.withLock {
+            context = initialContext
+            repository.getAllStates()
+        }
+
+        states.forEach { s ->
+            if (s === state) {
+                s.contextMutex.withLock {
+                    s.mergedContext = s.context?.let { initialContext.mergeWith(it) } ?: initialContext
+                }
+            } else {
+                s.setEvaluationContextJob?.cancel(CancellationException("Set context job cancelled by global provider"))
+                s.setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+                    applyContextToState(s, initialContext)
+                }
+            }
         }
     }
 
+    private suspend fun initializeProvider(
+        state: DomainState,
+        provider: FeatureProvider,
+        dispatcher: CoroutineDispatcher
+    ) {
+        state.initializeListener(dispatcher)
+        state.ioMutex.withLock {
+            tryWithStatusEmitErrorHandling(state) {
+                val globalCtx = globalContextMutex.withLock { context }
+                val resolvedContext = state.contextMutex.withLock { state.mergedContext } ?: globalCtx
+                provider.initialize(resolvedContext)
+                state.emitStatus(OpenFeatureStatus.Ready)
+            }
+        }
+    }
+
+    private suspend fun applyContextToState(
+        state: DomainState,
+        globalCtx: EvaluationContext?,
+        applyDomainCtx: ((EvaluationContext?) -> EvaluationContext?)? = null
+    ) {
+        val (oldMerged, newMerged) = state.contextMutex.withLock {
+            val oldMerged = state.mergedContext
+
+            applyDomainCtx?.let { handler ->
+                state.context = handler(state.context)
+            }
+
+            state.mergedContext = if (globalCtx != null && state.context != null) {
+                globalCtx.mergeWith(state.context!!)
+            } else {
+                globalCtx ?: state.context
+            }
+
+            oldMerged to (state.mergedContext ?: ImmutableContext())
+        }
+
+        setEvaluationContextForState(state, oldMerged, newMerged)
+    }
+
     /**
-     * Get the current [FeatureProvider] for the SDK.
+     * Get the current default [FeatureProvider] for the SDK.
      */
     fun getProvider(): FeatureProvider {
-        return provider
+        return repository.getState().provider
     }
 
     /**
-     * Clear the current [FeatureProvider] for the SDK and set it to a no-op provider.
+     * Get the [FeatureProvider] for the specified domain.
+     */
+    fun getProvider(domain: String?): FeatureProvider {
+        return repository.getState(domain).provider
+    }
+
+    /**
+     * Clear all current [FeatureProvider]s for the SDK and set it to a no-op provider.
      */
     suspend fun clearProvider() {
-        getProvider().shutdown()
-        provider = NOOP_PROVIDER
-        providersFlow.value = NOOP_PROVIDER
-        _statusFlow.emit(OpenFeatureStatus.NotReady)
+        repository.clearAll()
     }
 
     /**
-     * Set the [EvaluationContext] for the SDK. This method will block until the context is set and the provider is ready.
-     *
-     * If the new context is different compare to the old context, this will cause the provider to reconcile with the new context.
-     * When the provider "Reconciles" it will set the status to [OpenFeatureStatus.Reconciling].
-     * When the provider successfully reconciles it will set the status to [OpenFeatureStatus.Ready].
-     * If the provider fails to reconcile it will set the status to [OpenFeatureStatus.Error].
+     * Set the [EvaluationContext] for the SDK. This method will block until the context is set and the providers form all domains are ready.
      *
      * @param evaluationContext the [EvaluationContext] to set
      */
@@ -151,16 +248,39 @@ object OpenFeatureAPI {
     }
 
     /**
+     * Set the [EvaluationContext] for a specific domain. This method will block until the context is set and the provider is ready.
+     *
+     * @param domain the domain
+     * @param evaluationContext the [EvaluationContext] to set
+     */
+    suspend fun setEvaluationContextAndWait(domain: String?, evaluationContext: EvaluationContext) {
+        if (domain == null) {
+            setEvaluationContextAndWait(evaluationContext)
+            return
+        }
+        setEvaluationContextInternal(domain, evaluationContext)
+    }
+
+    /**
+     * Clear the [EvaluationContext] for the SDK. This method will block until the context is cleared and the providers from all domains are ready.
+     */
+    suspend fun clearEvaluationContextAndWait() {
+        clearEvaluationContextInternal(null)
+    }
+
+    /**
+     * Clear the [EvaluationContext] for a specific domain. This method will block until the context is cleared and the provider is ready.
+     *
+     * @param domain the domain
+     */
+    suspend fun clearEvaluationContextAndWait(domain: String?) {
+        clearEvaluationContextInternal(domain)
+    }
+
+    private var setEvaluationContextJob: Job? = null
+
+    /**
      * Set the [EvaluationContext] for the SDK. This method will return immediately and set the context in a coroutine scope.
-     *
-     * If the new context is different compare to the old context, this will cause the provider to reconcile with the new context.
-     * When the provider "Reconciles" it will set the status to [OpenFeatureStatus.Reconciling].
-     * When the provider successfully reconciles it will set the status to [OpenFeatureStatus.Ready].
-     * If the provider fails to reconcile it will set the status to [OpenFeatureStatus.Error].
-     *
-     * This method requires you to manually wait for the status to be Ready before using the SDK for flag evaluations.
-     * This can be done by using the [statusFlow] and waiting for the first Ready status or by accessing [getStatus]
-     *
      *
      * @param evaluationContext the [EvaluationContext] to set
      */
@@ -169,32 +289,143 @@ object OpenFeatureAPI {
         dispatcher: CoroutineDispatcher = Dispatchers.Default
     ) {
         setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to new context"))
-        this.setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+        setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
             setEvaluationContextInternal(evaluationContext)
         }
     }
 
+    /**
+     * Set the [EvaluationContext] for a specific domain. This method will return immediately and set the context in a coroutine scope.
+     *
+     * @param domain the domain
+     * @param evaluationContext the [EvaluationContext] to set
+     */
+    fun setEvaluationContext(
+        domain: String?,
+        evaluationContext: EvaluationContext,
+        dispatcher: CoroutineDispatcher = Dispatchers.Default
+    ) {
+        if (domain == null) {
+            setEvaluationContext(evaluationContext, dispatcher)
+            return
+        }
+        CoroutineScope(SupervisorJob() + dispatcher).launch {
+            val state = repository.getOrCreateState(domain)
+            state.setEvaluationContextJob?.cancel(
+                CancellationException("Set context job was cancelled due to new context")
+            )
+            state.setEvaluationContextJob = coroutineContext[Job]
+            setEvaluationContextInternal(domain, evaluationContext)
+        }
+    }
+
+    /**
+     * Clear the [EvaluationContext] for the SDK. This method will return immediately and clear the context in a coroutine scope.
+     */
+    fun clearEvaluationContext(
+        dispatcher: CoroutineDispatcher = Dispatchers.Default
+    ) {
+        setEvaluationContextJob?.cancel(CancellationException("Clear context job was cancelled due to new context"))
+        setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+            clearEvaluationContextInternal(null)
+        }
+    }
+
+    /**
+     * Clear the [EvaluationContext] for a specific domain. This method will return immediately and clear the context in a coroutine scope.
+     *
+     * @param domain the domain
+     */
+    fun clearEvaluationContext(
+        domain: String?,
+        dispatcher: CoroutineDispatcher = Dispatchers.Default
+    ) {
+        if (domain == null) {
+            clearEvaluationContext(dispatcher)
+            return
+        }
+        CoroutineScope(SupervisorJob() + dispatcher).launch {
+            val state = repository.getOrCreateState(domain)
+            state.setEvaluationContextJob?.cancel(
+                CancellationException("Clear context job was cancelled due to new context")
+            )
+            state.setEvaluationContextJob = coroutineContext[Job]
+            clearEvaluationContextInternal(domain)
+        }
+    }
+
     private suspend fun setEvaluationContextInternal(evaluationContext: EvaluationContext) {
-        val oldContext = context
-        context = evaluationContext
-        if (oldContext != evaluationContext) {
-            _statusFlow.emit(OpenFeatureStatus.Reconciling)
-            tryWithStatusEmitErrorHandling {
-                getProvider().onContextSet(oldContext, evaluationContext)
-                _statusFlow.emit(OpenFeatureStatus.Ready)
+        val states = globalContextMutex.withLock {
+            context = evaluationContext
+            repository.getAllStates()
+        }
+
+        kotlinx.coroutines.coroutineScope {
+            states.forEach { state ->
+                launch { applyContextToState(state, evaluationContext) }
             }
         }
     }
 
-    private suspend fun tryWithStatusEmitErrorHandling(function: suspend () -> Unit) {
+    private suspend fun setEvaluationContextInternal(domain: String?, evaluationContext: EvaluationContext) {
+        if (domain == null) {
+            setEvaluationContextInternal(evaluationContext)
+            return
+        }
+        val globalCtx = globalContextMutex.withLock { context }
+        val state = repository.getOrCreateState(domain)
+        applyContextToState(state, globalCtx) { evaluationContext }
+    }
+
+    private suspend fun clearEvaluationContextInternal(domain: String?) {
+        if (domain == null) {
+            val states = globalContextMutex.withLock {
+                context = null
+                repository.getAllStates()
+            }
+            kotlinx.coroutines.coroutineScope {
+                states.forEach { state ->
+                    launch { applyContextToState(state, null) }
+                }
+            }
+            return
+        }
+
+        val globalCtx = globalContextMutex.withLock { context }
+        applyContextToState(repository.getState(domain), globalCtx) { null }
+    }
+
+    private suspend fun setEvaluationContextForState(
+        state: DomainState,
+        oldContext: EvaluationContext?,
+        newContext: EvaluationContext
+    ) {
+        if (oldContext == newContext) return
+
+        state.ioMutex.withLock {
+            val activeProvider = state.providerMutex.withLock {
+                state.provider.takeIf { state.getStatus() != OpenFeatureStatus.NotReady }
+            }
+
+            activeProvider?.let { provider ->
+                state.emitStatus(OpenFeatureStatus.Reconciling)
+                tryWithStatusEmitErrorHandling(state) {
+                    provider.onContextSet(oldContext, newContext)
+                    state.emitStatus(OpenFeatureStatus.Ready)
+                }
+            }
+        }
+    }
+
+    private suspend fun tryWithStatusEmitErrorHandling(state: DomainState, function: suspend () -> Unit) {
         try {
             function()
         } catch (e: CancellationException) {
             // This happens by design and shouldn't be treated as an error
         } catch (e: OpenFeatureError) {
-            _statusFlow.emit(OpenFeatureStatus.Error(e))
+            state.emitStatus(OpenFeatureStatus.Error(e))
         } catch (e: Throwable) {
-            _statusFlow.emit(
+            state.emitStatus(
                 OpenFeatureStatus.Error(
                     OpenFeatureError.GeneralError(
                         e.message ?: "Unknown error"
@@ -205,25 +436,41 @@ object OpenFeatureAPI {
     }
 
     /**
-     * Get the current [EvaluationContext] for the SDK.
+     * Get the current global [EvaluationContext] for the SDK.
      */
     fun getEvaluationContext(): EvaluationContext? {
         return context
     }
 
     /**
-     * Get the [ProviderMetadata] for the current [FeatureProvider].
+     * Get the [EvaluationContext] for the specified domain. If not set, returns the global context.
+     */
+    fun getEvaluationContext(domain: String?): EvaluationContext? {
+        if (domain == null) return context
+        val state = repository.getState(domain)
+        return state.context?.let { state.mergedContext } ?: context
+    }
+
+    /**
+     * Get the [ProviderMetadata] for the current default [FeatureProvider].
      */
     fun getProviderMetadata(): ProviderMetadata? {
         return getProvider().metadata
     }
 
     /**
+     * Get the [ProviderMetadata] for the [FeatureProvider] of the specified domain.
+     */
+    fun getProviderMetadata(domain: String?): ProviderMetadata? {
+        return getProvider(domain).metadata
+    }
+
+    /**
      * Get a [Client] for the SDK.
      * This client can be used to evaluate flags.
      */
-    fun getClient(name: String? = null, version: String? = null): Client {
-        return OpenFeatureClient(this, name, version)
+    fun getClient(domain: String? = null, version: String? = null): Client {
+        return OpenFeatureClient(this, domain, version)
     }
 
     /**
@@ -246,47 +493,48 @@ object OpenFeatureAPI {
      * The SDK status will be set to [OpenFeatureStatus.NotReady].
      */
     suspend fun shutdown() {
+        setEvaluationContextJob?.cancel(CancellationException("Job cancelled due to shutdown"))
         clearHooks()
-        setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to shutdown"))
-        setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to shutdown"))
-        observeProviderEventsJob?.cancel(
-            CancellationException("Provider event observe job was cancelled due to shutdown")
-        )
         clearProvider()
     }
 
     /**
-     * Get the current [OpenFeatureStatus] of the SDK.
+     * Get the current [OpenFeatureStatus] of the default SDK provider.
      */
-    fun getStatus(): OpenFeatureStatus = _statusFlow.replayCache.first()
+    fun getStatus(): OpenFeatureStatus = repository.getState().getStatus()
 
     /**
-     * Observe events from currently configured Provider.
+     * Get the current [OpenFeatureStatus] of the provider associated with the specified domain.
+     */
+    fun getProviderStatus(domain: String?): OpenFeatureStatus = repository.getState(domain).getStatus()
+
+    /**
+     * Get the status flow of the provider associated with the specified domain.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> = providersFlow
-        .flatMapLatest { it.observe() }.filterIsInstance()
+    fun getProviderStatusFlow(domain: String?): Flow<OpenFeatureStatus> = repository.getStateFlow(domain)
+        .flatMapLatest { it.statusFlow }.distinctUntilChanged()
+
+    @PublishedApi
+    @OptIn(ExperimentalCoroutinesApi::class)
+    internal fun getProvidersFlowForDomain(domain: String?): Flow<FeatureProvider> =
+        repository.getStateFlow(domain).flatMapLatest { it.providersFlow }
 
     /**
-     * Aligning the state management to
-     * https://openfeature.dev/specification/sections/events#requirement-535
+     * Observe events from currently configured default provider.
      */
-    private val handleProviderEvents: FlowCollector<OpenFeatureProviderEvents> = FlowCollector { providerEvent ->
-        when (providerEvent) {
-            is OpenFeatureProviderEvents.ProviderReady -> {
-                _statusFlow.emit(OpenFeatureStatus.Ready)
-            }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> =
+        getProvidersFlowForDomain(null)
+            .flatMapLatest { it.observe() }
+            .filterIsInstance()
 
-            is OpenFeatureProviderEvents.ProviderStale -> {
-                _statusFlow.emit(OpenFeatureStatus.Stale)
-            }
-
-            is OpenFeatureProviderEvents.ProviderError -> {
-                _statusFlow.emit(providerEvent.toOpenFeatureStatusError())
-            }
-
-            else -> { // All other states should not be emitted from here
-            }
-        }
-    }
+    /**
+     * Observe events from currently configured provider for the specified domain.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    inline fun <reified T : OpenFeatureProviderEvents> observe(domain: String?): Flow<T> =
+        getProvidersFlowForDomain(domain)
+            .flatMapLatest { it.observe() }
+            .filterIsInstance()
 }
