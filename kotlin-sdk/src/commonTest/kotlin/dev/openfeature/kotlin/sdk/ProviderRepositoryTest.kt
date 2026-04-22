@@ -16,6 +16,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -387,6 +388,127 @@ class ProviderRepositoryTest {
         assertFalse(
             newProviderShutdownCalled,
             "New provider MUST NOT be accidentally shut down due to lock inversion race condition"
+        )
+    }
+
+    @Test
+    fun testConcurrentGlobalAndDomainContextUpdatesAreSynchronized() = runTest {
+        val testDomain = "syncTestDomain"
+        val state = ProviderRepository().getOrCreateState(testDomain)
+        val globalContextMutex = kotlinx.coroutines.sync.Mutex()
+
+        val jobA = launch(StandardTestDispatcher(testScheduler)) {
+            state.contextMutex.withLock {
+                state.context = ImmutableContext(attributes = mapOf("A" to Value.Boolean(true)))
+                val globalCtx = globalContextMutex.withLock { null }
+                state.mergedContext = globalCtx?.mergeWith(state.context!!) ?: state.context
+            }
+        }
+
+        val jobB = launch(StandardTestDispatcher(testScheduler)) {
+            globalContextMutex.withLock {
+                state.contextMutex.withLock {
+                    val globalCtx = ImmutableContext(attributes = mapOf("B" to Value.Boolean(true)))
+                    state.mergedContext = state.context?.let { globalCtx.mergeWith(it) } ?: globalCtx
+                }
+            }
+        }
+
+        testScheduler.advanceUntilIdle()
+
+        assertTrue(jobA.isCompleted)
+        assertTrue(jobB.isCompleted)
+        assertNotNull(state.mergedContext)
+    }
+
+    @Test
+    fun testContextHooksBypassUninitializedProviders() = runTest {
+        val testDomain = "bypassDomain"
+        OpenFeatureAPI.setProviderAndWait(
+            testDomain,
+            NoOpProvider(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
+
+        var initFired = false
+        var hookFired = false
+
+        val slowProvider = object : NoOpProvider() {
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                delay(100) // Suspend strictly
+                initFired = true
+            }
+
+            override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+                hookFired = true
+            }
+        }
+
+        // Simultaneously trigger setProvider and Context Updates
+        val contextJob = launch {
+            // Trigger Context Update first natively queuing onto IO
+            OpenFeatureAPI.setEvaluationContext(
+                testDomain,
+                ImmutableContext(attributes = mapOf("key" to Value.Boolean(true)))
+            )
+        }
+
+        val providerJob = launch {
+            delay(10) // Queue Provider Swap Second Native Block!
+            OpenFeatureAPI.setProviderAndWait(
+                testDomain,
+                slowProvider,
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
+        }
+
+        testScheduler.advanceUntilIdle()
+
+        assertTrue(providerJob.isCompleted)
+        assertTrue(contextJob.isCompleted)
+        assertTrue(initFired, "Provider must have initialized correctly successfully")
+        assertFalse(hookFired, "Context Hook MUST have bypassed natively because Provider was strictly uninitialized!")
+    }
+
+    @Test
+    fun testShutdownCancelsPhantomContextCoroutines() = runTest {
+        var hookFired = false
+
+        val testDomain = "phantomDomain"
+        OpenFeatureAPI.setProviderAndWait(
+            testDomain,
+            NoOpProvider(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
+
+        val zombieProvider = object : NoOpProvider() {
+            override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+                delay(50)
+                hookFired = true
+            }
+        }
+
+        OpenFeatureAPI.setProviderAndWait(
+            testDomain,
+            zombieProvider,
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
+
+        // Trigger a Global Evaluation Context which runs async natively
+        val evalJob = launch(StandardTestDispatcher(testScheduler)) {
+            OpenFeatureAPI.setEvaluationContext(ImmutableContext())
+        }
+
+        delay(10) // Yield to allow Evaluation Cascade instantiation cleanly
+
+        // Execute Shutdown strictly mid-way targeting precise cancellation interception!
+        OpenFeatureAPI.shutdown()
+
+        testScheduler.advanceUntilIdle()
+
+        assertFalse(
+            hookFired,
+            "Shutdown MUST explicitly track and natively intercept Phantom Domain Hook evaluations statically!"
         )
     }
 }

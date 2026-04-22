@@ -33,6 +33,9 @@ internal class DomainState {
     val providerMutex = Mutex()
     val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(NoOpProvider())
     val provider: FeatureProvider get() = providersFlow.value
+
+    val contextMutex = Mutex()
+    val ioMutex = Mutex()
     var context: EvaluationContext? = null
     var mergedContext: EvaluationContext? = null
 
@@ -114,6 +117,7 @@ internal class DomainState {
             currentDispatcher = null
             val current = provider
             providersFlow.value = NoOpProvider()
+            _statusFlow.tryEmit(OpenFeatureStatus.NotReady)
             current
         }
         try {
@@ -121,7 +125,6 @@ internal class DomainState {
         } catch (e: Exception) {
             // Safely suppress exceptions crashing custom provider teardown loops
         }
-        _statusFlow.tryEmit(OpenFeatureStatus.NotReady)
     }
 }
 

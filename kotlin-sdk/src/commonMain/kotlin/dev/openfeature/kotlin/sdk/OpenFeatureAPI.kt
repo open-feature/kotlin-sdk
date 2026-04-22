@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 @Suppress("TooManyFunctions")
@@ -21,6 +22,7 @@ object OpenFeatureAPI {
 
     @PublishedApi
     internal val repository = ProviderRepository()
+    private val globalContextMutex = Mutex()
     private var context: EvaluationContext? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -123,20 +125,13 @@ object OpenFeatureAPI {
         val oldProvider = state.providerMutex.withLock {
             val current = state.provider
             state.providersFlow.value = provider
-            if (initialContext != null) {
-                if (isGlobalContext) {
-                    context = initialContext
-                    repository.getAllStates().forEach { updateMergedContext(it) }
-                } else {
-                    state.context = initialContext
-                    updateMergedContext(state)
-                }
-            }
+            state.emitStatus(OpenFeatureStatus.NotReady)
             current
         }
 
-        // Emit NotReady status after swapping provider
-        state.emitStatus(OpenFeatureStatus.NotReady)
+        if (initialContext != null) {
+            updateContextOnProviderSet(state, initialContext, isGlobalContext, dispatcher)
+        }
 
         // Shutdown the previous provider isolated from stream errors
         try {
@@ -145,22 +140,81 @@ object OpenFeatureAPI {
             // Ignore termination exceptions from dead configurations natively securely
         }
 
-        // Initialize the new provider
-        state.initializeListener(dispatcher)
-        tryWithStatusEmitErrorHandling(state) {
-            val resolvedContext = state.mergedContext ?: context
-            provider.initialize(resolvedContext)
-            state.emitStatus(OpenFeatureStatus.Ready)
+        initializeProvider(state, provider, dispatcher)
+    }
+
+    private suspend fun updateContextOnProviderSet(
+        state: DomainState,
+        initialContext: EvaluationContext,
+        isGlobalContext: Boolean,
+        dispatcher: CoroutineDispatcher
+    ) {
+        if (!isGlobalContext) {
+            val globalCtx = globalContextMutex.withLock { context }
+            state.contextMutex.withLock {
+                state.context = initialContext
+                state.mergedContext = globalCtx?.mergeWith(initialContext) ?: initialContext
+            }
+            return
+        }
+
+        val states = globalContextMutex.withLock {
+            context = initialContext
+            repository.getAllStates()
+        }
+
+        states.forEach { s ->
+            if (s === state) {
+                s.contextMutex.withLock {
+                    s.mergedContext = s.context?.let { initialContext.mergeWith(it) } ?: initialContext
+                }
+            } else {
+                s.setEvaluationContextJob?.cancel(CancellationException("Set context job cancelled by global provider"))
+                s.setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+                    applyContextToState(s, initialContext)
+                }
+            }
         }
     }
 
-    private fun updateMergedContext(state: DomainState) {
-        val globalCtx = context
-        state.mergedContext = when {
-            state.context == null -> globalCtx
-            globalCtx == null -> state.context
-            else -> globalCtx.mergeWith(state.context!!)
+    private suspend fun initializeProvider(
+        state: DomainState,
+        provider: FeatureProvider,
+        dispatcher: CoroutineDispatcher
+    ) {
+        state.initializeListener(dispatcher)
+        state.ioMutex.withLock {
+            tryWithStatusEmitErrorHandling(state) {
+                val globalCtx = globalContextMutex.withLock { context }
+                val resolvedContext = state.contextMutex.withLock { state.mergedContext } ?: globalCtx
+                provider.initialize(resolvedContext)
+                state.emitStatus(OpenFeatureStatus.Ready)
+            }
         }
+    }
+
+    private suspend fun applyContextToState(
+        state: DomainState,
+        globalCtx: EvaluationContext?,
+        applyDomainCtx: ((EvaluationContext?) -> EvaluationContext?)? = null
+    ) {
+        val (oldMerged, newMerged) = state.contextMutex.withLock {
+            val oldMerged = state.mergedContext
+
+            applyDomainCtx?.let { handler ->
+                state.context = handler(state.context)
+            }
+
+            state.mergedContext = if (globalCtx != null && state.context != null) {
+                globalCtx.mergeWith(state.context!!)
+            } else {
+                globalCtx ?: state.context
+            }
+
+            oldMerged to (state.mergedContext ?: ImmutableContext())
+        }
+
+        setEvaluationContextForState(state, oldMerged, newMerged)
     }
 
     /**
@@ -207,6 +261,22 @@ object OpenFeatureAPI {
         setEvaluationContextInternal(domain, evaluationContext)
     }
 
+    /**
+     * Clear the [EvaluationContext] for the SDK. This method will block until the context is cleared and the providers from all domains are ready.
+     */
+    suspend fun clearEvaluationContextAndWait() {
+        clearEvaluationContextInternal(null)
+    }
+
+    /**
+     * Clear the [EvaluationContext] for a specific domain. This method will block until the context is cleared and the provider is ready.
+     *
+     * @param domain the domain
+     */
+    suspend fun clearEvaluationContextAndWait(domain: String?) {
+        clearEvaluationContextInternal(domain)
+    }
+
     private var setEvaluationContextJob: Job? = null
 
     /**
@@ -249,17 +319,50 @@ object OpenFeatureAPI {
         }
     }
 
+    /**
+     * Clear the [EvaluationContext] for the SDK. This method will return immediately and clear the context in a coroutine scope.
+     */
+    fun clearEvaluationContext(
+        dispatcher: CoroutineDispatcher = Dispatchers.Default
+    ) {
+        setEvaluationContextJob?.cancel(CancellationException("Clear context job was cancelled due to new context"))
+        setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+            clearEvaluationContextInternal(null)
+        }
+    }
+
+    /**
+     * Clear the [EvaluationContext] for a specific domain. This method will return immediately and clear the context in a coroutine scope.
+     *
+     * @param domain the domain
+     */
+    fun clearEvaluationContext(
+        domain: String?,
+        dispatcher: CoroutineDispatcher = Dispatchers.Default
+    ) {
+        if (domain == null) {
+            clearEvaluationContext(dispatcher)
+            return
+        }
+        CoroutineScope(SupervisorJob() + dispatcher).launch {
+            val state = repository.getOrCreateState(domain)
+            state.setEvaluationContextJob?.cancel(
+                CancellationException("Clear context job was cancelled due to new context")
+            )
+            state.setEvaluationContextJob = coroutineContext[Job]
+            clearEvaluationContextInternal(domain)
+        }
+    }
+
     private suspend fun setEvaluationContextInternal(evaluationContext: EvaluationContext) {
-        context = evaluationContext
-        val states = repository.getAllStates()
+        val states = globalContextMutex.withLock {
+            context = evaluationContext
+            repository.getAllStates()
+        }
+
         kotlinx.coroutines.coroutineScope {
-            for (state in states) {
-                launch {
-                    val oldMerged = state.mergedContext
-                    updateMergedContext(state)
-                    val newMerged = state.mergedContext!!
-                    setEvaluationContextForState(state, oldMerged, newMerged)
-                }
+            states.forEach { state ->
+                launch { applyContextToState(state, evaluationContext) }
             }
         }
     }
@@ -269,12 +372,27 @@ object OpenFeatureAPI {
             setEvaluationContextInternal(evaluationContext)
             return
         }
+        val globalCtx = globalContextMutex.withLock { context }
         val state = repository.getOrCreateState(domain)
-        val oldMerged = state.mergedContext
-        state.context = evaluationContext
-        updateMergedContext(state)
-        val newMerged = state.mergedContext!!
-        setEvaluationContextForState(state, oldMerged, newMerged)
+        applyContextToState(state, globalCtx) { evaluationContext }
+    }
+
+    private suspend fun clearEvaluationContextInternal(domain: String?) {
+        if (domain == null) {
+            val states = globalContextMutex.withLock {
+                context = null
+                repository.getAllStates()
+            }
+            kotlinx.coroutines.coroutineScope {
+                states.forEach { state ->
+                    launch { applyContextToState(state, null) }
+                }
+            }
+            return
+        }
+
+        val globalCtx = globalContextMutex.withLock { context }
+        applyContextToState(repository.getState(domain), globalCtx) { null }
     }
 
     private suspend fun setEvaluationContextForState(
@@ -282,11 +400,19 @@ object OpenFeatureAPI {
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
-        if (oldContext != newContext) {
-            state.emitStatus(OpenFeatureStatus.Reconciling)
-            tryWithStatusEmitErrorHandling(state) {
-                state.provider.onContextSet(oldContext, newContext)
-                state.emitStatus(OpenFeatureStatus.Ready)
+        if (oldContext == newContext) return
+
+        state.ioMutex.withLock {
+            val activeProvider = state.providerMutex.withLock {
+                state.provider.takeIf { state.getStatus() != OpenFeatureStatus.NotReady }
+            }
+
+            activeProvider?.let { provider ->
+                state.emitStatus(OpenFeatureStatus.Reconciling)
+                tryWithStatusEmitErrorHandling(state) {
+                    provider.onContextSet(oldContext, newContext)
+                    state.emitStatus(OpenFeatureStatus.Ready)
+                }
             }
         }
     }

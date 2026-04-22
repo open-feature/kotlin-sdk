@@ -270,6 +270,12 @@ public final class dev/openfeature/kotlin/sdk/NoOpProvider$NoOpProviderMetadata 
 public final class dev/openfeature/kotlin/sdk/OpenFeatureAPI {
 	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;
 	public final fun addHooks (Ljava/util/List;)V
+	public final fun clearEvaluationContext (Ljava/lang/String;Lkotlinx/coroutines/CoroutineDispatcher;)V
+	public final fun clearEvaluationContext (Lkotlinx/coroutines/CoroutineDispatcher;)V
+	public static synthetic fun clearEvaluationContext$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ljava/lang/String;Lkotlinx/coroutines/CoroutineDispatcher;ILjava/lang/Object;)V
+	public static synthetic fun clearEvaluationContext$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Lkotlinx/coroutines/CoroutineDispatcher;ILjava/lang/Object;)V
+	public final fun clearEvaluationContextAndWait (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun clearEvaluationContextAndWait (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun clearHooks ()V
 	public final fun clearProvider (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun getClient (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/Client;

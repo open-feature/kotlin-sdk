@@ -128,4 +128,42 @@ class OpenFeatureClientTests {
         assertTrue(events.none { it is OpenFeatureProviderEvents.ProviderError }, "Emitted stray error!")
         job.cancel()
     }
+
+    @Test
+    fun testClearEvaluationContextRevertsToGlobalContext() = runTest {
+        var capturedNewContext: EvaluationContext? = null
+        val provider = object : NoOpProvider() {
+            override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+                capturedNewContext = newContext
+            }
+        }
+
+        OpenFeatureAPI.setProviderAndWait("mock-domain", provider)
+        OpenFeatureAPI.setEvaluationContextAndWait(
+            ImmutableContext(attributes = mapOf("global" to Value.String("globalVal")))
+        )
+        OpenFeatureAPI.setEvaluationContextAndWait(
+            "mock-domain",
+            ImmutableContext(attributes = mapOf("domain" to Value.String("domainVal")))
+        )
+
+        assertNotNull(capturedNewContext)
+        assertEquals("globalVal", capturedNewContext!!.getValue("global")?.asString())
+        assertEquals("domainVal", capturedNewContext!!.getValue("domain")?.asString())
+
+        // Action: Clear the specific domain evaluation context
+        OpenFeatureAPI.clearEvaluationContextAndWait("mock-domain")
+
+        // Assert: The context correctly reverts gracefully to pure global context without crashes
+        assertNotNull(capturedNewContext)
+        assertEquals("globalVal", capturedNewContext!!.getValue("global")?.asString())
+        assertTrue(capturedNewContext!!.asMap().containsKey("domain").not(), "Domain key should be removed")
+
+        // Action: Clear global evaluation context
+        OpenFeatureAPI.clearEvaluationContextAndWait()
+
+        // Assert: The fallback context clears out to empty ImmutableContext safely
+        assertNotNull(capturedNewContext)
+        assertTrue(capturedNewContext!!.asMap().isEmpty())
+    }
 }
