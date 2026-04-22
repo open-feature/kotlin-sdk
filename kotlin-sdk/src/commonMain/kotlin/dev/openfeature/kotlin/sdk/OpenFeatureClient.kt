@@ -34,9 +34,8 @@ class OpenFeatureClient(
     override fun observe(): Flow<OpenFeatureProviderEvents> =
         openFeatureAPI.observe<OpenFeatureProviderEvents>()
 
-    override fun getProviderStatus(): OpenFeatureStatus {
-        return openFeatureAPI.getStatus()
-    }
+    override val providerStatus: OpenFeatureStatus
+        get() = openFeatureAPI.getStatus()
 
     override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
         return getBooleanDetails(key, defaultValue).value
@@ -265,7 +264,7 @@ class OpenFeatureClient(
     }
 
     private fun shortCircuitIfNotReady() {
-        val providerStatus = getProviderStatus()
+        val providerStatus = this.providerStatus
         if (providerStatus == OpenFeatureStatus.NotReady) {
             throw OpenFeatureError.ProviderNotReadyError()
         } else if (providerStatus is OpenFeatureStatus.Fatal) {
