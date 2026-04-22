@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -73,6 +74,20 @@ class ProviderRepositoryTest {
 
         val newMappedState = flow.first()
         assertSame(dynamicState, newMappedState)
+    }
+
+    @Test
+    fun `getStateFlow should memoize null domain state flow`() = runTest {
+        val repository = ProviderRepository()
+
+        val firstFlow = repository.getStateFlow(null)
+        val secondFlow = repository.getStateFlow(null)
+
+        assertSame(firstFlow, secondFlow)
+        assertSame(repository.defaultStateFlow, firstFlow)
+
+        val nonNullFlow = repository.getStateFlow("specific-domain")
+        assertNotSame(repository.defaultStateFlow, nonNullFlow)
     }
 
     @Test

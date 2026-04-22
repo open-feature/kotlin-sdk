@@ -121,6 +121,7 @@ internal class DomainState {
 
 internal class ProviderRepository {
     private val defaultDomainState = DomainState()
+    internal val defaultStateFlow = MutableStateFlow(defaultDomainState)
     private val domainsFlow = MutableStateFlow<Map<String, DomainState>>(emptyMap())
     private val repositoryMutex = Mutex()
 
@@ -140,7 +141,7 @@ internal class ProviderRepository {
     }
 
     fun getStateFlow(domain: String?): Flow<DomainState> {
-        if (domain == null) return MutableStateFlow(defaultDomainState)
+        if (domain == null) return defaultStateFlow
         return domainsFlow.map { it[domain] ?: defaultDomainState }.distinctUntilChanged()
     }
 
