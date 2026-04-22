@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.8.0](https://github.com/open-feature/kotlin-sdk/compare/v0.7.2...v0.8.0) (2026-04-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add hook data (binary breaking change) ([#228](https://github.com/open-feature/kotlin-sdk/issues/228))
+
+### 🐛 Bug Fixes
+
+* Update snapshot action to run on MacOS ([#227](https://github.com/open-feature/kotlin-sdk/issues/227)) ([b8cb0f2](https://github.com/open-feature/kotlin-sdk/commit/b8cb0f2a2d936369fae00d0e89624db496474610))
+
+
+### ✨ New Features
+
+* Add core logging infrastructure ([#217](https://github.com/open-feature/kotlin-sdk/issues/217)) ([a529a89](https://github.com/open-feature/kotlin-sdk/commit/a529a897f2c30c30b313bacfafc6f4255fd12c80))
+* Add hook data (binary breaking change) ([#228](https://github.com/open-feature/kotlin-sdk/issues/228)) ([e7e29a5](https://github.com/open-feature/kotlin-sdk/commit/e7e29a58b8201d11ceb2c171a0f02f70e361da10))
+* Add in iOS support ([#213](https://github.com/open-feature/kotlin-sdk/issues/213)) ([b418bf4](https://github.com/open-feature/kotlin-sdk/commit/b418bf4791cdbf384368d0eeb7343a578516c9d5))
+* Add LoggingHook for evaluation logging ([#219](https://github.com/open-feature/kotlin-sdk/issues/219)) ([5f29ccc](https://github.com/open-feature/kotlin-sdk/commit/5f29ccc4d35c08a19ba5bdf0c138588ee587adf4))
+* Add PII filtering controls to LoggingHook ([#221](https://github.com/open-feature/kotlin-sdk/issues/221)) ([8ba1d0c](https://github.com/open-feature/kotlin-sdk/commit/8ba1d0cd3511be9f366180bae2a5fffb892380a1))
+* Add structured logging to Logger interface ([#233](https://github.com/open-feature/kotlin-sdk/issues/233)) ([2bd38d1](https://github.com/open-feature/kotlin-sdk/commit/2bd38d1ea11098f11b0c2d78d23ab1fb5fa864d6))
+
+
+### 📚 Documentation
+
+* Add comprehensive logging documentation ([#220](https://github.com/open-feature/kotlin-sdk/issues/220)) ([8a2aafc](https://github.com/open-feature/kotlin-sdk/commit/8a2aafc5150a728b87cb12ae8ec410a33814122f))
+* fix inaccuracies in README code examples ([#235](https://github.com/open-feature/kotlin-sdk/issues/235)) ([bd58cb1](https://github.com/open-feature/kotlin-sdk/commit/bd58cb197db27499daf863db51e02d6d54a56f35))
+
 ## [0.7.2](https://github.com/open-feature/kotlin-sdk/compare/v0.7.1...v0.7.2) (2026-03-10)
 
 
