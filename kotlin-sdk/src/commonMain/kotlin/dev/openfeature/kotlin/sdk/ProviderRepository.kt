@@ -34,6 +34,7 @@ class DomainState {
     val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(NoOpProvider())
     val provider: FeatureProvider get() = providersFlow.value
     var context: EvaluationContext? = null
+    var mergedContext: EvaluationContext? = null
 
     val _statusFlow: MutableSharedFlow<OpenFeatureStatus> =
         MutableSharedFlow<OpenFeatureStatus>(

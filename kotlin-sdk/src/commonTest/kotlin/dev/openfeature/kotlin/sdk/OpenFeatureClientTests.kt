@@ -5,6 +5,8 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertSame
 
 class OpenFeatureClientTests {
 
@@ -47,5 +49,44 @@ class OpenFeatureClientTests {
         assertEquals("globalValue", mergedContext?.getValue("globalKey")?.asString())
         assertEquals("domainValue", mergedContext?.getValue("domainKey")?.asString())
         assertEquals("domainConflict", mergedContext?.getValue("conflictKey")?.asString())
+    }
+
+    @Test
+    fun testEvaluationContextCachePreventsSubsequentAllocations() = runTest {
+        val globalContext = ImmutableContext(targetingKey = "global")
+        val domainContext = ImmutableContext(targetingKey = "domain")
+
+        OpenFeatureAPI.setEvaluationContextAndWait(globalContext)
+        OpenFeatureAPI.setEvaluationContextAndWait("cache-domain", domainContext)
+
+        val firstFetch = OpenFeatureAPI.getEvaluationContext("cache-domain")
+        val secondFetch = OpenFeatureAPI.getEvaluationContext("cache-domain")
+
+        assertNotNull(firstFetch)
+        assertSame(firstFetch, secondFetch) // O(1) GC Leak Protection Validation Wrapper
+    }
+
+    @Test
+    fun testProviderOnContextSetReceivesMergedContext() = runTest {
+        var capturedNewContext: EvaluationContext? = null
+        val provider = object : NoOpProvider() {
+            override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+                capturedNewContext = newContext
+            }
+        }
+
+        OpenFeatureAPI.setProviderAndWait("mock-domain", provider)
+        OpenFeatureAPI.setEvaluationContextAndWait(
+            ImmutableContext(attributes = mapOf("global" to Value.String("globalVal")))
+        )
+        OpenFeatureAPI.setEvaluationContextAndWait(
+            "mock-domain",
+            ImmutableContext(attributes = mapOf("domain" to Value.String("domainVal")))
+        )
+
+        val captured = capturedNewContext
+        assertNotNull(captured)
+        assertEquals("globalVal", captured.getValue("global")?.asString())
+        assertEquals("domainVal", captured.getValue("domain")?.asString())
     }
 }

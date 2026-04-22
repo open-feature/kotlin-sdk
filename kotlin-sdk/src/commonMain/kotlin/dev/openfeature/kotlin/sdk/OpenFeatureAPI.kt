@@ -126,8 +126,10 @@ object OpenFeatureAPI {
             if (initialContext != null) {
                 if (isGlobalContext) {
                     context = initialContext
+                    repository.getAllStates().forEach { updateMergedContext(it) }
                 } else {
                     state.context = initialContext
+                    updateMergedContext(state)
                 }
             }
             current
@@ -144,9 +146,18 @@ object OpenFeatureAPI {
         // Initialize the new provider
         state.initializeListener(dispatcher)
         tryWithStatusEmitErrorHandling(state) {
-            val resolvedContext = state.context ?: context
+            val resolvedContext = state.mergedContext ?: context
             provider.initialize(resolvedContext)
             state.emitStatus(OpenFeatureStatus.Ready)
+        }
+    }
+
+    private fun updateMergedContext(state: DomainState) {
+        val globalCtx = context
+        state.mergedContext = when {
+            state.context == null -> globalCtx
+            globalCtx == null -> state.context
+            else -> globalCtx.mergeWith(state.context!!)
         }
     }
 
@@ -237,16 +248,15 @@ object OpenFeatureAPI {
     }
 
     private suspend fun setEvaluationContextInternal(evaluationContext: EvaluationContext) {
-        val oldContext = context
         context = evaluationContext
         val states = repository.getAllStates()
         kotlinx.coroutines.coroutineScope {
             for (state in states) {
                 launch {
-                    // Update only if the domain does not have a specific context overriding the global one
-                    if (state.context == null) {
-                        setEvaluationContextForState(state, oldContext, evaluationContext)
-                    }
+                    val oldMerged = state.mergedContext
+                    updateMergedContext(state)
+                    val newMerged = state.mergedContext!!
+                    setEvaluationContextForState(state, oldMerged, newMerged)
                 }
             }
         }
@@ -258,9 +268,11 @@ object OpenFeatureAPI {
             return
         }
         val state = repository.getOrCreateState(domain)
-        val oldContext = state.context ?: context
+        val oldMerged = state.mergedContext
         state.context = evaluationContext
-        setEvaluationContextForState(state, oldContext, evaluationContext)
+        updateMergedContext(state)
+        val newMerged = state.mergedContext!!
+        setEvaluationContextForState(state, oldMerged, newMerged)
     }
 
     private suspend fun setEvaluationContextForState(
@@ -306,13 +318,9 @@ object OpenFeatureAPI {
      * Get the [EvaluationContext] for the specified domain. If not set, returns the global context.
      */
     fun getEvaluationContext(domain: String?): EvaluationContext? {
-        val globalCtx = context
-        val domainCtx = repository.getState(domain).context
-        return when {
-            domainCtx == null -> globalCtx
-            globalCtx == null -> domainCtx
-            else -> globalCtx.mergeWith(domainCtx)
-        }
+        if (domain == null) return context
+        val state = repository.getState(domain)
+        return state.context?.let { state.mergedContext } ?: context
     }
 
     /**
