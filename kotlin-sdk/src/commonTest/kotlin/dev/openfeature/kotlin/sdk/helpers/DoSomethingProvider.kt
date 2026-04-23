@@ -69,6 +69,14 @@ open class DoSomethingProvider(
         return ProviderEvaluation(defaultValue * 100)
     }
 
+    override fun getLongEvaluation(
+        key: String,
+        defaultValue: Long,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Long> {
+        return ProviderEvaluation(defaultValue * 100)
+    }
+
     override fun getDoubleEvaluation(
         key: String,
         defaultValue: Double,

@@ -23,6 +23,12 @@ interface Features {
     fun getIntegerValue(key: String, defaultValue: Int, options: FlagEvaluationOptions): Int
     fun getIntegerDetails(key: String, defaultValue: Int): FlagEvaluationDetails<Int>
     fun getIntegerDetails(key: String, defaultValue: Int, options: FlagEvaluationOptions): FlagEvaluationDetails<Int>
+
+    fun getLongValue(key: String, defaultValue: Long): Long
+    fun getLongValue(key: String, defaultValue: Long, options: FlagEvaluationOptions): Long
+    fun getLongDetails(key: String, defaultValue: Long): FlagEvaluationDetails<Long>
+    fun getLongDetails(key: String, defaultValue: Long, options: FlagEvaluationOptions): FlagEvaluationDetails<Long>
+
     fun getDoubleValue(key: String, defaultValue: Double): Double
     fun getDoubleValue(key: String, defaultValue: Double, options: FlagEvaluationOptions): Double
     fun getDoubleDetails(key: String, defaultValue: Double): FlagEvaluationDetails<Double>

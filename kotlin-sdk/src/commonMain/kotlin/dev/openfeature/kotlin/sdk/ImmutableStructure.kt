@@ -34,6 +34,7 @@ class ImmutableStructure(attributes: Map<String, Value> = mapOf()) : Structure {
             is Value.String -> value.asString()
             is Value.Boolean -> value.asBoolean()
             is Value.Integer -> value.asInteger()
+            is Value.Long -> value.asLong()
             is Value.Instant -> value.asInstant()
             is Value.Double -> value.asDouble()
         }

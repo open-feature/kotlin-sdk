@@ -23,6 +23,12 @@ import dev.openfeature.kotlin.sdk.logging.NoOpLogger
  * @param afterLogLevel Log level for the after stage (default: DEBUG)
  * @param errorLogLevel Log level for the error stage (default: ERROR)
  * @param finallyLogLevel Log level for the finallyAfter stage (default: DEBUG)
+ * @param logTargetingKey If true, includes the targeting key when logging context (default: true).
+ *                        Set to false if targeting keys contain PII such as user IDs or emails.
+ * @param includeAttributes If specified, only these attributes are logged. Takes precedence over excludeAttributes.
+ *                          An empty set logs no attributes. Attribute name matching is case-sensitive.
+ * @param excludeAttributes Attributes to exclude from logging. Defaults to common PII fields ([DEFAULT_SENSITIVE_KEYS]).
+ *                          Attribute name matching is case-sensitive.
  */
 class LoggingHook(
     private val logger: Logger = NoOpLogger(),
@@ -30,7 +36,10 @@ class LoggingHook(
     private val beforeLogLevel: LogLevel = LogLevel.DEBUG,
     private val afterLogLevel: LogLevel = LogLevel.DEBUG,
     private val errorLogLevel: LogLevel = LogLevel.ERROR,
-    private val finallyLogLevel: LogLevel = LogLevel.DEBUG
+    private val finallyLogLevel: LogLevel = LogLevel.DEBUG,
+    private val logTargetingKey: Boolean = true,
+    private val includeAttributes: Set<String>? = null,
+    private val excludeAttributes: Set<String> = DEFAULT_SENSITIVE_KEYS
 ) : Hook<Any> {
 
     companion object {
@@ -39,6 +48,31 @@ class LoggingHook(
          * Pass this key in hookHints with a Boolean value to override the hook's default behavior.
          */
         const val HINT_LOG_EVALUATION_CONTEXT = "logEvaluationContext"
+
+        /**
+         * Common attribute names that likely contain PII.
+         * These are excluded by default when logEvaluationContext is true.
+         */
+        val DEFAULT_SENSITIVE_KEYS =
+            setOf(
+                "email",
+                "phone",
+                "phoneNumber",
+                "ssn",
+                "socialSecurityNumber",
+                "creditCard",
+                "creditCardNumber",
+                "password",
+                "address",
+                "streetAddress",
+                "zipCode",
+                "postalCode",
+                "ipAddress",
+                "firstName",
+                "lastName",
+                "fullName",
+                "dateOfBirth"
+            )
     }
 
     override fun before(ctx: HookContext<Any>, hints: Map<String, Any>) {
@@ -133,17 +167,25 @@ class LoggingHook(
         }
     }
 
+    private fun filterAttributes(attributes: Map<String, Any?>): Map<String, Any?> =
+        when {
+            includeAttributes != null -> attributes.filterKeys { it in includeAttributes }
+            else -> attributes.filterKeys { it !in excludeAttributes }
+        }
+
     private fun contextAttributes(context: EvaluationContext): Map<String, Any?> = buildMap {
         // asObjectMap() unwraps Value subtypes to native Kotlin types (String, Int, Boolean,
         // Instant, List<Any?>, Map<String, Any?>) — reuses the SDK's own conversion logic.
         // ImmutableContext stores the targeting key separately from its attributes map, so
         // asObjectMap() will not include it for the standard implementation.
-        context.asObjectMap().forEach { (key, value) ->
+        filterAttributes(context.asObjectMap()).forEach { (key, value) ->
             put("context.$key", value)
         }
         // getTargetingKey() returns "" when not set (non-nullable), so check isNotEmpty.
         // Put after asObjectMap() so that targeting key always wins if a custom
         // EvaluationContext also returns it from asObjectMap().
-        context.getTargetingKey().takeIf { it.isNotEmpty() }?.let { put("context.targetingKey", it) }
+        if (logTargetingKey) {
+            context.getTargetingKey().takeIf { it.isNotEmpty() }?.let { put("context.targetingKey", it) }
+        }
     }
 }

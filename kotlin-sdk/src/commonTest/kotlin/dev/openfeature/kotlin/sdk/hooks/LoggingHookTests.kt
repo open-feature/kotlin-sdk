@@ -160,7 +160,7 @@ class LoggingHookTests {
     @Test
     fun `context logging works when enabled`() {
         val testLogger = TestLogger()
-        val hook = LoggingHook(logger = testLogger, logEvaluationContext = true)
+        val hook = LoggingHook(logger = testLogger, logEvaluationContext = true, excludeAttributes = emptySet())
         val evaluationContext = ImmutableContext(
             targetingKey = "user-123",
             attributes = mapOf("email" to Value.String("user@example.com"), "plan" to Value.String("premium"))
@@ -348,5 +348,250 @@ class LoggingHookTests {
         assertEquals(1, testLogger.debugMessages.size)
         val entry = testLogger.debugMessages[0]
         assertFalse(entry.attributes.containsKey("client"))
+    }
+
+    @Test
+    fun `includeAttributes filters to only specified attributes`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true,
+            includeAttributes = setOf("region", "plan")
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "user-123",
+            attributes = mapOf(
+                "email" to Value.String("user@example.com"),
+                "region" to Value.String("us-east"),
+                "plan" to Value.String("premium"),
+                "phone" to Value.String("555-1234")
+            )
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+
+        hook.before(context, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertEquals("us-east", entry.attributes["context.region"])
+        assertEquals("premium", entry.attributes["context.plan"])
+        assertFalse(entry.attributes.containsKey("context.email"))
+        assertFalse(entry.attributes.containsKey("context.phone"))
+    }
+
+    @Test
+    fun `excludeAttributes filters out specified attributes`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true,
+            excludeAttributes = setOf("ssn", "creditCard")
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "user-123",
+            attributes = mapOf(
+                "ssn" to Value.String("123-45-6789"),
+                "creditCard" to Value.String("4111-1111-1111-1111"),
+                "region" to Value.String("us-east")
+            )
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+
+        hook.before(context, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertFalse(entry.attributes.containsKey("context.ssn"))
+        assertFalse(entry.attributes.containsKey("context.creditCard"))
+        assertEquals("us-east", entry.attributes["context.region"])
+    }
+
+    @Test
+    fun `DEFAULT_SENSITIVE_KEYS are filtered by default`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "user-123",
+            attributes = mapOf(
+                "email" to Value.String("user@example.com"),
+                "phone" to Value.String("555-1234"),
+                "region" to Value.String("us-east")
+            )
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+
+        hook.before(context, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertFalse(entry.attributes.containsKey("context.email"))
+        assertFalse(entry.attributes.containsKey("context.phone"))
+        assertEquals("us-east", entry.attributes["context.region"])
+    }
+
+    @Test
+    fun `includeAttributes takes precedence over excludeAttributes`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true,
+            includeAttributes = setOf("email"),
+            excludeAttributes = setOf("email")
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "user-123",
+            attributes = mapOf("email" to Value.String("user@example.com"))
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+
+        hook.before(context, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertEquals("user@example.com", entry.attributes["context.email"])
+    }
+
+    @Test
+    fun `empty excludeAttributes bypasses default filtering`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true,
+            excludeAttributes = emptySet()
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "user-123",
+            attributes = mapOf(
+                "email" to Value.String("user@example.com"),
+                "plan" to Value.String("premium")
+            )
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+
+        hook.before(context, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertEquals("user@example.com", entry.attributes["context.email"])
+        assertEquals("premium", entry.attributes["context.plan"])
+    }
+
+    @Test
+    fun `filtering works in after stage`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true,
+            excludeAttributes = setOf("ssn")
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "user-123",
+            attributes = mapOf(
+                "ssn" to Value.String("123-45-6789"),
+                "region" to Value.String("us-east")
+            )
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+        val details = FlagEvaluationDetails<Any>(flagKey = "my-flag", value = true)
+
+        hook.after(context, details, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertFalse(entry.attributes.containsKey("context.ssn"))
+        assertEquals("us-east", entry.attributes["context.region"])
+    }
+
+    @Test
+    fun `filtering works in error stage`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true,
+            excludeAttributes = setOf("ssn")
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "user-123",
+            attributes = mapOf(
+                "ssn" to Value.String("123-45-6789"),
+                "region" to Value.String("us-east")
+            )
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+
+        hook.error(context, RuntimeException("err"), emptyMap())
+
+        val entry = testLogger.errorMessages[0]
+        assertFalse(entry.attributes.containsKey("context.ssn"))
+        assertEquals("us-east", entry.attributes["context.region"])
+    }
+
+    @Test
+    fun `targeting key is logged by default`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true
+        )
+        val evaluationContext = ImmutableContext(targetingKey = "user-123")
+        val context = createHookContext("my-flag", false, evaluationContext)
+
+        hook.before(context, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertEquals("user-123", entry.attributes["context.targetingKey"])
+    }
+
+    @Test
+    fun `targeting key can be excluded with logTargetingKey false`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true,
+            logTargetingKey = false
+        )
+        val evaluationContext = ImmutableContext(
+            targetingKey = "user-123",
+            attributes = mapOf("region" to Value.String("us-east"))
+        )
+        val context = createHookContext("my-flag", false, evaluationContext)
+
+        hook.before(context, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertFalse(entry.attributes.containsKey("context.targetingKey"))
+        assertEquals("us-east", entry.attributes["context.region"])
+    }
+
+    @Test
+    fun `logTargetingKey false works in after stage`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true,
+            logTargetingKey = false
+        )
+        val evaluationContext = ImmutableContext(targetingKey = "user-123")
+        val context = createHookContext("my-flag", false, evaluationContext)
+        val details = FlagEvaluationDetails<Any>(flagKey = "my-flag", value = true)
+
+        hook.after(context, details, emptyMap())
+
+        val entry = testLogger.debugMessages[0]
+        assertFalse(entry.attributes.containsKey("context.targetingKey"))
+    }
+
+    @Test
+    fun `logTargetingKey false works in error stage`() {
+        val testLogger = TestLogger()
+        val hook = LoggingHook(
+            logger = testLogger,
+            logEvaluationContext = true,
+            logTargetingKey = false
+        )
+        val evaluationContext = ImmutableContext(targetingKey = "user-123")
+        val context = createHookContext("my-flag", false, evaluationContext)
+
+        hook.error(context, RuntimeException("err"), emptyMap())
+
+        val entry = testLogger.errorMessages[0]
+        assertFalse(entry.attributes.containsKey("context.targetingKey"))
     }
 }

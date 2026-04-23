@@ -12,6 +12,7 @@ public final class dev/openfeature/kotlin/sdk/Builder {
 	public final fun putBoolean (Ljava/lang/String;Z)Ldev/openfeature/kotlin/sdk/Builder;
 	public final fun putDouble (Ljava/lang/String;D)Ldev/openfeature/kotlin/sdk/Builder;
 	public final fun putInt (Ljava/lang/String;I)Ldev/openfeature/kotlin/sdk/Builder;
+	public final fun putLong (Ljava/lang/String;J)Ldev/openfeature/kotlin/sdk/Builder;
 	public final fun putString (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/Builder;
 }
 
@@ -54,6 +55,7 @@ public final class dev/openfeature/kotlin/sdk/EvaluationMetadata {
 	public final fun getBoolean (Ljava/lang/String;)Ljava/lang/Boolean;
 	public final fun getDouble (Ljava/lang/String;)Ljava/lang/Double;
 	public final fun getInt (Ljava/lang/String;)Ljava/lang/Integer;
+	public final fun getLong (Ljava/lang/String;)Ljava/lang/Long;
 	public final fun getString (Ljava/lang/String;)Ljava/lang/String;
 	public fun hashCode ()I
 }
@@ -68,6 +70,7 @@ public abstract interface class dev/openfeature/kotlin/sdk/FeatureProvider {
 	public abstract fun getDoubleEvaluation (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public abstract fun getHooks ()Ljava/util/List;
 	public abstract fun getIntegerEvaluation (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public abstract fun getLongEvaluation (Ljava/lang/String;JLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public abstract fun getMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
 	public abstract fun getObjectEvaluation (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public abstract fun getStringEvaluation (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
@@ -96,6 +99,10 @@ public abstract interface class dev/openfeature/kotlin/sdk/Features {
 	public abstract fun getIntegerDetails (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getIntegerValue (Ljava/lang/String;I)I
 	public abstract fun getIntegerValue (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)I
+	public abstract fun getLongDetails (Ljava/lang/String;J)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getLongDetails (Ljava/lang/String;JLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public abstract fun getLongValue (Ljava/lang/String;J)J
+	public abstract fun getLongValue (Ljava/lang/String;JLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)J
 	public abstract fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public abstract fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/Value;
@@ -157,6 +164,7 @@ public final class dev/openfeature/kotlin/sdk/FlagValueType : java/lang/Enum {
 	public static final field BOOLEAN Ldev/openfeature/kotlin/sdk/FlagValueType;
 	public static final field DOUBLE Ldev/openfeature/kotlin/sdk/FlagValueType;
 	public static final field INTEGER Ldev/openfeature/kotlin/sdk/FlagValueType;
+	public static final field LONG Ldev/openfeature/kotlin/sdk/FlagValueType;
 	public static final field OBJECT Ldev/openfeature/kotlin/sdk/FlagValueType;
 	public static final field STRING Ldev/openfeature/kotlin/sdk/FlagValueType;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
@@ -240,6 +248,7 @@ public class dev/openfeature/kotlin/sdk/NoOpProvider : dev/openfeature/kotlin/sd
 	public fun getDoubleEvaluation (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public fun getHooks ()Ljava/util/List;
 	public fun getIntegerEvaluation (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public fun getLongEvaluation (Ljava/lang/String;JLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public fun getMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
 	public fun getObjectEvaluation (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public fun getStringEvaluation (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
@@ -303,6 +312,10 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureClient : dev/openfeatur
 	public fun getIntegerDetails (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getIntegerValue (Ljava/lang/String;I)I
 	public fun getIntegerValue (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)I
+	public fun getLongDetails (Ljava/lang/String;J)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getLongDetails (Ljava/lang/String;JLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
+	public fun getLongValue (Ljava/lang/String;J)J
+	public fun getLongValue (Ljava/lang/String;JLdev/openfeature/kotlin/sdk/FlagEvaluationOptions;)J
 	public fun getMetadata ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
 	public fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
@@ -463,6 +476,7 @@ public abstract interface class dev/openfeature/kotlin/sdk/Value {
 	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
+	public fun asLong ()Ljava/lang/Long;
 	public fun asString ()Ljava/lang/String;
 	public fun asStructure ()Ljava/util/Map;
 	public fun isNull ()Z
@@ -475,6 +489,7 @@ public final class dev/openfeature/kotlin/sdk/Value$Boolean : dev/openfeature/ko
 	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
+	public fun asLong ()Ljava/lang/Long;
 	public fun asString ()Ljava/lang/String;
 	public fun asStructure ()Ljava/util/Map;
 	public final fun component1 ()Z
@@ -493,6 +508,7 @@ public final class dev/openfeature/kotlin/sdk/Value$DefaultImpls {
 	public static fun asInstant (Ldev/openfeature/kotlin/sdk/Value;)Lkotlin/time/Instant;
 	public static fun asInteger (Ldev/openfeature/kotlin/sdk/Value;)Ljava/lang/Integer;
 	public static fun asList (Ldev/openfeature/kotlin/sdk/Value;)Ljava/util/List;
+	public static fun asLong (Ldev/openfeature/kotlin/sdk/Value;)Ljava/lang/Long;
 	public static fun asString (Ldev/openfeature/kotlin/sdk/Value;)Ljava/lang/String;
 	public static fun asStructure (Ldev/openfeature/kotlin/sdk/Value;)Ljava/util/Map;
 	public static fun isNull (Ldev/openfeature/kotlin/sdk/Value;)Z
@@ -505,6 +521,7 @@ public final class dev/openfeature/kotlin/sdk/Value$Double : dev/openfeature/kot
 	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
+	public fun asLong ()Ljava/lang/Long;
 	public fun asString ()Ljava/lang/String;
 	public fun asStructure ()Ljava/util/Map;
 	public final fun component1 ()D
@@ -524,6 +541,7 @@ public final class dev/openfeature/kotlin/sdk/Value$Instant : dev/openfeature/ko
 	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
+	public fun asLong ()Ljava/lang/Long;
 	public fun asString ()Ljava/lang/String;
 	public fun asStructure ()Ljava/util/Map;
 	public final fun component1 ()Lkotlin/time/Instant;
@@ -543,6 +561,7 @@ public final class dev/openfeature/kotlin/sdk/Value$Integer : dev/openfeature/ko
 	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
+	public fun asLong ()Ljava/lang/Long;
 	public fun asString ()Ljava/lang/String;
 	public fun asStructure ()Ljava/util/Map;
 	public final fun component1 ()I
@@ -563,6 +582,7 @@ public final class dev/openfeature/kotlin/sdk/Value$List : dev/openfeature/kotli
 	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
+	public fun asLong ()Ljava/lang/Long;
 	public fun asString ()Ljava/lang/String;
 	public fun asStructure ()Ljava/util/Map;
 	public final fun component1 ()Ljava/util/List;
@@ -579,6 +599,26 @@ public final class dev/openfeature/kotlin/sdk/Value$List$Companion {
 	public final fun invoke (Ljava/util/List;)Ldev/openfeature/kotlin/sdk/Value$List;
 }
 
+public final class dev/openfeature/kotlin/sdk/Value$Long : dev/openfeature/kotlin/sdk/Value {
+	public fun <init> (J)V
+	public fun asBoolean ()Ljava/lang/Boolean;
+	public fun asDouble ()Ljava/lang/Double;
+	public fun asInstant ()Lkotlin/time/Instant;
+	public fun asInteger ()Ljava/lang/Integer;
+	public fun asList ()Ljava/util/List;
+	public fun asLong ()Ljava/lang/Long;
+	public fun asString ()Ljava/lang/String;
+	public fun asStructure ()Ljava/util/Map;
+	public final fun component1 ()J
+	public final fun copy (J)Ldev/openfeature/kotlin/sdk/Value$Long;
+	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/Value$Long;JILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/Value$Long;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLong ()J
+	public fun hashCode ()I
+	public fun isNull ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/openfeature/kotlin/sdk/Value$Null : dev/openfeature/kotlin/sdk/Value {
 	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/Value$Null;
 	public fun asBoolean ()Ljava/lang/Boolean;
@@ -586,6 +626,7 @@ public final class dev/openfeature/kotlin/sdk/Value$Null : dev/openfeature/kotli
 	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
+	public fun asLong ()Ljava/lang/Long;
 	public fun asString ()Ljava/lang/String;
 	public fun asStructure ()Ljava/util/Map;
 	public fun equals (Ljava/lang/Object;)Z
@@ -600,6 +641,7 @@ public final class dev/openfeature/kotlin/sdk/Value$String : dev/openfeature/kot
 	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
+	public fun asLong ()Ljava/lang/Long;
 	public fun asString ()Ljava/lang/String;
 	public fun asStructure ()Ljava/util/Map;
 	public final fun component1 ()Ljava/lang/String;
@@ -620,6 +662,7 @@ public final class dev/openfeature/kotlin/sdk/Value$Structure : dev/openfeature/
 	public fun asInstant ()Lkotlin/time/Instant;
 	public fun asInteger ()Ljava/lang/Integer;
 	public fun asList ()Ljava/util/List;
+	public fun asLong ()Ljava/lang/Long;
 	public fun asString ()Ljava/lang/String;
 	public fun asStructure ()Ljava/util/Map;
 	public final fun component1 ()Ljava/util/Map;
@@ -807,8 +850,8 @@ public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook : dev/openfeatur
 	public static final field Companion Ldev/openfeature/kotlin/sdk/hooks/LoggingHook$Companion;
 	public static final field HINT_LOG_EVALUATION_CONTEXT Ljava/lang/String;
 	public fun <init> ()V
-	public fun <init> (Ldev/openfeature/kotlin/sdk/logging/Logger;ZLdev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;)V
-	public synthetic fun <init> (Ldev/openfeature/kotlin/sdk/logging/Logger;ZLdev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ldev/openfeature/kotlin/sdk/logging/Logger;ZLdev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;ZLjava/util/Set;Ljava/util/Set;)V
+	public synthetic fun <init> (Ldev/openfeature/kotlin/sdk/logging/Logger;ZLdev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;Ldev/openfeature/kotlin/sdk/logging/LogLevel;ZLjava/util/Set;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun after (Ldev/openfeature/kotlin/sdk/HookContext;Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;Ljava/util/Map;)V
 	public fun before (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/util/Map;)V
 	public fun error (Ldev/openfeature/kotlin/sdk/HookContext;Ljava/lang/Exception;Ljava/util/Map;)V
@@ -817,6 +860,7 @@ public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook : dev/openfeatur
 }
 
 public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook$Companion {
+	public final fun getDEFAULT_SENSITIVE_KEYS ()Ljava/util/Set;
 }
 
 public final class dev/openfeature/kotlin/sdk/logging/LogLevel : java/lang/Enum {
@@ -879,6 +923,7 @@ public final class dev/openfeature/kotlin/sdk/multiprovider/MultiProvider : dev/
 	public fun getDoubleEvaluation (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public fun getHooks ()Ljava/util/List;
 	public fun getIntegerEvaluation (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public fun getLongEvaluation (Ljava/lang/String;JLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public fun getMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
 	public fun getObjectEvaluation (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public final fun getStatusFlow ()Lkotlinx/coroutines/flow/StateFlow;
@@ -896,6 +941,7 @@ public final class dev/openfeature/kotlin/sdk/multiprovider/MultiProvider$ChildF
 	public fun getDoubleEvaluation (Ljava/lang/String;DLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public fun getHooks ()Ljava/util/List;
 	public fun getIntegerEvaluation (Ljava/lang/String;ILdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
+	public fun getLongEvaluation (Ljava/lang/String;JLdev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;
 	public fun getMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
 	public final fun getName ()Ljava/lang/String;
 	public fun getObjectEvaluation (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/EvaluationContext;)Ldev/openfeature/kotlin/sdk/ProviderEvaluation;

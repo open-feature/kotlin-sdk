@@ -8,6 +8,8 @@ class EvaluationMetadata internal constructor(private val values: Map<String, An
 
     fun getInt(key: String): Int? = values[key] as? Int
 
+    fun getLong(key: String): Long? = values[key] as? Long
+
     fun getDouble(key: String): Double? = values[key] as? Double
 
     companion object {
@@ -39,6 +41,11 @@ class Builder {
     }
 
     fun putInt(key: String, value: Int): Builder {
+        values[key] = value
+        return this
+    }
+
+    fun putLong(key: String, value: Long): Builder {
         values[key] = value
         return this
     }
