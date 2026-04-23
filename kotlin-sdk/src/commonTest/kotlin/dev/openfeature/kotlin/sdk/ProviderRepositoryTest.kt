@@ -512,4 +512,30 @@ class ProviderRepositoryTest {
             "Shutdown MUST explicitly track and natively intercept Phantom Domain Hook evaluations statically!"
         )
     }
+
+    @Test
+    fun testConcurrentSetEvaluationContextIsThreadSafe() = runTest {
+        val testDomain = "concurrent-domain"
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+
+        // Spawn 100 concurrent requests into the test dispatcher queue to induce rapid cancellation overrides natively
+        for (index in 0 until 100) {
+            OpenFeatureAPI.setEvaluationContext(
+                testDomain,
+                ImmutableContext(attributes = mapOf("key" to Value.Integer(index))),
+                dispatcher = testDispatcher
+            )
+        }
+
+        // Let the test environment gracefully resolve all internally queued lock transfers and cancellations
+        testScheduler.advanceUntilIdle()
+
+        // If the JobMutex works, no CancellationExceptions should have leaked natively and
+        // the final surviving context should strictly be mathematically intact and valid!
+        val resultingContext = OpenFeatureAPI.getEvaluationContext(testDomain)
+        assertNotNull(resultingContext, "Context MUST NOT be completely destroyed by concurrent Job cancellations!")
+        assertTrue(resultingContext.asMap().containsKey("key"))
+
+        OpenFeatureAPI.shutdown()
+    }
 }

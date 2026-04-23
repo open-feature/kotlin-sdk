@@ -166,4 +166,54 @@ class OpenFeatureClientTests {
         assertNotNull(capturedNewContext)
         assertTrue(capturedNewContext!!.asMap().isEmpty())
     }
+
+    @Test
+    fun testClientObserveEvents() = runTest {
+        val client = OpenFeatureAPI.getClient("client-events-domain")
+        val events = mutableListOf<OpenFeatureProviderEvents>()
+        val job = launch {
+            client.observeEvents().collect { events.add(it) }
+        }
+
+        val eventProvider = object : FeatureProvider by NoOpProvider() {
+            override fun observe(): kotlinx.coroutines.flow.Flow<OpenFeatureProviderEvents> =
+                kotlinx.coroutines.flow.flowOf(
+                    OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                    OpenFeatureProviderEvents.ProviderStale()
+                )
+        }
+
+        OpenFeatureAPI.setProviderAndWait("client-events-domain", eventProvider)
+
+        testScheduler.advanceUntilIdle()
+
+        assertTrue(events.any { it is OpenFeatureProviderEvents.ProviderConfigurationChanged })
+        assertTrue(events.any { it is OpenFeatureProviderEvents.ProviderStale })
+        job.cancel()
+    }
+
+    @Test
+    fun testClientObserveFilteredEvents() = runTest {
+        val client = OpenFeatureAPI.getClient("client-filtered-domain")
+        val configEvents = mutableListOf<OpenFeatureProviderEvents.ProviderConfigurationChanged>()
+        val job = launch {
+            client.observe<OpenFeatureProviderEvents.ProviderConfigurationChanged>().collect { configEvents.add(it) }
+        }
+
+        val eventProvider = object : FeatureProvider by NoOpProvider() {
+            override fun observe(): kotlinx.coroutines.flow.Flow<OpenFeatureProviderEvents> =
+                kotlinx.coroutines.flow.flowOf(
+                    OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                    OpenFeatureProviderEvents.ProviderStale()
+                )
+        }
+
+        OpenFeatureAPI.setProviderAndWait("client-filtered-domain", eventProvider)
+
+        testScheduler.advanceUntilIdle()
+
+        assertTrue(configEvents.isNotEmpty())
+        assertTrue(configEvents.all { it is OpenFeatureProviderEvents.ProviderConfigurationChanged })
+        job.cancel()
+    }
 }

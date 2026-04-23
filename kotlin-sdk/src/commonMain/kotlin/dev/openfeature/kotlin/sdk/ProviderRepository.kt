@@ -29,6 +29,7 @@ import kotlin.concurrent.Volatile
 internal class DomainState {
     var setProviderJob: Job? = null
     var setEvaluationContextJob: Job? = null
+    val jobMutex = Mutex()
 
     val providerMutex = Mutex()
     val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(NoOpProvider())
@@ -109,8 +110,10 @@ internal class DomainState {
     fun getStatus(): OpenFeatureStatus = _statusFlow.replayCache.firstOrNull() ?: OpenFeatureStatus.NotReady
 
     suspend fun shutdown() {
-        setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to shutdown"))
-        setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to shutdown"))
+        jobMutex.withLock {
+            setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to shutdown"))
+            setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to shutdown"))
+        }
         val providerToShutdown = providerMutex.withLock {
             domainScope?.cancel(CancellationException("DomainScope was cancelled due to shutdown"))
             domainScope = null

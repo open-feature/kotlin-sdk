@@ -96,7 +96,7 @@ class StatusTests {
         OpenFeatureAPI.setProviderAndWait(SlowProvider(dispatcher = dispatcher))
         waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
         for (i in 1..30) {
-            OpenFeatureAPI.setEvaluationContext(ImmutableContext("test_$i"))
+            OpenFeatureAPI.setEvaluationContext(ImmutableContext("test_$i"), dispatcher = dispatcher)
             delay(Duration.randomMs(0, 10))
         }
 

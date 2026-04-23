@@ -10,6 +10,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -23,6 +24,7 @@ object OpenFeatureAPI {
     @PublishedApi
     internal val repository = ProviderRepository()
     private val globalContextMutex = Mutex()
+    private val jobMutex = Mutex()
     private var context: EvaluationContext? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -53,12 +55,7 @@ object OpenFeatureAPI {
         dispatcher: CoroutineDispatcher = Dispatchers.Default,
         initialContext: EvaluationContext? = null
     ) {
-        CoroutineScope(SupervisorJob() + dispatcher).launch {
-            val state = repository.getOrCreateState(null)
-            state.setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to new provider"))
-            state.setProviderJob = coroutineContext[Job]
-            setProviderInternal(state, provider, dispatcher, initialContext, isGlobalContext = true)
-        }
+        launchProviderJob(null, provider, dispatcher, initialContext, isGlobalContext = true)
     }
 
     /**
@@ -70,11 +67,25 @@ object OpenFeatureAPI {
         dispatcher: CoroutineDispatcher = Dispatchers.Default,
         initialContext: EvaluationContext? = null
     ) {
+        launchProviderJob(domain, provider, dispatcher, initialContext, isGlobalContext = false)
+    }
+
+    private fun launchProviderJob(
+        domain: String?,
+        provider: FeatureProvider,
+        dispatcher: CoroutineDispatcher,
+        initialContext: EvaluationContext?,
+        isGlobalContext: Boolean
+    ) {
         CoroutineScope(SupervisorJob() + dispatcher).launch {
             val state = repository.getOrCreateState(domain)
-            state.setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to new provider"))
-            state.setProviderJob = coroutineContext[Job]
-            setProviderInternal(state, provider, dispatcher, initialContext, isGlobalContext = false)
+            state.jobMutex.withLock {
+                state.setProviderJob?.cancel(
+                    CancellationException("Provider set job was cancelled due to new provider")
+                )
+                state.setProviderJob = coroutineContext[Job]
+            }
+            setProviderInternal(state, provider, dispatcher, initialContext, isGlobalContext)
         }
     }
 
@@ -169,9 +180,13 @@ object OpenFeatureAPI {
                     s.mergedContext = s.context?.let { initialContext.mergeWith(it) } ?: initialContext
                 }
             } else {
-                s.setEvaluationContextJob?.cancel(CancellationException("Set context job cancelled by global provider"))
-                s.setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
-                    applyContextToState(s, initialContext)
+                s.jobMutex.withLock {
+                    s.setEvaluationContextJob?.cancel(
+                        CancellationException("Set context job cancelled by global provider")
+                    )
+                    s.setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+                        applyContextToState(s, initialContext)
+                    }
                 }
             }
         }
@@ -288,8 +303,7 @@ object OpenFeatureAPI {
         evaluationContext: EvaluationContext,
         dispatcher: CoroutineDispatcher = Dispatchers.Default
     ) {
-        setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to new context"))
-        setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+        launchEvaluationContextJob(null, dispatcher, "Set context job was cancelled due to new context") {
             setEvaluationContextInternal(evaluationContext)
         }
     }
@@ -305,17 +319,12 @@ object OpenFeatureAPI {
         evaluationContext: EvaluationContext,
         dispatcher: CoroutineDispatcher = Dispatchers.Default
     ) {
-        if (domain == null) {
-            setEvaluationContext(evaluationContext, dispatcher)
-            return
-        }
-        CoroutineScope(SupervisorJob() + dispatcher).launch {
-            val state = repository.getOrCreateState(domain)
-            state.setEvaluationContextJob?.cancel(
-                CancellationException("Set context job was cancelled due to new context")
-            )
-            state.setEvaluationContextJob = coroutineContext[Job]
-            setEvaluationContextInternal(domain, evaluationContext)
+        launchEvaluationContextJob(domain, dispatcher, "Set context job was cancelled due to new context") {
+            if (domain == null) {
+                setEvaluationContextInternal(evaluationContext)
+            } else {
+                setEvaluationContextInternal(domain, evaluationContext)
+            }
         }
     }
 
@@ -325,8 +334,7 @@ object OpenFeatureAPI {
     fun clearEvaluationContext(
         dispatcher: CoroutineDispatcher = Dispatchers.Default
     ) {
-        setEvaluationContextJob?.cancel(CancellationException("Clear context job was cancelled due to new context"))
-        setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+        launchEvaluationContextJob(null, dispatcher, "Clear context job was cancelled due to new context") {
             clearEvaluationContextInternal(null)
         }
     }
@@ -340,17 +348,31 @@ object OpenFeatureAPI {
         domain: String?,
         dispatcher: CoroutineDispatcher = Dispatchers.Default
     ) {
-        if (domain == null) {
-            clearEvaluationContext(dispatcher)
-            return
-        }
-        CoroutineScope(SupervisorJob() + dispatcher).launch {
-            val state = repository.getOrCreateState(domain)
-            state.setEvaluationContextJob?.cancel(
-                CancellationException("Clear context job was cancelled due to new context")
-            )
-            state.setEvaluationContextJob = coroutineContext[Job]
+        launchEvaluationContextJob(domain, dispatcher, "Clear context job was cancelled due to new context") {
             clearEvaluationContextInternal(domain)
+        }
+    }
+
+    private fun launchEvaluationContextJob(
+        domain: String?,
+        dispatcher: CoroutineDispatcher,
+        cancellationMessage: String,
+        block: suspend () -> Unit
+    ) {
+        CoroutineScope(SupervisorJob() + dispatcher).launch {
+            if (domain == null) {
+                jobMutex.withLock {
+                    setEvaluationContextJob?.cancel(CancellationException(cancellationMessage))
+                    setEvaluationContextJob = coroutineContext[Job]
+                }
+            } else {
+                val state = repository.getOrCreateState(domain)
+                state.jobMutex.withLock {
+                    state.setEvaluationContextJob?.cancel(CancellationException(cancellationMessage))
+                    state.setEvaluationContextJob = coroutineContext[Job]
+                }
+            }
+            block()
         }
     }
 
@@ -493,7 +515,9 @@ object OpenFeatureAPI {
      * The SDK status will be set to [OpenFeatureStatus.NotReady].
      */
     suspend fun shutdown() {
-        setEvaluationContextJob?.cancel(CancellationException("Job cancelled due to shutdown"))
+        jobMutex.withLock {
+            setEvaluationContextJob?.cancel(CancellationException("Job cancelled due to shutdown"))
+        }
         clearHooks()
         clearProvider()
     }
@@ -526,7 +550,18 @@ object OpenFeatureAPI {
     @OptIn(ExperimentalCoroutinesApi::class)
     inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> =
         getProvidersFlowForDomain(null)
-            .flatMapLatest { it.observe() }
+            .flatMapLatest { provider ->
+                provider.observe().catch { cause ->
+                    emit(
+                        OpenFeatureProviderEvents.ProviderError(
+                            OpenFeatureProviderEvents.EventDetails(
+                                message = cause.message ?: "Provider observe() crashed",
+                                errorCode = dev.openfeature.kotlin.sdk.exceptions.ErrorCode.GENERAL
+                            )
+                        )
+                    )
+                }
+            }
             .filterIsInstance()
 
     /**
@@ -535,6 +570,17 @@ object OpenFeatureAPI {
     @OptIn(ExperimentalCoroutinesApi::class)
     inline fun <reified T : OpenFeatureProviderEvents> observe(domain: String?): Flow<T> =
         getProvidersFlowForDomain(domain)
-            .flatMapLatest { it.observe() }
+            .flatMapLatest { provider ->
+                provider.observe().catch { cause ->
+                    emit(
+                        OpenFeatureProviderEvents.ProviderError(
+                            OpenFeatureProviderEvents.EventDetails(
+                                message = cause.message ?: "Provider observe() crashed",
+                                errorCode = dev.openfeature.kotlin.sdk.exceptions.ErrorCode.GENERAL
+                            )
+                        )
+                    )
+                }
+            }
             .filterIsInstance()
 }
