@@ -205,9 +205,38 @@ object OpenFeatureAPI {
             tryWithStatusEmitErrorHandling(state) {
                 val globalCtx = globalContextMutex.withLock { context }
                 val resolvedContext = state.contextMutex.withLock { state.mergedContext } ?: globalCtx
-                provider.initialize(resolvedContext)
-                state.emitStatus(OpenFeatureStatus.Ready)
-                state.emitEvent(OpenFeatureProviderEvents.ProviderReady())
+
+                if (provider !is NoOpProvider) {
+                    val initMutex = repository.getInitMutex(provider)
+                    initMutex.withLock {
+                        if (!repository.isInitialized(provider)) {
+                            provider.initialize(resolvedContext)
+                            repository.markInitialized(provider)
+                            repository.updateGlobalProviderStatus(provider, OpenFeatureStatus.Ready)
+                            state.emitStatus(OpenFeatureStatus.Ready)
+                            state.emitEvent(OpenFeatureProviderEvents.ProviderReady())
+                        } else {
+                            val currentStatus = repository.getGlobalProviderStatus(provider) ?: OpenFeatureStatus.Ready
+                            state.emitStatus(currentStatus)
+                            when (currentStatus) {
+                                is OpenFeatureStatus.Ready -> state.emitEvent(OpenFeatureProviderEvents.ProviderReady())
+                                is OpenFeatureStatus.Error -> state.emitEvent(
+                                    OpenFeatureProviderEvents.ProviderError(
+                                        dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents.EventDetails(
+                                            message = "Provider in error state"
+                                        )
+                                    )
+                                )
+                                is OpenFeatureStatus.Stale -> state.emitEvent(OpenFeatureProviderEvents.ProviderStale())
+                                else -> {}
+                            }
+                        }
+                    }
+                } else {
+                    provider.initialize(resolvedContext)
+                    state.emitStatus(OpenFeatureStatus.Ready)
+                    state.emitEvent(OpenFeatureProviderEvents.ProviderReady())
+                }
             }
         }
     }

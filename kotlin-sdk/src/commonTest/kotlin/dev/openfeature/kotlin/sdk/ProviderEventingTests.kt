@@ -245,4 +245,171 @@ class ProviderEventingTests {
         // Now it should be shut down exactly once
         assertEquals(1, shutdownCalls, "Should be shut down exactly once after all bindings are removed")
     }
+
+    @Test
+    fun testSharedProviderIsInitializedOnlyOnce() = runTest {
+        var initializeCalls = 0
+        val sharedProvider = object : DoSomethingProvider() {
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                initializeCalls++
+                delay(10) // Simulate some work
+            }
+        }
+
+        val jobA = launch(StandardTestDispatcher(testScheduler)) {
+            OpenFeatureAPI.setProviderAndWait(
+                "domainA",
+                sharedProvider,
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
+        }
+
+        val jobB = launch(StandardTestDispatcher(testScheduler)) {
+            OpenFeatureAPI.setProviderAndWait(
+                "domainB",
+                sharedProvider,
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
+        }
+
+        testScheduler.advanceUntilIdle()
+
+        jobA.join()
+        jobB.join()
+
+        assertEquals(1, initializeCalls, "Should be initialized exactly once globally")
+
+        val clientA = OpenFeatureAPI.getClient("domainA")
+        val clientB = OpenFeatureAPI.getClient("domainB")
+
+        assertEquals(
+            OpenFeatureStatus.Ready,
+            OpenFeatureAPI.getProviderStatus("domainA")
+        )
+        assertEquals(
+            OpenFeatureStatus.Ready,
+            OpenFeatureAPI.getProviderStatus("domainB")
+        )
+    }
+
+    @Test
+    fun testSharedProviderSyncsErrorState() = runTest {
+        val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 0, extraBufferCapacity = 1)
+        val sharedProvider = object : DoSomethingProvider() {
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                delay(10)
+            }
+            override fun observe(): Flow<OpenFeatureProviderEvents> = eventFlow
+        }
+
+        // Domain A binds and initializes the provider
+        val jobA = launch(StandardTestDispatcher(testScheduler)) {
+            OpenFeatureAPI.setProviderAndWait(
+                "domainA",
+                sharedProvider,
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
+        }
+        testScheduler.advanceUntilIdle()
+        jobA.join()
+
+        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getProviderStatus("domainA"))
+
+        // Simulate a crash emitting an Error event natively from the provider
+        eventFlow.emit(
+            OpenFeatureProviderEvents.ProviderError(
+                dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents.EventDetails(message = "Simulated Crash")
+            )
+        )
+        testScheduler.advanceUntilIdle()
+
+        // Domain A should now reflect the Error status
+        val statusA = OpenFeatureAPI.getProviderStatus("domainA")
+        assertTrue(statusA is OpenFeatureStatus.Error)
+
+        // Domain B now binds the SAME provider, bypassing initialization
+        val jobB = launch(StandardTestDispatcher(testScheduler)) {
+            OpenFeatureAPI.setProviderAndWait(
+                "domainB",
+                sharedProvider,
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
+        }
+        testScheduler.advanceUntilIdle()
+        jobB.join()
+
+        // Domain B should correctly sync the Error state, NOT falsely emit Ready
+        val statusB = OpenFeatureAPI.getProviderStatus("domainB")
+        assertTrue(statusB is OpenFeatureStatus.Error)
+    }
+
+    /**
+     * Verifies that when a domain binds to an already initialized shared provider, it successfully
+     * bypasses the redundant `initialize()` call, syncs the global status from the provider,
+     * AND synthetically broadcasts the corresponding event (e.g. ProviderReady) to its
+     * locally bound event streams so that clients observing events receive the latest state.
+     */
+    @Test
+    fun testSharedProviderEmitsSyntheticEventsOnBypass() = runTest {
+        val sharedProvider = object : DoSomethingProvider() {
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                delay(10)
+            }
+        }
+
+        // Domain A initializes the provider
+        val jobA = launch(StandardTestDispatcher(testScheduler)) {
+            OpenFeatureAPI.setProviderAndWait(
+                "domainA",
+                sharedProvider,
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
+        }
+        testScheduler.advanceUntilIdle()
+        jobA.join()
+
+        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getProviderStatus("domainA"))
+
+        // Pre-initialize Domain B with a NoOpProvider so the state is created and the flow is wired up
+        val jobPreB = launch(StandardTestDispatcher(testScheduler)) {
+            OpenFeatureAPI.setProviderAndWait(
+                "domainB",
+                NoOpProvider(),
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
+        }
+        testScheduler.advanceUntilIdle()
+        jobPreB.join()
+
+        // Set up Domain B's client and listen to events
+        val clientB = OpenFeatureAPI.getClient("domainB")
+        val eventsReceived = mutableListOf<OpenFeatureProviderEvents>()
+
+        val eventJob = launch(StandardTestDispatcher(testScheduler)) {
+            clientB.observeEvents().collect { event ->
+                eventsReceived.add(event)
+            }
+        }
+        testScheduler.advanceUntilIdle() // Ensure collection starts
+
+        // Domain B binds the provider, bypassing initialization
+        val jobB = launch(StandardTestDispatcher(testScheduler)) {
+            OpenFeatureAPI.setProviderAndWait(
+                "domainB",
+                sharedProvider,
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
+        }
+
+        testScheduler.advanceUntilIdle()
+        jobB.join()
+
+        // Verify the synthetic Ready event was broadcasted to Domain B's clients
+        assertTrue(
+            eventsReceived.any { it is OpenFeatureProviderEvents.ProviderReady },
+            "Domain B should have received a synthetic ProviderReady event"
+        )
+
+        eventJob.cancel()
+    }
 }

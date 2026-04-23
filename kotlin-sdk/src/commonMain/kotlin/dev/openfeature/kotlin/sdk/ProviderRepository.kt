@@ -26,7 +26,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.concurrent.Volatile
 
-internal class DomainState {
+internal class DomainState(
+    private val onStatusUpdate: suspend (FeatureProvider, OpenFeatureStatus) -> Unit = { _, _ -> }
+) {
     var setProviderJob: Job? = null
     var setEvaluationContextJob: Job? = null
     val jobMutex = Mutex()
@@ -93,7 +95,7 @@ internal class DomainState {
                     val activeDispatcher = currentDispatcher ?: dispatcher
                     withContext(activeDispatcher) {
                         if (providersFlow.value === currentProvider) {
-                            processProviderEvent(providerEvent)
+                            processProviderEvent(currentProvider, providerEvent)
                             emitEvent(providerEvent)
                         }
                     }
@@ -102,13 +104,17 @@ internal class DomainState {
         }
     }
 
-    private suspend fun processProviderEvent(event: OpenFeatureProviderEvents) {
-        when (event) {
-            is OpenFeatureProviderEvents.ProviderReady -> emitStatus(OpenFeatureStatus.Ready)
-            is OpenFeatureProviderEvents.ProviderStale -> emitStatus(OpenFeatureStatus.Stale)
-            is OpenFeatureProviderEvents.ProviderError -> emitStatus(event.toOpenFeatureStatusError())
-            else -> { // All other states should not be emitted from here
-            }
+    private suspend fun processProviderEvent(eventProvider: FeatureProvider, event: OpenFeatureProviderEvents) {
+        val status = when (event) {
+            is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
+            is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
+            is OpenFeatureProviderEvents.ProviderError -> event.toOpenFeatureStatusError()
+            else -> null
+        }
+
+        if (status != null) {
+            emitStatus(status)
+            onStatusUpdate(eventProvider, status)
         }
     }
 
@@ -140,12 +146,20 @@ internal class DomainState {
 }
 
 internal class ProviderRepository {
-    private val defaultDomainState = DomainState()
+    private val onStatusUpdate: suspend (FeatureProvider, OpenFeatureStatus) -> Unit = { provider, status ->
+        updateGlobalProviderStatus(provider, status)
+    }
+
+    private val defaultDomainState = DomainState(onStatusUpdate)
     internal val defaultStateFlow = MutableStateFlow(defaultDomainState)
     private val domainsFlow = MutableStateFlow<Map<String, DomainState>>(emptyMap())
+
     private val repositoryMutex = Mutex()
     private val referencesMutex = Mutex()
     private val providerReferences = mutableMapOf<FeatureProvider, Int>()
+    private val providerInitMutexes = mutableMapOf<FeatureProvider, Mutex>()
+    private val initializedProviders = mutableSetOf<FeatureProvider>()
+    private val providerStatuses = mutableMapOf<FeatureProvider, OpenFeatureStatus>()
 
     suspend fun attachProvider(provider: FeatureProvider) {
         if (provider is NoOpProvider) return
@@ -161,12 +175,37 @@ internal class ProviderRepository {
             val count = (providerReferences[provider] ?: 0) - 1
             if (count <= 0) {
                 providerReferences.remove(provider)
+                providerInitMutexes.remove(provider)
+                initializedProviders.remove(provider)
+                providerStatuses.remove(provider)
                 true
             } else {
                 providerReferences[provider] = count
                 false
             }
         }
+    }
+
+    suspend fun getInitMutex(provider: FeatureProvider): Mutex {
+        return referencesMutex.withLock {
+            providerInitMutexes.getOrPut(provider) { Mutex() }
+        }
+    }
+
+    suspend fun isInitialized(provider: FeatureProvider): Boolean {
+        return referencesMutex.withLock { initializedProviders.contains(provider) }
+    }
+
+    suspend fun markInitialized(provider: FeatureProvider) {
+        referencesMutex.withLock { initializedProviders.add(provider) }
+    }
+
+    suspend fun getGlobalProviderStatus(provider: FeatureProvider): OpenFeatureStatus? {
+        return referencesMutex.withLock { providerStatuses[provider] }
+    }
+
+    suspend fun updateGlobalProviderStatus(provider: FeatureProvider, status: OpenFeatureStatus) {
+        referencesMutex.withLock { providerStatuses[provider] = status }
     }
 
     fun getState(domain: String? = null): DomainState {
@@ -178,7 +217,7 @@ internal class ProviderRepository {
         if (domain == null) return defaultDomainState
 
         return domainsFlow.value[domain] ?: repositoryMutex.withLock {
-            domainsFlow.value[domain] ?: DomainState().also { newState ->
+            domainsFlow.value[domain] ?: DomainState(onStatusUpdate).also { newState ->
                 domainsFlow.update { currentMap -> currentMap + (domain to newState) }
             }
         }
