@@ -38,6 +38,7 @@ class StructureTests {
                 "string" to Value.String("val"),
                 "bool" to Value.Boolean(true),
                 "int" to Value.Integer(13),
+                "long" to Value.Long(1_000_000_000_000L),
                 "double" to Value.Double(0.5),
                 "date" to Value.Instant(now),
                 "list" to Value.List(listOf()),
@@ -50,7 +51,9 @@ class StructureTests {
         assertEquals(true, structure.getValue("bool")?.asBoolean())
         assertEquals("val", structure.getValue("string")?.asString())
         assertEquals(13, structure.getValue("int")?.asInteger())
+        assertEquals(1_000_000_000_000L, structure.getValue("long")?.asLong())
         assertEquals(0.5, structure.getValue("double")?.asDouble())
+        assertEquals(1_000_000_000_000L, structure.asObjectMap()["long"])
         assertEquals(now, structure.getValue("date")?.asInstant())
         assertEquals(listOf<Value>(), structure.getValue("list")?.asList())
         assertEquals(mapOf<String, Value>(), structure.getValue("structure")?.asStructure())

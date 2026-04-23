@@ -322,6 +322,20 @@ class MultiProvider(
         )
     }
 
+    override fun getLongEvaluation(
+        key: String,
+        defaultValue: Long,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Long> {
+        return strategy.evaluate(
+            childFeatureProviders,
+            key,
+            defaultValue,
+            context,
+            FeatureProvider::getLongEvaluation
+        )
+    }
+
     override fun getDoubleEvaluation(
         key: String,
         defaultValue: Double,

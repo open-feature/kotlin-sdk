@@ -9,6 +9,7 @@ sealed interface Value {
     fun asString(): kotlin.String? = if (this is String) string else null
     fun asBoolean(): kotlin.Boolean? = if (this is Boolean) boolean else null
     fun asInteger(): Int? = if (this is Integer) integer else null
+    fun asLong(): kotlin.Long? = if (this is Long) long else null
     fun asDouble(): kotlin.Double? = if (this is Double) double else null
 
     @OptIn(ExperimentalTime::class)
@@ -22,6 +23,8 @@ sealed interface Value {
     data class Boolean(val boolean: kotlin.Boolean) : Value
 
     data class Integer(val integer: Int) : Value
+
+    data class Long(val long: kotlin.Long) : Value
 
     data class Double(val double: kotlin.Double) : Value
 
