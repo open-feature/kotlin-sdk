@@ -336,9 +336,11 @@ class DeveloperExperienceTests {
         }
 
         // emits ProviderReady
+        val testDispatcher = StandardTestDispatcher(testScheduler)
         OpenFeatureAPI.setProviderAndWait(
             provider,
-            initialContext = ImmutableContext("first")
+            initialContext = ImmutableContext("first"),
+            dispatcher = testDispatcher
         )
         // emits ProviderStale + ProviderStale + ProviderStale
         OpenFeatureAPI.getClient().track("hello-world")

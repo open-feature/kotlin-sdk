@@ -122,12 +122,12 @@ internal class DomainState {
 
     fun getStatus(): OpenFeatureStatus = _statusFlow.replayCache.firstOrNull() ?: OpenFeatureStatus.NotReady
 
-    suspend fun shutdown() {
+    suspend fun resetAndGetProvider(): FeatureProvider {
         jobMutex.withLock {
             setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to shutdown"))
             setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to shutdown"))
         }
-        val providerToShutdown = providerMutex.withLock {
+        return providerMutex.withLock {
             domainScope?.cancel(CancellationException("DomainScope was cancelled due to shutdown"))
             domainScope = null
             currentDispatcher = null
@@ -135,11 +135,6 @@ internal class DomainState {
             providersFlow.value = NoOpProvider()
             _statusFlow.tryEmit(OpenFeatureStatus.NotReady)
             current
-        }
-        try {
-            providerToShutdown.shutdown()
-        } catch (e: Exception) {
-            // Safely suppress exceptions crashing custom provider teardown loops
         }
     }
 }
@@ -149,6 +144,30 @@ internal class ProviderRepository {
     internal val defaultStateFlow = MutableStateFlow(defaultDomainState)
     private val domainsFlow = MutableStateFlow<Map<String, DomainState>>(emptyMap())
     private val repositoryMutex = Mutex()
+    private val referencesMutex = Mutex()
+    private val providerReferences = mutableMapOf<FeatureProvider, Int>()
+
+    suspend fun attachProvider(provider: FeatureProvider) {
+        if (provider is NoOpProvider) return
+        referencesMutex.withLock {
+            val count = providerReferences[provider] ?: 0
+            providerReferences[provider] = count + 1
+        }
+    }
+
+    suspend fun detachProvider(provider: FeatureProvider): Boolean {
+        if (provider is NoOpProvider) return false
+        return referencesMutex.withLock {
+            val count = (providerReferences[provider] ?: 0) - 1
+            if (count <= 0) {
+                providerReferences.remove(provider)
+                true
+            } else {
+                providerReferences[provider] = count
+                false
+            }
+        }
+    }
 
     fun getState(domain: String? = null): DomainState {
         if (domain == null) return defaultDomainState
@@ -184,7 +203,14 @@ internal class ProviderRepository {
 
         // Shutdown cleanly outside the repository lock to prevent lock-inversion deadlocks!
         allStatesToShutdown.forEach { state ->
-            state.shutdown()
+            val oldProvider = state.resetAndGetProvider()
+            if (detachProvider(oldProvider)) {
+                try {
+                    oldProvider.shutdown()
+                } catch (e: Exception) {
+                    // Safely suppress exceptions crashing custom provider teardown loops
+                }
+            }
         }
     }
 }

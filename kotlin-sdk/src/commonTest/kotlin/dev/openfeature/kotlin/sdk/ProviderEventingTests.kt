@@ -207,4 +207,42 @@ class ProviderEventingTests {
 
         job.cancelAndJoin()
     }
+
+    @Test
+    fun testSharedProviderIsNotShutdownUntilLastDomainIsCleared() = runTest {
+        var shutdownCalls = 0
+        val sharedProvider = object : DoSomethingProvider() {
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                // no-op
+            }
+            override fun shutdown() {
+                shutdownCalls++
+            }
+        }
+
+        // Bind shared provider to domain A
+        OpenFeatureAPI.setProviderAndWait("domainA", sharedProvider, dispatcher = StandardTestDispatcher(testScheduler))
+        testScheduler.advanceUntilIdle()
+
+        // Bind shared provider to domain B
+        OpenFeatureAPI.setProviderAndWait("domainB", sharedProvider, dispatcher = StandardTestDispatcher(testScheduler))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(0, shutdownCalls, "Should not be shut down yet")
+
+        // Swap provider on domain A
+        val newProvider = DoSomethingProvider()
+        OpenFeatureAPI.setProviderAndWait("domainA", newProvider, dispatcher = StandardTestDispatcher(testScheduler))
+        testScheduler.advanceUntilIdle()
+
+        // Verify sharedProvider was NOT shut down because it's still bound to domain B
+        assertEquals(0, shutdownCalls, "Should not be shut down since domain B still uses it")
+
+        // Clear all providers (including domain B)
+        OpenFeatureAPI.clearProvider()
+        testScheduler.advanceUntilIdle()
+
+        // Now it should be shut down exactly once
+        assertEquals(1, shutdownCalls, "Should be shut down exactly once after all bindings are removed")
+    }
 }

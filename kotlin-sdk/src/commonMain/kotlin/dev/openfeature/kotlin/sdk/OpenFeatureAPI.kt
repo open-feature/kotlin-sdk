@@ -131,6 +131,8 @@ object OpenFeatureAPI {
         initialContext: EvaluationContext? = null,
         isGlobalContext: Boolean = false
     ) {
+        repository.attachProvider(provider)
+
         // Atomically swap the old and new provider to prevent race conditions
         val oldProvider = state.providerMutex.withLock {
             val current = state.provider
@@ -139,15 +141,17 @@ object OpenFeatureAPI {
             current
         }
 
-        if (initialContext != null) {
-            updateContextOnProviderSet(state, initialContext, isGlobalContext, dispatcher)
+        // Shutdown the previous provider isolated from stream errors
+        if (repository.detachProvider(oldProvider)) {
+            try {
+                oldProvider.shutdown()
+            } catch (e: Exception) {
+                // Ignore termination exceptions from dead configurations natively securely
+            }
         }
 
-        // Shutdown the previous provider isolated from stream errors
-        try {
-            oldProvider.shutdown()
-        } catch (e: Exception) {
-            // Ignore termination exceptions from dead configurations natively securely
+        if (initialContext != null) {
+            updateContextOnProviderSet(state, initialContext, isGlobalContext, dispatcher)
         }
 
         initializeProvider(state, provider, dispatcher)
