@@ -174,6 +174,7 @@ class OpenFeatureClientTests {
         val job = launch {
             client.observeEvents().collect { events.add(it) }
         }
+        testScheduler.runCurrent()
 
         val eventProvider = object : FeatureProvider by NoOpProvider() {
             override fun observe(): kotlinx.coroutines.flow.Flow<OpenFeatureProviderEvents> =
@@ -183,7 +184,8 @@ class OpenFeatureClientTests {
                 )
         }
 
-        OpenFeatureAPI.setProviderAndWait("client-events-domain", eventProvider)
+        val testDispatcher = kotlinx.coroutines.test.StandardTestDispatcher(testScheduler)
+        OpenFeatureAPI.setProviderAndWait("client-events-domain", eventProvider, dispatcher = testDispatcher)
 
         testScheduler.advanceUntilIdle()
 
@@ -199,6 +201,7 @@ class OpenFeatureClientTests {
         val job = launch {
             client.observe<OpenFeatureProviderEvents.ProviderConfigurationChanged>().collect { configEvents.add(it) }
         }
+        testScheduler.runCurrent()
 
         val eventProvider = object : FeatureProvider by NoOpProvider() {
             override fun observe(): kotlinx.coroutines.flow.Flow<OpenFeatureProviderEvents> =
@@ -208,7 +211,8 @@ class OpenFeatureClientTests {
                 )
         }
 
-        OpenFeatureAPI.setProviderAndWait("client-filtered-domain", eventProvider)
+        val testDispatcher = kotlinx.coroutines.test.StandardTestDispatcher(testScheduler)
+        OpenFeatureAPI.setProviderAndWait("client-filtered-domain", eventProvider, dispatcher = testDispatcher)
 
         testScheduler.advanceUntilIdle()
 

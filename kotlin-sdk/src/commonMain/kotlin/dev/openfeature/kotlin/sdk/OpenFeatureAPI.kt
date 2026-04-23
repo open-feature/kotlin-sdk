@@ -10,7 +10,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -204,6 +203,7 @@ object OpenFeatureAPI {
                 val resolvedContext = state.contextMutex.withLock { state.mergedContext } ?: globalCtx
                 provider.initialize(resolvedContext)
                 state.emitStatus(OpenFeatureStatus.Ready)
+                state.emitEvent(OpenFeatureProviderEvents.ProviderReady())
             }
         }
     }
@@ -431,9 +431,11 @@ object OpenFeatureAPI {
 
             activeProvider?.let { provider ->
                 state.emitStatus(OpenFeatureStatus.Reconciling)
+                state.emitEvent(OpenFeatureProviderEvents.ProviderReconciling())
                 tryWithStatusEmitErrorHandling(state) {
                     provider.onContextSet(oldContext, newContext)
                     state.emitStatus(OpenFeatureStatus.Ready)
+                    state.emitEvent(OpenFeatureProviderEvents.ProviderContextChanged())
                 }
             }
         }
@@ -446,11 +448,22 @@ object OpenFeatureAPI {
             // This happens by design and shouldn't be treated as an error
         } catch (e: OpenFeatureError) {
             state.emitStatus(OpenFeatureStatus.Error(e))
+            state.emitEvent(
+                OpenFeatureProviderEvents.ProviderError(
+                    eventDetails = OpenFeatureProviderEvents.EventDetails(
+                        message = e.message ?: "Unknown error",
+                        errorCode = e.errorCode()
+                    )
+                )
+            )
         } catch (e: Throwable) {
-            state.emitStatus(
-                OpenFeatureStatus.Error(
-                    OpenFeatureError.GeneralError(
-                        e.message ?: "Unknown error"
+            val generalError = OpenFeatureError.GeneralError(e.message ?: "Unknown error")
+            state.emitStatus(OpenFeatureStatus.Error(generalError))
+            state.emitEvent(
+                OpenFeatureProviderEvents.ProviderError(
+                    eventDetails = OpenFeatureProviderEvents.EventDetails(
+                        message = generalError.message,
+                        errorCode = generalError.errorCode()
                     )
                 )
             )
@@ -544,43 +557,22 @@ object OpenFeatureAPI {
     internal fun getProvidersFlowForDomain(domain: String?): Flow<FeatureProvider> =
         repository.getStateFlow(domain).flatMapLatest { it.providersFlow }
 
+    @PublishedApi
+    @OptIn(ExperimentalCoroutinesApi::class)
+    internal fun getEventsFlowForDomain(domain: String?): Flow<OpenFeatureProviderEvents> =
+        repository.getStateFlow(domain).flatMapLatest { it.eventsFlow }
+
     /**
      * Observe events from currently configured default provider.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> =
-        getProvidersFlowForDomain(null)
-            .flatMapLatest { provider ->
-                provider.observe().catch { cause ->
-                    emit(
-                        OpenFeatureProviderEvents.ProviderError(
-                            OpenFeatureProviderEvents.EventDetails(
-                                message = cause.message ?: "Provider observe() crashed",
-                                errorCode = dev.openfeature.kotlin.sdk.exceptions.ErrorCode.GENERAL
-                            )
-                        )
-                    )
-                }
-            }
-            .filterIsInstance()
+        getEventsFlowForDomain(null).filterIsInstance()
 
     /**
      * Observe events from currently configured provider for the specified domain.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     inline fun <reified T : OpenFeatureProviderEvents> observe(domain: String?): Flow<T> =
-        getProvidersFlowForDomain(domain)
-            .flatMapLatest { provider ->
-                provider.observe().catch { cause ->
-                    emit(
-                        OpenFeatureProviderEvents.ProviderError(
-                            OpenFeatureProviderEvents.EventDetails(
-                                message = cause.message ?: "Provider observe() crashed",
-                                errorCode = dev.openfeature.kotlin.sdk.exceptions.ErrorCode.GENERAL
-                            )
-                        )
-                    )
-                }
-            }
-            .filterIsInstance()
+        getEventsFlowForDomain(domain).filterIsInstance()
 }

@@ -290,6 +290,40 @@ class MultiProviderTests {
     }
 
     @Test
+    fun reconcilingOutRanksReadyButNotError() = runTest {
+        val a = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderReady()
+            )
+        )
+        val b = FakeEventProvider(
+            name = "B",
+            eventsToEmitOnInit = listOf(
+                OpenFeatureProviderEvents.ProviderReconciling()
+            )
+        )
+        val multi = MultiProvider(listOf(a, b))
+
+        val initJob = launch { multi.initialize(null) }
+        advanceUntilIdle()
+
+        // Reconciling (2) > Ready (1)
+        var finalStatus = multi.statusFlow.value
+        assertIs<OpenFeatureStatus.Reconciling>(finalStatus)
+
+        // Now emit ContextChanged from B
+        b.emitEvent(OpenFeatureProviderEvents.ProviderContextChanged())
+        advanceUntilIdle()
+
+        // Both are now Ready
+        finalStatus = multi.statusFlow.value
+        assertIs<OpenFeatureStatus.Ready>(finalStatus)
+
+        initJob.cancelAndJoin()
+    }
+
+    @Test
     fun emitsEventsOnlyOnStatusChange() = runTest {
         val provider = FakeEventProvider(
             name = "A",
@@ -441,6 +475,10 @@ private class FakeEventProvider(
         private set
     var trackingCalls: Int = 0
         private set
+
+    suspend fun emitEvent(event: OpenFeatureProviderEvents) {
+        events.emit(event)
+    }
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         initializeCalls += 1

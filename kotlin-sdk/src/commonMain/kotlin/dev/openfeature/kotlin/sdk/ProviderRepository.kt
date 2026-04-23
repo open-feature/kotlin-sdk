@@ -51,6 +51,14 @@ internal class DomainState {
 
     val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
 
+    private val _eventsFlow = MutableSharedFlow<OpenFeatureProviderEvents>(
+        replay = 0,
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    val eventsFlow: Flow<OpenFeatureProviderEvents> get() = _eventsFlow
+
     private var domainScope: CoroutineScope? = null
 
     @Volatile
@@ -86,6 +94,7 @@ internal class DomainState {
                     withContext(activeDispatcher) {
                         if (providersFlow.value === currentProvider) {
                             processProviderEvent(providerEvent)
+                            emitEvent(providerEvent)
                         }
                     }
                 }
@@ -105,6 +114,10 @@ internal class DomainState {
 
     suspend fun emitStatus(status: OpenFeatureStatus) {
         _statusFlow.emit(status)
+    }
+
+    suspend fun emitEvent(event: OpenFeatureProviderEvents) {
+        _eventsFlow.emit(event)
     }
 
     fun getStatus(): OpenFeatureStatus = _statusFlow.replayCache.firstOrNull() ?: OpenFeatureStatus.NotReady

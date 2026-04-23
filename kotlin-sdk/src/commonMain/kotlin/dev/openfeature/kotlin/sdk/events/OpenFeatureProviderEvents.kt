@@ -41,6 +41,20 @@ sealed class OpenFeatureProviderEvents {
         override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
 
+    /**
+     * The provider is reconciling its state due to a context change.
+     */
+    data class ProviderReconciling(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
+
+    /**
+     * The provider successfully updated its state following a context change.
+     */
+    data class ProviderContextChanged(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
+
     @Deprecated("Use ProviderError instead", ReplaceWith("ProviderError"))
     data object ProviderNotReady : OpenFeatureProviderEvents() {
         override val eventDetails = null

@@ -95,16 +95,24 @@ class ProviderEventingTests {
             }
         }
 
+        val testDispatcher = kotlinx.coroutines.test.StandardTestDispatcher(testScheduler)
+
         // emits ProviderReady
         OpenFeatureAPI.setProviderAndWait(
             firstProvider,
-            initialContext = ImmutableContext("first")
+            initialContext = ImmutableContext("first"),
+            dispatcher = testDispatcher
         )
         // emits ProviderStale + ProviderConfigurationChanged
-        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("first.v2"))
+        OpenFeatureAPI.setEvaluationContextAndWait(
+            ImmutableContext("first.v2")
+        )
         testScheduler.advanceUntilIdle()
         assertEquals(
             listOf(
+                OpenFeatureProviderEvents.ProviderReady(),
+                OpenFeatureProviderEvents.ProviderReconciling(),
+                OpenFeatureProviderEvents.ProviderContextChanged(),
                 OpenFeatureProviderEvents.ProviderReady(),
                 OpenFeatureProviderEvents.ProviderStale(),
                 OpenFeatureProviderEvents.ProviderConfigurationChanged()
@@ -114,7 +122,8 @@ class ProviderEventingTests {
         // emits ProviderReady
         OpenFeatureAPI.setProviderAndWait(
             secondProvider,
-            initialContext = ImmutableContext("second")
+            initialContext = ImmutableContext("second"),
+            dispatcher = testDispatcher
         )
         testScheduler.advanceUntilIdle()
         // emits ProviderStale + ProviderStale + ProviderStale
@@ -122,7 +131,9 @@ class ProviderEventingTests {
         testScheduler.advanceUntilIdle()
 
         // emits ProviderStale + ProviderConfigurationChanged
-        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("second.v2"))
+        OpenFeatureAPI.setEvaluationContextAndWait(
+            ImmutableContext("second.v2")
+        )
         testScheduler.advanceUntilIdle()
 
         OpenFeatureAPI.shutdown()
@@ -130,16 +141,70 @@ class ProviderEventingTests {
         assertEquals(
             listOf(
                 OpenFeatureProviderEvents.ProviderReady(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                OpenFeatureProviderEvents.ProviderReconciling(),
+                OpenFeatureProviderEvents.ProviderContextChanged(),
                 OpenFeatureProviderEvents.ProviderReady(),
                 OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderConfigurationChanged()
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                // Second provider events:
+                OpenFeatureProviderEvents.ProviderReady(), // SDK init (onMultiProvider with second provider
+                OpenFeatureProviderEvents.ProviderReady(), // Provider background init (flushed by advanceUntilIdle)
+                OpenFeatureProviderEvents.ProviderStale(), // track background flushed
+                OpenFeatureProviderEvents.ProviderStale(), // track background flushed
+                OpenFeatureProviderEvents.ProviderStale(), // track background flushed
+                OpenFeatureProviderEvents.ProviderReconciling(), // SDK pre-context
+                OpenFeatureProviderEvents.ProviderContextChanged(), // SDK post-context
+                OpenFeatureProviderEvents.ProviderStale(), // onContextSet background flushed
+                OpenFeatureProviderEvents.ProviderConfigurationChanged() // onContextSet background flushed
             ),
             emittedEvents
         )
+    }
+
+    @Test
+    fun testProviderOnContextSetThrowsExceptionEmitsErrorEvent() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val provider = object : DoSomethingProvider() {
+            override suspend fun initialize(initialContext: EvaluationContext?) {
+                // no-op
+            }
+
+            override suspend fun onContextSet(
+                oldContext: EvaluationContext?,
+                newContext: EvaluationContext
+            ) {
+                throw IllegalStateException("Intentional crash during reconciliation")
+            }
+        }
+
+        val emittedEvents = mutableListOf<OpenFeatureProviderEvents>()
+        val job = launch(testDispatcher) {
+            OpenFeatureAPI.observe<OpenFeatureProviderEvents>().collect {
+                emittedEvents.add(it)
+            }
+        }
+
+        // 1. Set the provider, wait for initialize
+        OpenFeatureAPI.setProviderAndWait(
+            provider,
+            dispatcher = testDispatcher,
+            initialContext = ImmutableContext()
+        )
+        testScheduler.advanceUntilIdle()
+
+        emittedEvents.clear() // clear the ProviderReady event from init
+
+        // 2. Set evaluation context, which triggers onContextSet and throws
+        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("new-context"))
+        testScheduler.advanceUntilIdle()
+
+        // 3. Verify exactly Reconciling followed by Error (no ContextChanged)
+        assertEquals(2, emittedEvents.size)
+        assertEquals(OpenFeatureProviderEvents.ProviderReconciling(), emittedEvents[0])
+        assertTrue(emittedEvents[1] is OpenFeatureProviderEvents.ProviderError)
+        val errorEvent = emittedEvents[1] as OpenFeatureProviderEvents.ProviderError
+        assertEquals("Intentional crash during reconciliation", errorEvent.eventDetails?.message)
+
+        job.cancelAndJoin()
     }
 }

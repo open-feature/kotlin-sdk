@@ -209,6 +209,16 @@ class MultiProvider(
                 return
             }
 
+            is OpenFeatureProviderEvents.ProviderReconciling -> {
+                eventFlow.emit(event)
+                OpenFeatureStatus.Reconciling
+            }
+
+            is OpenFeatureProviderEvents.ProviderContextChanged -> {
+                eventFlow.emit(event)
+                OpenFeatureStatus.Ready
+            }
+
             is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
             is OpenFeatureProviderEvents.ProviderNotReady -> OpenFeatureStatus.NotReady
             is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale

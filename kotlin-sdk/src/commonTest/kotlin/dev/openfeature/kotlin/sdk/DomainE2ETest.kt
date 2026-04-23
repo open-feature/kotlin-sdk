@@ -142,8 +142,9 @@ class DomainE2ETest {
             override fun observe() = flowB
         }
 
-        OpenFeatureAPI.setProviderAndWait(domainA, providerA)
-        OpenFeatureAPI.setProviderAndWait(domainB, providerB)
+        val testDispatcher = kotlinx.coroutines.test.StandardTestDispatcher(testScheduler)
+        OpenFeatureAPI.setProviderAndWait(domainA, providerA, dispatcher = testDispatcher)
+        OpenFeatureAPI.setProviderAndWait(domainB, providerB, dispatcher = testDispatcher)
 
         val eventsA = mutableListOf<OpenFeatureProviderEvents>()
         val eventsB = mutableListOf<OpenFeatureProviderEvents>()
@@ -163,8 +164,8 @@ class DomainE2ETest {
 
         assertEquals(1, eventsA.size)
         assertIs<OpenFeatureProviderEvents.ProviderStale>(eventsA.first())
-        assertEquals(0, eventsB.size) // domain B should not receive A's event
-
+        // domain B should not receive A's event
+        assertEquals(0, eventsB.size)
         flowB.emit(OpenFeatureProviderEvents.ProviderReady())
         testScheduler.advanceUntilIdle()
 
@@ -231,7 +232,8 @@ class DomainE2ETest {
             override fun observe() = flow1
         }
 
-        OpenFeatureAPI.setProviderAndWait(defaultProvider1)
+        val testDispatcher = kotlinx.coroutines.test.StandardTestDispatcher(testScheduler)
+        OpenFeatureAPI.setProviderAndWait(defaultProvider1, dispatcher = testDispatcher)
 
         val events = mutableListOf<OpenFeatureProviderEvents>()
         val job = launch {
@@ -251,14 +253,15 @@ class DomainE2ETest {
         val defaultProvider2 = object : FeatureProvider by NoOpProvider() {
             override fun observe() = flow2
         }
-        OpenFeatureAPI.setProviderAndWait(defaultProvider2)
+        OpenFeatureAPI.setProviderAndWait(defaultProvider2, dispatcher = testDispatcher)
         testScheduler.advanceUntilIdle()
 
         flow2.emit(OpenFeatureProviderEvents.ProviderStale())
         testScheduler.advanceUntilIdle()
 
         // We received Stale on the unbound domain because it correctly maps to the NEW global provider!
-        assertEquals(2, events.size)
+        // We also received ProviderReady from the SDK when defaultProvider2 was set.
+        assertEquals(3, events.size)
         assertIs<OpenFeatureProviderEvents.ProviderStale>(events.last())
 
         job.cancelAndJoin()

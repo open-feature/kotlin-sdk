@@ -9,10 +9,7 @@ import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.GeneralError
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flatMapLatest
 
 private val typeMatchingException =
     GeneralError("Unable to match default value type with flag value type")
@@ -31,20 +28,8 @@ class OpenFeatureClient(
 
     override val statusFlow = openFeatureAPI.getProviderStatusFlow(domain)
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun observeEvents(): Flow<OpenFeatureProviderEvents> {
-        return openFeatureAPI.getProvidersFlowForDomain(domain).flatMapLatest { provider ->
-            provider.observe().catch { cause ->
-                emit(
-                    OpenFeatureProviderEvents.ProviderError(
-                        OpenFeatureProviderEvents.EventDetails(
-                            message = cause.message ?: "Provider observe() crashed",
-                            errorCode = dev.openfeature.kotlin.sdk.exceptions.ErrorCode.GENERAL
-                        )
-                    )
-                )
-            }
-        }
+        return openFeatureAPI.getEventsFlowForDomain(domain)
     }
 
     override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
