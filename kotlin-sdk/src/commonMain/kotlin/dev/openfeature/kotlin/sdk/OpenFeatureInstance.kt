@@ -125,9 +125,11 @@ open class OpenFeatureInstance internal constructor() {
         _statusFlow.emit(OpenFeatureStatus.NotReady)
 
         // Shutdown the previous provider outside the mutex
-        tryWithStatusEmitErrorHandling {
-            untrackProviderBinding(oldProvider)
-            oldProvider.shutdown()
+        if (oldProvider !== provider) {
+            tryWithStatusEmitErrorHandling {
+                untrackProviderBinding(oldProvider)
+                oldProvider.shutdown()
+            }
         }
 
         // Initialize the new provider
