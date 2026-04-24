@@ -3,28 +3,20 @@ package dev.openfeature.kotlin.sdk
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : StateManagingProvider {
     override val metadata: ProviderMetadata = NoOpProviderMetadata("No-op provider")
 
-    private val _status = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
-    override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
-
-    // Ensure propagation to registered handlers
-    private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+    private val statusTracker = ProviderStatusTracker()
+    override val status: StateFlow<OpenFeatureStatus> = statusTracker.status
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
-        _status.value = OpenFeatureStatus.Ready
-        events.emit(OpenFeatureProviderEvents.ProviderReady())
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override fun shutdown() {
-        _status.value = OpenFeatureStatus.NotReady
-        events.tryEmit(
+        statusTracker.send(
             OpenFeatureProviderEvents.ProviderError(
                 OpenFeatureProviderEvents.EventDetails(
                     message = "No-op provider shut down; not ready for evaluation",
@@ -41,7 +33,7 @@ open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : StateMan
         // no-op
     }
 
-    override fun observe(): Flow<OpenFeatureProviderEvents> = events
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
 
     override fun getBooleanEvaluation(
         key: String,
