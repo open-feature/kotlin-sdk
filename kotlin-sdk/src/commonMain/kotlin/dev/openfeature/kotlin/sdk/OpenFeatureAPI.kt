@@ -192,7 +192,11 @@ object OpenFeatureAPI {
         } catch (e: CancellationException) {
             // This happens by design and shouldn't be treated as an error
         } catch (e: OpenFeatureError) {
-            _statusFlow.emit(OpenFeatureStatus.Error(e))
+            if (e is OpenFeatureError.ProviderFatalError) {
+                _statusFlow.emit(OpenFeatureStatus.Fatal(e))
+            } else {
+                _statusFlow.emit(OpenFeatureStatus.Error(e))
+            }
         } catch (e: Throwable) {
             _statusFlow.emit(
                 OpenFeatureStatus.Error(
