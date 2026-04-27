@@ -350,7 +350,7 @@ client.getBooleanValue(
 
 ### Domains
 
-[Domains](https://openfeature.dev/docs/reference/concepts/domain) allow you to logically bind clients with providers, enabling multiple provider configurations within the same application.
+[Domains](https://openfeature.dev/specification/glossary#domain) allow you to logically bind clients with providers, enabling multiple provider configurations within the same application.
 Support for domains is currently in development.
 
 ### Eventing
