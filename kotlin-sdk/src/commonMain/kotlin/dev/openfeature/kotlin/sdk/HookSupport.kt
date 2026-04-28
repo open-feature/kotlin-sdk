@@ -29,6 +29,12 @@ internal class HookSupport {
                         }
                     }
 
+                    FlagValueType.LONG -> {
+                        safeLet(hook as? Hook<Long>, ctx as? HookContext<Long>) { longHook, longCtx ->
+                            longHook.before(longCtx, hints)
+                        }
+                    }
+
                     FlagValueType.DOUBLE -> {
                         safeLet(hook as? Hook<Double>, ctx as? HookContext<Double>) { doubleHook, doubleCtx ->
                             doubleHook.before(doubleCtx, hints)
@@ -79,6 +85,16 @@ internal class HookSupport {
                         details as? FlagEvaluationDetails<Int>
                     ) { integerHook, integerCtx, integerDetails ->
                         integerHook.after(integerCtx, integerDetails, hints)
+                    }
+                }
+
+                FlagValueType.LONG -> {
+                    safeLet(
+                        hook as? Hook<Long>,
+                        ctx as? HookContext<Long>,
+                        details as? FlagEvaluationDetails<Long>
+                    ) { longHook, longCtx, longDetails ->
+                        longHook.after(longCtx, longDetails, hints)
                     }
                 }
 
@@ -143,6 +159,16 @@ internal class HookSupport {
                     }
                 }
 
+                FlagValueType.LONG -> {
+                    safeLet(
+                        hook as? Hook<Long>,
+                        ctx as? HookContext<Long>,
+                        details as? FlagEvaluationDetails<Long>
+                    ) { longHook, longCtx, longDetails ->
+                        longHook.finallyAfter(longCtx, longDetails, hints)
+                    }
+                }
+
                 FlagValueType.DOUBLE -> {
                     safeLet(
                         hook as? Hook<Double>,
@@ -198,6 +224,15 @@ internal class HookSupport {
                         ctx as? HookContext<Int>
                     ) { integerHook, integerCtx ->
                         integerHook.error(integerCtx, error, hints)
+                    }
+                }
+
+                FlagValueType.LONG -> {
+                    safeLet(
+                        hook as? Hook<Long>,
+                        ctx as? HookContext<Long>
+                    ) { longHook, longCtx ->
+                        longHook.error(longCtx, error, hints)
                     }
                 }
 

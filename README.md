@@ -117,7 +117,7 @@ coroutineScope.launch(Dispatchers.Default) {
 | ✅      | [Hooks](#hooks)                   | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
 | ✅      | [Tracking](#tracking)             | Associate user actions with feature flag evaluations.                                                                              |
 | ✅      | [Logging](#logging)               | Integrate with popular logging packages.                                                                                           |
-| ❌      | [Domains](#domains)               | Logically bind clients with providers.                                                                                             |
+| ⚠️      | [Domains](#domains)               | Logically bind clients with providers.                                                                                             |
 | ✅      | [Eventing](#eventing)             | React to state changes in the provider or flag management system.                                                                  |
 | ✅      | [Shutdown](#shutdown)             | Gracefully clean up a provider during application shutdown.                                                                        |
 | ✅      | [Extending](#extending)           | Extend OpenFeature with custom providers and hooks.                                                                                |
@@ -350,8 +350,8 @@ client.getBooleanValue(
 
 ### Domains
 
-Domains allow you to logically bind clients with providers.
-Support for domains is not yet available in the Kotlin SDK.
+[Domains](https://openfeature.dev/docs/reference/concepts/domain) allow you to logically bind clients with providers, enabling multiple provider configurations within the same application.
+Support for domains is currently in development.
 
 ### Eventing
 
@@ -439,6 +439,14 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Prov
         context: EvaluationContext?
     ): ProviderEvaluation<Int> {
         // resolve an integer flag value
+    }
+
+    override fun getLongEvaluation(
+        key: String,
+        defaultValue: Long,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Long> {
+        // resolve a long (64-bit integer) flag value
     }
 
     override fun getObjectEvaluation(

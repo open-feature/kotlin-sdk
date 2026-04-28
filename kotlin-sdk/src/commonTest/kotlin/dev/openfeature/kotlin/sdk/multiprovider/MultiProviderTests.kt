@@ -480,6 +480,14 @@ private class FakeEventProvider(
         return ProviderEvaluation(defaultValue)
     }
 
+    override fun getLongEvaluation(
+        key: String,
+        defaultValue: Long,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Long> {
+        return ProviderEvaluation(defaultValue)
+    }
+
     override fun getDoubleEvaluation(
         key: String,
         defaultValue: Double,
