@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### ⚠ BREAKING CHANGES
+
+* Removed deprecated `ProviderNotReady` event and `ProviderError.error` [#.#.#](https://github.com/open-feature/kotlin-sdk/pull/239).
+
+
 ## [0.8.0](https://github.com/open-feature/kotlin-sdk/compare/v0.7.2...v0.8.0) (2026-04-21)
 
 

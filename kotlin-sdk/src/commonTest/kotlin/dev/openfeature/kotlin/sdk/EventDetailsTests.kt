@@ -60,8 +60,9 @@ class EventDetailsTests {
         val evt = OpenFeatureProviderEvents.ProviderError()
 
         val status = evt.toOpenFeatureStatusError()
-        val fatal = assertIs<OpenFeatureStatus.Error>(status)
-        assertIs<OpenFeatureError.GeneralError>(fatal.error)
+        val errorStatus = assertIs<OpenFeatureStatus.Error>(status)
+        val err = assertIs<OpenFeatureError.GeneralError>(errorStatus.error)
+        assertEquals("Unspecified error", err.message)
     }
 
     @Test
