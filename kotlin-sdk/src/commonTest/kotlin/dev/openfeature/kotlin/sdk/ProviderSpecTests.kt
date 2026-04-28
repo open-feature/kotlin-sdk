@@ -20,6 +20,9 @@ class ProviderSpecTests {
         val intResult = provider.getIntegerEvaluation("key", 4, ImmutableContext())
         assertNotNull(intResult.value)
 
+        val longResult = provider.getLongEvaluation("key", Long.MAX_VALUE, ImmutableContext())
+        assertNotNull(longResult.value)
+
         val doubleResult = provider.getDoubleEvaluation("key", 0.4, ImmutableContext())
         assertNotNull(doubleResult.value)
 
@@ -55,6 +58,9 @@ class ProviderSpecTests {
 
         val intResult = provider.getIntegerEvaluation("key", 4, ImmutableContext())
         assertNotNull(intResult.variant)
+
+        val longResult = provider.getLongEvaluation("key", 4L, ImmutableContext())
+        assertNotNull(longResult.variant)
 
         val doubleResult = provider.getDoubleEvaluation("key", 0.4, ImmutableContext())
         assertNotNull(doubleResult.variant)

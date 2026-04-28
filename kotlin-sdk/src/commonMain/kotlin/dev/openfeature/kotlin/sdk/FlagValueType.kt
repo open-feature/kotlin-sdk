@@ -3,6 +3,7 @@ enum class FlagValueType {
     BOOLEAN,
     STRING,
     INTEGER,
+    LONG,
     DOUBLE,
     OBJECT;
 }

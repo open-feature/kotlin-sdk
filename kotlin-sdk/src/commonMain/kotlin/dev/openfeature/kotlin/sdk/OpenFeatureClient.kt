@@ -3,6 +3,7 @@ package dev.openfeature.kotlin.sdk
 import dev.openfeature.kotlin.sdk.FlagValueType.BOOLEAN
 import dev.openfeature.kotlin.sdk.FlagValueType.DOUBLE
 import dev.openfeature.kotlin.sdk.FlagValueType.INTEGER
+import dev.openfeature.kotlin.sdk.FlagValueType.LONG
 import dev.openfeature.kotlin.sdk.FlagValueType.OBJECT
 import dev.openfeature.kotlin.sdk.FlagValueType.STRING
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
@@ -112,6 +113,33 @@ class OpenFeatureClient(
         options: FlagEvaluationOptions
     ): FlagEvaluationDetails<Int> {
         return evaluateFlag(INTEGER, key, defaultValue, options)
+    }
+
+    override fun getLongValue(key: String, defaultValue: Long): Long {
+        return getLongDetails(key, defaultValue).value
+    }
+
+    override fun getLongValue(
+        key: String,
+        defaultValue: Long,
+        options: FlagEvaluationOptions
+    ): Long {
+        return getLongDetails(key, defaultValue, options).value
+    }
+
+    override fun getLongDetails(
+        key: String,
+        defaultValue: Long
+    ): FlagEvaluationDetails<Long> {
+        return getLongDetails(key, defaultValue, FlagEvaluationOptions())
+    }
+
+    override fun getLongDetails(
+        key: String,
+        defaultValue: Long,
+        options: FlagEvaluationOptions
+    ): FlagEvaluationDetails<Long> {
+        return evaluateFlag(LONG, key, defaultValue, options)
     }
 
     override fun getDoubleValue(key: String, defaultValue: Double): Double {
@@ -267,6 +295,13 @@ class OpenFeatureClient(
                 val defaultInteger = defaultValue as? Int ?: throw typeMatchingException
                 val eval: ProviderEvaluation<Int> =
                     provider.getIntegerEvaluation(key, defaultInteger, context)
+                eval as? ProviderEvaluation<V> ?: throw typeMatchingException
+            }
+
+            LONG -> {
+                val defaultLong = defaultValue as? Long ?: throw typeMatchingException
+                val eval: ProviderEvaluation<Long> =
+                    provider.getLongEvaluation(key, defaultLong, context)
                 eval as? ProviderEvaluation<V> ?: throw typeMatchingException
             }
 
