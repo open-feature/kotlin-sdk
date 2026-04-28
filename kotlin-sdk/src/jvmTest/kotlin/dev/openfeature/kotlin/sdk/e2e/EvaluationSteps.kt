@@ -43,7 +43,7 @@ class EvaluationSteps {
                 .variant("external", "EXTERNAL")
                 .defaultVariant("external")
                 .contextEvaluator { _, ctx ->
-                    if (ctx?.getValue("customer")?.asBoolean() == false) "INTERNAL" else "EXTERNAL"
+                    if (ctx?.getValue("customer")?.asBoolean() == false) "internal" else "external"
                 }
                 .build(),
             "wrong-flag" to Flag.builder<String>()
