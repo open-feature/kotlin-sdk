@@ -29,6 +29,7 @@ class IsolatedAPIInstanceTests {
     fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
         instances.forEach { it.shutdown() }
+        OpenFeatureAPIInstance.clearBoundProviders()
     }
 
     @Test

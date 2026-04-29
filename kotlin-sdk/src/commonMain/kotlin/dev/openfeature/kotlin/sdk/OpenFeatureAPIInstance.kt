@@ -333,6 +333,13 @@ open class OpenFeatureAPIInstance internal constructor() {
          */
         private val boundProviders = IdentityRegistry()
         private val bindingMutex = Mutex()
+
+        /**
+         * Clear all provider bindings. Intended for test isolation only.
+         */
+        internal fun clearBoundProviders() {
+            boundProviders.clear()
+        }
     }
 }
 
@@ -358,5 +365,9 @@ internal class IdentityRegistry {
 
     fun removeProvider(provider: FeatureProvider) {
         entries.removeAll { it.first === provider }
+    }
+
+    fun clear() {
+        entries.clear()
     }
 }
