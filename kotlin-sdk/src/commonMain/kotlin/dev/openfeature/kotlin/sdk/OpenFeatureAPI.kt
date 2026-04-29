@@ -1,15 +1,20 @@
+@file:JvmName("OpenFeatureAPI")
+
 package dev.openfeature.kotlin.sdk
+
+import kotlin.jvm.JvmName
 
 /**
  * Global singleton entry point for the OpenFeature SDK.
  *
- * Use this object directly for typical single-provider usage. For isolated, independent instances
+ * Use this directly for typical single-provider usage. For isolated, independent instances
  * (e.g., for DI frameworks or testing), use [createOpenFeatureAPIInstance].
  *
- * All methods are inherited from [OpenFeatureAPIInstance].
+ * This is an instance of [OpenFeatureAPIInstance], just like any instance returned by
+ * the [createOpenFeatureAPIInstance] factory method.
  */
-@Suppress("TooManyFunctions")
-object OpenFeatureAPI : OpenFeatureAPIInstance()
+@get:JvmName("INSTANCE")
+val OpenFeatureAPI: OpenFeatureAPIInstance = OpenFeatureAPIInstance()
 
 /**
  * Create a new, independent [OpenFeatureAPIInstance] with its own provider, context, hooks,
