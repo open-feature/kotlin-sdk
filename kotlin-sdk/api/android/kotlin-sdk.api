@@ -271,8 +271,9 @@ public final class dev/openfeature/kotlin/sdk/NoOpProvider$NoOpProviderMetadata 
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class dev/openfeature/kotlin/sdk/OpenFeatureAPI : dev/openfeature/kotlin/sdk/OpenFeatureAPIInstance {
-	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;
+public final class dev/openfeature/kotlin/sdk/OpenFeatureAPI {
+	public static final fun INSTANCE ()Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;
+	public static final fun createOpenFeatureAPIInstance ()Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;
 }
 
 public class dev/openfeature/kotlin/sdk/OpenFeatureAPIInstance {
@@ -300,10 +301,6 @@ public class dev/openfeature/kotlin/sdk/OpenFeatureAPIInstance {
 }
 
 public final class dev/openfeature/kotlin/sdk/OpenFeatureAPIInstance$Companion {
-}
-
-public final class dev/openfeature/kotlin/sdk/OpenFeatureAPIKt {
-	public static final fun createOpenFeatureAPIInstance ()Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;
 }
 
 public final class dev/openfeature/kotlin/sdk/OpenFeatureClient : dev/openfeature/kotlin/sdk/Client {
