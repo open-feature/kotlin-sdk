@@ -14,7 +14,7 @@ private val typeMatchingException =
     GeneralError("Unable to match default value type with flag value type")
 
 class OpenFeatureClient(
-    private val openFeatureAPI: OpenFeatureInstance,
+    private val openFeatureAPI: OpenFeatureAPIInstance,
     name: String? = null,
     version: String? = null,
     override val hooks: MutableList<Hook<*>> = mutableListOf()

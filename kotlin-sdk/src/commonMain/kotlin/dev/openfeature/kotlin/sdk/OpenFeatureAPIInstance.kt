@@ -26,13 +26,13 @@ import kotlinx.coroutines.sync.withLock
  *
  * Each instance maintains its own independent state: provider, evaluation context, hooks, status,
  * and events. The global singleton [OpenFeatureAPI] extends this class. To create isolated,
- * independent instances use [createOpenFeatureInstance].
+ * independent instances use [createOpenFeatureAPIInstance].
  *
  * @see OpenFeatureAPI
- * @see createOpenFeatureInstance
+ * @see createOpenFeatureAPIInstance
  */
 @Suppress("TooManyFunctions")
-open class OpenFeatureInstance internal constructor() {
+open class OpenFeatureAPIInstance internal constructor() {
     private var setProviderJob: Job? = null
     private var setEvaluationContextJob: Job? = null
     private var observeProviderEventsJob: Job? = null
@@ -341,13 +341,13 @@ open class OpenFeatureInstance internal constructor() {
  * distinct provider objects are never conflated, even if they share equals/hashCode.
  */
 internal class IdentityRegistry {
-    private val entries = mutableListOf<Pair<FeatureProvider, OpenFeatureInstance>>()
+    private val entries = mutableListOf<Pair<FeatureProvider, OpenFeatureAPIInstance>>()
 
-    fun findOwner(provider: FeatureProvider): OpenFeatureInstance? {
+    fun findOwner(provider: FeatureProvider): OpenFeatureAPIInstance? {
         return entries.firstOrNull { it.first === provider }?.second
     }
 
-    fun setOwner(provider: FeatureProvider, owner: OpenFeatureInstance) {
+    fun setOwner(provider: FeatureProvider, owner: OpenFeatureAPIInstance) {
         val index = entries.indexOfFirst { it.first === provider }
         if (index >= 0) {
             entries[index] = provider to owner
