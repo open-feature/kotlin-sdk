@@ -17,10 +17,10 @@ import kotlin.test.assertTrue
 
 class IsolatedAPIInstanceTests {
 
-    private val instances = mutableListOf<OpenFeatureInstance>()
+    private val instances = mutableListOf<OpenFeatureAPIInstance>()
 
-    private fun createInstance(): OpenFeatureInstance {
-        val instance = createOpenFeatureInstance()
+    private fun createInstance(): OpenFeatureAPIInstance {
+        val instance = createOpenFeatureAPIInstance()
         instances.add(instance)
         return instance
     }

@@ -4,17 +4,17 @@ package dev.openfeature.kotlin.sdk
  * Global singleton entry point for the OpenFeature SDK.
  *
  * Use this object directly for typical single-provider usage. For isolated, independent instances
- * (e.g., for DI frameworks or testing), use [createOpenFeatureInstance].
+ * (e.g., for DI frameworks or testing), use [createOpenFeatureAPIInstance].
  *
- * All methods are inherited from [OpenFeatureInstance].
+ * All methods are inherited from [OpenFeatureAPIInstance].
  */
 @Suppress("TooManyFunctions")
-object OpenFeatureAPI : OpenFeatureInstance()
+object OpenFeatureAPI : OpenFeatureAPIInstance()
 
 /**
- * Create a new, independent [OpenFeatureInstance] with its own provider, context, hooks,
+ * Create a new, independent [OpenFeatureAPIInstance] with its own provider, context, hooks,
  * and events — completely isolated from the global [OpenFeatureAPI] singleton and other instances.
  *
- * @return a new [OpenFeatureInstance]
+ * @return a new [OpenFeatureAPIInstance]
  */
-fun createOpenFeatureInstance(): OpenFeatureInstance = OpenFeatureInstance()
+fun createOpenFeatureAPIInstance(): OpenFeatureAPIInstance = OpenFeatureAPIInstance()
