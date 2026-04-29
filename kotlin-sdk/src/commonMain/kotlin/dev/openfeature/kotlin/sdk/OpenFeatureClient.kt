@@ -6,9 +6,12 @@ import dev.openfeature.kotlin.sdk.FlagValueType.INTEGER
 import dev.openfeature.kotlin.sdk.FlagValueType.LONG
 import dev.openfeature.kotlin.sdk.FlagValueType.OBJECT
 import dev.openfeature.kotlin.sdk.FlagValueType.STRING
+import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError.GeneralError
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 
 private val typeMatchingException =
     GeneralError("Unable to match default value type with flag value type")
@@ -26,6 +29,10 @@ class OpenFeatureClient(
     }
 
     override val statusFlow = openFeatureAPI.statusFlow
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observe(): Flow<OpenFeatureProviderEvents> =
+        openFeatureAPI.observe<OpenFeatureProviderEvents>()
 
     override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
         return getBooleanDetails(key, defaultValue).value

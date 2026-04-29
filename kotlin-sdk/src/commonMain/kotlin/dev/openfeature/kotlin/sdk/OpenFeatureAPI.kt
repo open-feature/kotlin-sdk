@@ -261,7 +261,7 @@ object OpenFeatureAPI {
     fun getStatus(): OpenFeatureStatus = _statusFlow.replayCache.first()
 
     /**
-     * Observe events from currently configured Provider.
+     * Observe events of type [T] from the currently configured [FeatureProvider].
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> = providersFlow

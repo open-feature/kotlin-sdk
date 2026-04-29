@@ -4,11 +4,13 @@ import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import dev.openfeature.kotlin.sdk.helpers.DoSomethingProvider
 import dev.openfeature.kotlin.sdk.helpers.OverlyEmittingProvider
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -18,6 +20,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ProviderEventingTests {
 
     @BeforeTest
@@ -140,6 +143,64 @@ class ProviderEventingTests {
                 OpenFeatureProviderEvents.ProviderConfigurationChanged()
             ),
             emittedEvents
+        )
+    }
+
+    @Test
+    fun clientObserveMatchesApiObserveWhenCollectingAllProviderEvents() = runTest {
+        val provider = OverlyEmittingProvider("Client parity provider")
+        val fromApi = mutableListOf<OpenFeatureProviderEvents>()
+        val fromClient = mutableListOf<OpenFeatureProviderEvents>()
+        val client = OpenFeatureAPI.getClient("test")
+
+        val apiJob = launch {
+            OpenFeatureAPI.observe<OpenFeatureProviderEvents>().collect { fromApi.add(it) }
+        }
+        val clientJob = launch {
+            client.observe().collect { fromClient.add(it) }
+        }
+
+        OpenFeatureAPI.setProviderAndWait(provider, initialContext = ImmutableContext("ctx"))
+        testScheduler.advanceUntilIdle()
+        OpenFeatureAPI.shutdown()
+        apiJob.cancelAndJoin()
+        clientJob.cancelAndJoin()
+
+        assertTrue(fromApi.isNotEmpty())
+        assertEquals(fromApi, fromClient)
+    }
+
+    @Test
+    fun clientObserveFiltersByReifiedEventType() = runTest {
+        val provider = OverlyEmittingProvider("filter-by-type")
+        val client = OpenFeatureAPI.getClient("filter-by-type")
+        val staleEvents = mutableListOf<OpenFeatureProviderEvents.ProviderStale>()
+        val configurationChangedEvents =
+            mutableListOf<OpenFeatureProviderEvents.ProviderConfigurationChanged>()
+
+        val staleJob = launch {
+            client.observe()
+                .filterIsInstance<OpenFeatureProviderEvents.ProviderStale>()
+                .collect { staleEvents.add(it) }
+        }
+        val configJob = launch {
+            client.observe()
+                .filterIsInstance<OpenFeatureProviderEvents.ProviderConfigurationChanged>()
+                .collect { configurationChangedEvents.add(it) }
+        }
+
+        OpenFeatureAPI.setProviderAndWait(provider, initialContext = ImmutableContext("ctx"))
+        testScheduler.advanceUntilIdle()
+        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("ctx.v2"))
+        testScheduler.advanceUntilIdle()
+        OpenFeatureAPI.shutdown()
+        staleJob.cancelAndJoin()
+        configJob.cancelAndJoin()
+
+        assertEquals(listOf(OpenFeatureProviderEvents.ProviderStale()), staleEvents)
+        assertEquals(
+            listOf(OpenFeatureProviderEvents.ProviderConfigurationChanged()),
+            configurationChangedEvents
         )
     }
 }
