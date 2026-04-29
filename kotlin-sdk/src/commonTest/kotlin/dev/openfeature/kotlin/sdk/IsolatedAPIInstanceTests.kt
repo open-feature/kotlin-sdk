@@ -88,12 +88,8 @@ class IsolatedAPIInstanceTests {
         OpenFeatureAPI.addHooks(listOf(hook1))
         instance.addHooks(listOf(hook2))
 
-        assertEquals(1, OpenFeatureAPI.hooks.size)
-        assertEquals(1, instance.hooks.size)
-        assertTrue(OpenFeatureAPI.hooks.contains(hook1))
-        assertFalse(OpenFeatureAPI.hooks.contains(hook2))
-        assertTrue(instance.hooks.contains(hook2))
-        assertFalse(instance.hooks.contains(hook1))
+        assertEquals(listOf(hook1), OpenFeatureAPI.hooks)
+        assertEquals(listOf(hook2), instance.hooks)
     }
 
     @Test
