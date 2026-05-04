@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -149,23 +150,33 @@ class ProviderEventingTests {
 
     @Test
     fun clientObserveMatchesApiObserveWhenCollectingAllProviderEvents() = runTest {
-        val provider = OverlyEmittingProvider("Client parity provider")
-        val fromApi = mutableListOf<OpenFeatureProviderEvents>()
-        val fromClient = mutableListOf<OpenFeatureProviderEvents>()
-        val client = OpenFeatureAPI.getClient("test")
+        val testDispatcher = StandardTestDispatcher(testScheduler)
 
-        val apiJob = launch {
-            OpenFeatureAPI.observe<OpenFeatureProviderEvents>().collect { fromApi.add(it) }
-        }
-        val clientJob = launch {
-            client.observe().collect { fromClient.add(it) }
+        suspend fun collectEvents(useClientObserve: Boolean): List<OpenFeatureProviderEvents> {
+            val events = mutableListOf<OpenFeatureProviderEvents>()
+            val client = OpenFeatureAPI.getClient("test")
+            val provider = OverlyEmittingProvider("Client parity provider")
+            val job = launch {
+                if (useClientObserve) {
+                    client.observe().collect { events.add(it) }
+                } else {
+                    OpenFeatureAPI.observe<OpenFeatureProviderEvents>().collect { events.add(it) }
+                }
+            }
+            yield()
+            OpenFeatureAPI.setProviderAndWait(
+                provider,
+                initialContext = ImmutableContext("ctx"),
+                dispatcher = testDispatcher
+            )
+            testScheduler.advanceUntilIdle()
+            OpenFeatureAPI.shutdown()
+            job.cancelAndJoin()
+            return events.toList()
         }
 
-        OpenFeatureAPI.setProviderAndWait(provider, initialContext = ImmutableContext("ctx"))
-        testScheduler.advanceUntilIdle()
-        OpenFeatureAPI.shutdown()
-        apiJob.cancelAndJoin()
-        clientJob.cancelAndJoin()
+        val fromApi = collectEvents(useClientObserve = false)
+        val fromClient = collectEvents(useClientObserve = true)
 
         assertTrue(fromApi.isNotEmpty())
         assertEquals(fromApi, fromClient)
