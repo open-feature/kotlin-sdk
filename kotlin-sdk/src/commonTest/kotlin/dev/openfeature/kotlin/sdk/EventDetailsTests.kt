@@ -41,26 +41,17 @@ class EventDetailsTests {
     }
 
     @Test
-    fun providerErrorMapToFatal() {
+    fun providerErrorEventDetailsMapToInvalidContextError() {
         val evt = OpenFeatureProviderEvents.ProviderError(
-            error = OpenFeatureError.ProviderFatalError("message")
+            OpenFeatureProviderEvents.EventDetails(
+                message = "message",
+                errorCode = ErrorCode.INVALID_CONTEXT
+            )
         )
 
         val status = evt.toOpenFeatureStatusError()
-        val fatal = assertIs<OpenFeatureStatus.Fatal>(status)
-        val err = assertIs<OpenFeatureError.ProviderFatalError>(fatal.error)
-        assertEquals("message", err.message)
-    }
-
-    @Test
-    fun providerErrorMapToError() {
-        val evt = OpenFeatureProviderEvents.ProviderError(
-            error = OpenFeatureError.InvalidContextError("message")
-        )
-
-        val status = evt.toOpenFeatureStatusError()
-        val fatal = assertIs<OpenFeatureStatus.Error>(status)
-        val err = assertIs<OpenFeatureError.InvalidContextError>(fatal.error)
+        val errorStatus = assertIs<OpenFeatureStatus.Error>(status)
+        val err = assertIs<OpenFeatureError.InvalidContextError>(errorStatus.error)
         assertEquals("message", err.message)
     }
 
@@ -69,7 +60,23 @@ class EventDetailsTests {
         val evt = OpenFeatureProviderEvents.ProviderError()
 
         val status = evt.toOpenFeatureStatusError()
-        val fatal = assertIs<OpenFeatureStatus.Error>(status)
-        assertIs<OpenFeatureError.GeneralError>(fatal.error)
+        val errorStatus = assertIs<OpenFeatureStatus.Error>(status)
+        val err = assertIs<OpenFeatureError.GeneralError>(errorStatus.error)
+        assertEquals("Unspecified error", err.message)
+    }
+
+    @Test
+    fun providerErrorEventDetailsWithMessageAndNullErrorCodeMapToGeneralError() {
+        val evt = OpenFeatureProviderEvents.ProviderError(
+            OpenFeatureProviderEvents.EventDetails(
+                message = "test",
+                errorCode = null
+            )
+        )
+
+        val status = evt.toOpenFeatureStatusError()
+        val errorStatus = assertIs<OpenFeatureStatus.Error>(status)
+        val err = assertIs<OpenFeatureError.GeneralError>(errorStatus.error)
+        assertEquals("test", err.message)
     }
 }
