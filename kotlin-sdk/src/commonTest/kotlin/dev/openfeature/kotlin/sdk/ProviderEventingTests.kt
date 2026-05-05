@@ -1,7 +1,7 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.helpers.DoSomethingProvider
 import dev.openfeature.kotlin.sdk.helpers.OverlyEmittingProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,8 +44,9 @@ class ProviderEventingTests {
             ) {
                 flow.emit(
                     OpenFeatureProviderEvents.ProviderError(
-                        error = OpenFeatureError.ProviderNotReadyError(
-                            "test error"
+                        OpenFeatureProviderEvents.EventDetails(
+                            message = "test error",
+                            errorCode = ErrorCode.PROVIDER_NOT_READY
                         )
                     )
                 )
