@@ -83,7 +83,7 @@ class ProviderEventingTests {
         }
         assertEquals(OpenFeatureStatus.Ready, statusList[0])
         assertEquals(OpenFeatureStatus.Reconciling, statusList[1])
-        assertTrue(statusList[2] is OpenFeatureStatus.Error)
+        assertEquals(OpenFeatureStatus.NotReady, statusList[2])
         assertEquals(OpenFeatureStatus.Ready, statusList[3])
         assertEquals(OpenFeatureStatus.NotReady, statusList[4])
     }

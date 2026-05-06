@@ -84,17 +84,8 @@ class SpyProvider(
         key: String,
         defaultValue: Long,
         context: EvaluationContext?
-    ): ProviderEvaluation<Long> {
-        TODO("Not yet implemented")
-    }
-
-    override fun getLongEvaluation(
-        key: String,
-        defaultValue: Long,
-        context: EvaluationContext?
-    ): ProviderEvaluation<Long> {
-        TODO("Not yet implemented")
-    }
+    ): ProviderEvaluation<Long> =
+        ProviderEvaluation(defaultValue, "Passed in default", Reason.DEFAULT.toString())
 
     override fun getDoubleEvaluation(
         key: String,

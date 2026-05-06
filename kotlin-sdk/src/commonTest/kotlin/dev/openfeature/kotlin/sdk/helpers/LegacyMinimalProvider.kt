@@ -56,6 +56,12 @@ class LegacyMinimalProvider(
         context: EvaluationContext?
     ): ProviderEvaluation<Int> = ProviderEvaluation(defaultValue)
 
+    override fun getLongEvaluation(
+        key: String,
+        defaultValue: Long,
+        context: EvaluationContext?
+    ): ProviderEvaluation<Long> = ProviderEvaluation(defaultValue)
+
     override fun getDoubleEvaluation(
         key: String,
         defaultValue: Double,
