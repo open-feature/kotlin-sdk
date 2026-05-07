@@ -272,7 +272,7 @@ public final class dev/openfeature/kotlin/sdk/NoOpProvider$NoOpProviderMetadata 
 }
 
 public final class dev/openfeature/kotlin/sdk/OpenFeatureAPI {
-	public static final fun INSTANCE ()Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;
+	public static final field OpenFeatureAPI Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;
 	public static final fun createOpenFeatureAPIInstance ()Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;
 }
 
