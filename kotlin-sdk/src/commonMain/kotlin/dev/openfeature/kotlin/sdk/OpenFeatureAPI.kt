@@ -2,6 +2,7 @@
 
 package dev.openfeature.kotlin.sdk
 
+import kotlin.jvm.JvmField
 import kotlin.jvm.JvmName
 
 /**
@@ -12,8 +13,10 @@ import kotlin.jvm.JvmName
  *
  * This is an instance of [OpenFeatureAPIInstance], just like any instance returned by
  * the [createOpenFeatureAPIInstance] factory method.
+ *
+ * @apiNote Isolated API instances (per spec section 1.8) are experimental and subject to change.
  */
-@get:JvmName("INSTANCE")
+@JvmField
 val OpenFeatureAPI: OpenFeatureAPIInstance = OpenFeatureAPIInstance()
 
 /**
