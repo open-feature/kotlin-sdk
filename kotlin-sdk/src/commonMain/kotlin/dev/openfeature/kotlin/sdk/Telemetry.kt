@@ -4,23 +4,21 @@ import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 
 const val TELEMETRY_KEY = "feature_flag.key"
 const val TELEMETRY_ERROR_CODE = "error.type"
-const val TELEMETRY_VARIANT = "feature_flag.variant"
+const val TELEMETRY_VARIANT = "feature_flag.result.variant"
 const val TELEMETRY_CONTEXT_ID = "feature_flag.context.id"
-const val TELEMETRY_ERROR_MSG = "feature_flag.evaluation.error.message"
-const val TELEMETRY_REASON = "feature_flag.evaluation.reason"
-const val TELEMETRY_PROVIDER = "feature_flag.provider_name"
+const val TELEMETRY_ERROR_MSG = "error.message"
+const val TELEMETRY_REASON = "feature_flag.result.reason"
+const val TELEMETRY_PROVIDER = "feature_flag.provider.name"
 const val TELEMETRY_FLAG_SET_ID = "feature_flag.set.id"
 const val TELEMETRY_VERSION = "feature_flag.version"
 
-// Well-known flag metadata attributes for telemetry events.
-// Specification: https://openfeature.dev/specification/appendix-d#flag-metadata
 const val TELEMETRY_FLAG_META_CONTEXT_ID = "contextId"
 const val TELEMETRY_FLAG_META_FLAG_SET_ID = "flagSetId"
 const val TELEMETRY_FLAG_META_VERSION = "version"
 
 // OpenTelemetry event body.
 // Specification: https://opentelemetry.io/docs/specs/semconv/feature-flags/feature-flags-logs/
-const val TELEMETRY_BODY = "value"
+const val TELEMETRY_BODY = "feature_flag.result.value"
 
 const val FLAG_EVALUATION_EVENT_NAME = "feature_flag.evaluation"
 
