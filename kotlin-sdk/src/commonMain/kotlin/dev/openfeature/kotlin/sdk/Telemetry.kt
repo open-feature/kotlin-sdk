@@ -32,11 +32,18 @@ fun <T> createEvaluationEvent(
 ): EvaluationEvent {
     val attributes = mutableMapOf<String, Any?>()
     val body = mutableMapOf<String, Any?>()
+
+    // In OpenTelemetry (and observability in general), if a piece of telemetry data isn't available,
+    // the best practice is to omit the attribute entirely rather than sending it with an empty string ("") or a null value.
     attributes[TELEMETRY_KEY] = hookContext.flagKey
-    attributes[TELEMETRY_PROVIDER] = hookContext.providerMetadata.name ?: ""
+    hookContext.providerMetadata.name?.takeIf { it.isNotEmpty() }?.let { attributes[TELEMETRY_PROVIDER] = it }
     attributes[TELEMETRY_REASON] = flagEvaluationDetails.reason?.lowercase() ?: Reason.UNKNOWN.name.lowercase()
-    attributes[TELEMETRY_CONTEXT_ID] =
-        flagEvaluationDetails.metadata.getString(TELEMETRY_FLAG_META_CONTEXT_ID) ?: hookContext.ctx?.getTargetingKey()
+
+    val contextId = flagEvaluationDetails.metadata.getString(TELEMETRY_FLAG_META_CONTEXT_ID)
+        ?: hookContext.ctx?.getTargetingKey()
+    if (!contextId.isNullOrEmpty()) {
+        attributes[TELEMETRY_CONTEXT_ID] = contextId
+    }
     flagEvaluationDetails.metadata.getString(TELEMETRY_FLAG_META_FLAG_SET_ID)?.let {
         attributes[TELEMETRY_FLAG_SET_ID] = it
     }
@@ -49,7 +56,7 @@ fun <T> createEvaluationEvent(
         attributes[TELEMETRY_VARIANT] = variant
     }
 
-    if (flagEvaluationDetails.reason == Reason.ERROR.name) {
+    if (flagEvaluationDetails.reason.equals(Reason.ERROR.name, ignoreCase = true)) {
         attributes[TELEMETRY_ERROR_CODE] = flagEvaluationDetails.errorCode ?: ErrorCode.GENERAL
         flagEvaluationDetails.errorMessage?.let { attributes[TELEMETRY_ERROR_MSG] = it }
     }
