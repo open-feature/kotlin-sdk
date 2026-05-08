@@ -53,7 +53,7 @@ class DomainE2ETest {
 
         // Setup domain specific provider
         val domainProvider = NoOpProvider()
-        OpenFeatureAPI.setProviderAndWait("specific-domain", domainProvider)
+        OpenFeatureAPI.getClient("specific-domain").setProviderAndWait(domainProvider)
 
         val defaultClient = OpenFeatureAPI.getClient(domain = "default-domain")
         val specificClient = OpenFeatureAPI.getClient(domain = "specific-domain")
@@ -76,10 +76,10 @@ class DomainE2ETest {
      */
     @Test
     fun testDomainStatusIsolation() = runTest {
-        OpenFeatureAPI.setProviderAndWait("fast-domain", NoOpProvider())
+        OpenFeatureAPI.getClient("fast-domain").setProviderAndWait(NoOpProvider())
 
         val brokenProvider = BrokenInitProvider()
-        OpenFeatureAPI.setProviderAndWait("broken-domain", brokenProvider)
+        OpenFeatureAPI.getClient("broken-domain").setProviderAndWait(brokenProvider)
 
         val fastStatus = OpenFeatureAPI.getProviderStatus("fast-domain")
         val brokenStatus = OpenFeatureAPI.getProviderStatus("broken-domain")
@@ -143,8 +143,8 @@ class DomainE2ETest {
         }
 
         val testDispatcher = kotlinx.coroutines.test.StandardTestDispatcher(testScheduler)
-        OpenFeatureAPI.setProviderAndWait(domainA, providerA, dispatcher = testDispatcher)
-        OpenFeatureAPI.setProviderAndWait(domainB, providerB, dispatcher = testDispatcher)
+        OpenFeatureAPI.getClient(domainA).setProviderAndWait(providerA, dispatcher = testDispatcher)
+        OpenFeatureAPI.getClient(domainB).setProviderAndWait(providerB, dispatcher = testDispatcher)
 
         val eventsA = mutableListOf<OpenFeatureProviderEvents>()
         val eventsB = mutableListOf<OpenFeatureProviderEvents>()
@@ -329,7 +329,7 @@ class DomainE2ETest {
         OpenFeatureAPI.setEvaluationContextAndWait(globalContext)
 
         // Set the provider for a specific domain with an initial context
-        OpenFeatureAPI.setProviderAndWait("isolated-domain", testProvider, domainContext)
+        OpenFeatureAPI.getClient("isolated-domain").setProviderAndWait(testProvider, domainContext)
 
         // Verify the provider received the domain context upon initialization
         assertEquals(domainContext, initializedContext)
@@ -352,8 +352,8 @@ class DomainE2ETest {
         OpenFeatureAPI.setEvaluationContextAndWait("override-domain", overrideContext)
 
         // Set providers
-        OpenFeatureAPI.setProviderAndWait("override-domain", NoOpProvider())
-        OpenFeatureAPI.setProviderAndWait("fallback-domain", NoOpProvider())
+        OpenFeatureAPI.getClient("override-domain").setProviderAndWait(NoOpProvider())
+        OpenFeatureAPI.getClient("fallback-domain").setProviderAndWait(NoOpProvider())
         OpenFeatureAPI.setProviderAndWait(NoOpProvider()) // default domain
 
         // Set global context passing a null domain
@@ -390,9 +390,9 @@ class DomainE2ETest {
             }
         }
 
-        OpenFeatureAPI.setProviderAndWait("domain-1", slowProvider)
-        OpenFeatureAPI.setProviderAndWait("domain-2", slowProvider)
-        OpenFeatureAPI.setProviderAndWait("domain-3", slowProvider)
+        OpenFeatureAPI.getClient("domain-1").setProviderAndWait(slowProvider)
+        OpenFeatureAPI.getClient("domain-2").setProviderAndWait(slowProvider)
+        OpenFeatureAPI.getClient("domain-3").setProviderAndWait(slowProvider)
 
         val newContext = ImmutableContext(targetingKey = "new-context")
 

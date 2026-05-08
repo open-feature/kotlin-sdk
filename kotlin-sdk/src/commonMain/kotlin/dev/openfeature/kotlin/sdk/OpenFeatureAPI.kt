@@ -60,7 +60,7 @@ object OpenFeatureAPI {
     /**
      * Set the [FeatureProvider] for a specific domain.
      */
-    fun setProvider(
+    internal fun setProvider(
         domain: String?,
         provider: FeatureProvider,
         dispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -108,7 +108,7 @@ object OpenFeatureAPI {
     /**
      * Set the [FeatureProvider] for a specific domain. This method will block until the provider is initialized.
      */
-    suspend fun setProviderAndWait(
+    internal suspend fun setProviderAndWait(
         domain: String?,
         provider: FeatureProvider,
         initialContext: EvaluationContext? = null,

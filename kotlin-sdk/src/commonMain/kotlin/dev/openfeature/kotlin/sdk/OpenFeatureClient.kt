@@ -32,6 +32,22 @@ class OpenFeatureClient(
         return openFeatureAPI.getEventsFlowForDomain(domain)
     }
 
+    override fun setProvider(
+        provider: FeatureProvider,
+        dispatcher: kotlinx.coroutines.CoroutineDispatcher,
+        initialContext: EvaluationContext?
+    ) {
+        openFeatureAPI.setProvider(domain, provider, dispatcher, initialContext)
+    }
+
+    override suspend fun setProviderAndWait(
+        provider: FeatureProvider,
+        initialContext: EvaluationContext?,
+        dispatcher: kotlinx.coroutines.CoroutineDispatcher
+    ) {
+        openFeatureAPI.setProviderAndWait(domain, provider, initialContext, dispatcher)
+    }
+
     override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
         return getBooleanDetails(key, defaultValue).value
     }

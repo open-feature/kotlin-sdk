@@ -380,8 +380,7 @@ class ProviderRepositoryTest {
     @Test
     fun testContextHooksBypassUninitializedProviders() = runTest {
         val testDomain = "bypassDomain"
-        OpenFeatureAPI.setProviderAndWait(
-            testDomain,
+        OpenFeatureAPI.getClient(testDomain).setProviderAndWait(
             NoOpProvider(),
             dispatcher = StandardTestDispatcher(testScheduler)
         )
@@ -412,8 +411,7 @@ class ProviderRepositoryTest {
 
         val providerJob = launch {
             delay(10) // Queue Provider Swap Second Native Block!
-            OpenFeatureAPI.setProviderAndWait(
-                testDomain,
+            OpenFeatureAPI.getClient(testDomain).setProviderAndWait(
                 slowProvider,
                 dispatcher = StandardTestDispatcher(testScheduler)
             )
@@ -432,8 +430,7 @@ class ProviderRepositoryTest {
         var hookFired = false
 
         val testDomain = "phantomDomain"
-        OpenFeatureAPI.setProviderAndWait(
-            testDomain,
+        OpenFeatureAPI.getClient(testDomain).setProviderAndWait(
             NoOpProvider(),
             dispatcher = StandardTestDispatcher(testScheduler)
         )
@@ -445,8 +442,7 @@ class ProviderRepositoryTest {
             }
         }
 
-        OpenFeatureAPI.setProviderAndWait(
-            testDomain,
+        OpenFeatureAPI.getClient(testDomain).setProviderAndWait(
             zombieProvider,
             dispatcher = StandardTestDispatcher(testScheduler)
         )

@@ -15,6 +15,30 @@ interface Client : Features, Tracking {
      * Provide a flow of Provider events, respecting the dynamic binding of this client via its domain.
      */
     fun observeEvents(): Flow<OpenFeatureProviderEvents>
+
+    /**
+     * Set the [FeatureProvider] for this client's domain. This method will return immediately and initialize the provider in a coroutine scope.
+     * @param provider the provider to set
+     * @param dispatcher the dispatcher to use for the provider initialization coroutine
+     * @param initialContext the initial [EvaluationContext] to use for the provider initialization
+     */
+    fun setProvider(
+        provider: FeatureProvider,
+        dispatcher: kotlinx.coroutines.CoroutineDispatcher = kotlinx.coroutines.Dispatchers.Default,
+        initialContext: EvaluationContext? = null
+    )
+
+    /**
+     * Set the [FeatureProvider] for this client's domain. This method will block until the provider is initialized.
+     * @param provider the provider to set
+     * @param initialContext the initial [EvaluationContext] to use for the provider initialization
+     * @param dispatcher the dispatcher to use for the provider initialization coroutine
+     */
+    suspend fun setProviderAndWait(
+        provider: FeatureProvider,
+        initialContext: EvaluationContext? = null,
+        dispatcher: kotlinx.coroutines.CoroutineDispatcher = kotlinx.coroutines.Dispatchers.Default
+    )
 }
 
 /**

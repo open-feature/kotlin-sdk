@@ -21,6 +21,15 @@ public abstract interface class dev/openfeature/kotlin/sdk/Client : dev/openfeat
 	public abstract fun getMetadata ()Ldev/openfeature/kotlin/sdk/ClientMetadata;
 	public abstract fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
 	public abstract fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun setProvider (Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;)V
+	public static synthetic fun setProvider$default (Ldev/openfeature/kotlin/sdk/Client;Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)V
+	public abstract fun setProviderAndWait (Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setProviderAndWait$default (Ldev/openfeature/kotlin/sdk/Client;Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class dev/openfeature/kotlin/sdk/Client$DefaultImpls {
+	public static synthetic fun setProvider$default (Ldev/openfeature/kotlin/sdk/Client;Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)V
+	public static synthetic fun setProviderAndWait$default (Ldev/openfeature/kotlin/sdk/Client;Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public abstract interface class dev/openfeature/kotlin/sdk/ClientMetadata {
@@ -303,13 +312,9 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureAPI {
 	public final fun setEvaluationContextAndWait (Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setEvaluationContextAndWait (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setProvider (Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;)V
-	public final fun setProvider (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;)V
 	public static synthetic fun setProvider$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)V
-	public static synthetic fun setProvider$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)V
 	public final fun setProviderAndWait (Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun setProviderAndWait (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun setProviderAndWait$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun setProviderAndWait$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun shutdown (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
@@ -341,6 +346,8 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureClient : dev/openfeatur
 	public fun getStringValue (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public fun getStringValue (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ljava/lang/String;
 	public fun observeEvents ()Lkotlinx/coroutines/flow/Flow;
+	public fun setProvider (Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;)V
+	public fun setProviderAndWait (Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun track (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/TrackingEventDetails;)V
 }
 

@@ -78,7 +78,7 @@ class OpenFeatureClientTests {
             }
         }
 
-        OpenFeatureAPI.setProviderAndWait("mock-domain", provider)
+        OpenFeatureAPI.getClient("mock-domain").setProviderAndWait(provider)
         OpenFeatureAPI.setEvaluationContextAndWait(
             ImmutableContext(attributes = mapOf("global" to Value.String("globalVal")))
         )
@@ -111,7 +111,7 @@ class OpenFeatureClientTests {
             }
         }
 
-        OpenFeatureAPI.setProviderAndWait("crash-domain", trapProvider)
+        OpenFeatureAPI.getClient("crash-domain").setProviderAndWait(trapProvider)
 
         val events = mutableListOf<OpenFeatureProviderEvents>()
         val job = launch {
@@ -122,7 +122,7 @@ class OpenFeatureClientTests {
         events.clear()
 
         val newProvider = NoOpProvider()
-        OpenFeatureAPI.setProviderAndWait("crash-domain", newProvider)
+        OpenFeatureAPI.getClient("crash-domain").setProviderAndWait(newProvider)
 
         assertTrue(shutdownCalled)
         assertTrue(events.none { it is OpenFeatureProviderEvents.ProviderError }, "Emitted stray error!")
@@ -138,7 +138,7 @@ class OpenFeatureClientTests {
             }
         }
 
-        OpenFeatureAPI.setProviderAndWait("mock-domain", provider)
+        OpenFeatureAPI.getClient("mock-domain").setProviderAndWait(provider)
         OpenFeatureAPI.setEvaluationContextAndWait(
             ImmutableContext(attributes = mapOf("global" to Value.String("globalVal")))
         )
@@ -185,7 +185,7 @@ class OpenFeatureClientTests {
         }
 
         val testDispatcher = kotlinx.coroutines.test.StandardTestDispatcher(testScheduler)
-        OpenFeatureAPI.setProviderAndWait("client-events-domain", eventProvider, dispatcher = testDispatcher)
+        OpenFeatureAPI.getClient("client-events-domain").setProviderAndWait(eventProvider, dispatcher = testDispatcher)
 
         testScheduler.advanceUntilIdle()
 
@@ -212,7 +212,10 @@ class OpenFeatureClientTests {
         }
 
         val testDispatcher = kotlinx.coroutines.test.StandardTestDispatcher(testScheduler)
-        OpenFeatureAPI.setProviderAndWait("client-filtered-domain", eventProvider, dispatcher = testDispatcher)
+        OpenFeatureAPI.getClient("client-filtered-domain").setProviderAndWait(
+            eventProvider,
+            dispatcher = testDispatcher
+        )
 
         testScheduler.advanceUntilIdle()
 
