@@ -2,6 +2,7 @@ package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -10,9 +11,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 
@@ -33,11 +37,12 @@ internal class LegacyFeatureProviderAdapter(
 
     private val _status = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
     override val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
+    private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
 
     private val scope = CoroutineScope(SupervisorJob() + eventDispatcher)
     private var observeJob: Job? = null
 
-    override fun observe(): Flow<OpenFeatureProviderEvents> = inner.observe()
+    override fun observe(): Flow<OpenFeatureProviderEvents> = eventFlow.asSharedFlow()
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         observeJob?.cancel(CancellationException("Provider job was cancelled due to new provider"))
@@ -45,6 +50,7 @@ internal class LegacyFeatureProviderAdapter(
         observeJob = scope.launch {
             inner.observe().collect { event ->
                 event.toOpenFeatureStatus()?.let { _status.value = it }
+                eventFlow.emit(event)
             }
         }
         try {
@@ -56,20 +62,30 @@ internal class LegacyFeatureProviderAdapter(
     }
 
     /**
-     * [inner] is shut down first while the [observeJob] is still running so a provider can emit
-     * a final [OpenFeatureProviderEvents] on [FeatureProvider.observe] and this adapter can still
-     * apply [toOpenFeatureStatus] to [_status]. The observe job and [scope] (including
-     * [SupervisorJob]) are cancelled in [finally] so cleanup and resource release always run.
+     * Releases the adapter and underlying provider; updates [status] and [observe] per
+     * [StateManagingProvider.shutdown], then tears down coroutine resources.
      */
     override fun shutdown() {
         try {
-            inner.shutdown()
+            observeJob?.cancel(
+                CancellationException("Provider event observe job was cancelled due to shutdown")
+            )
+            observeJob = null
+
             _status.value = OpenFeatureStatus.NotReady
+            eventFlow.tryEmit(
+                OpenFeatureProviderEvents.ProviderError(
+                    OpenFeatureProviderEvents.EventDetails(
+                        message = "Provider shut down; not ready for evaluation",
+                        errorCode = ErrorCode.PROVIDER_NOT_READY
+                    )
+                )
+            )
+
+            inner.shutdown()
         } catch (e: Throwable) {
             handleError(e)
         } finally {
-            observeJob?.cancel(CancellationException("Provider event observe job was cancelled due to shutdown"))
-            observeJob = null
             scope.cancel(
                 CancellationException("LegacyFeatureProviderAdapter scope cancelled due to shutdown")
             )

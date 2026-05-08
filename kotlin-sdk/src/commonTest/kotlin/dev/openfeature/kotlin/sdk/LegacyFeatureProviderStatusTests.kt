@@ -90,12 +90,11 @@ class LegacyFeatureProviderStatusTests {
     }
 
     /**
-     * [LegacyFeatureProviderAdapter] calls [FeatureProvider.inner] (same [observe] [Flow] the adapter
-     * collects) from [StateManagingProvider.shutdown] **before** cancelling the collect job, so a final
-     * [OpenFeatureProviderEvents] from [FeatureProvider.shutdown] is still applied to the adapter
-     * [StateFlow] status. This uses a parallel test collector on the same inner [observe] stream the
-     * adapter uses, plus [shutdownLastEventAccepted] on the provider, to assert shutdown-time emission
-     * without import-time access to the internal adapter.
+     * [LegacyFeatureProviderAdapter] cancels its inner-collection [Job] **before** calling
+     * [FeatureProvider.shutdown], so a shutdown-time [OpenFeatureProviderEvents] on inner [observe] is no
+     * longer mirrored into adapter status; callers still subscribing directly to the same underlying
+     * [observe] stream receive those events. This uses a parallel test collector on inner [observe] plus
+     * [shutdownLastEventAccepted] to assert shutdown-time emission and successful [tryEmit].
      */
     @Test
     fun legacy_shutdown_tryEmit_last_event_visible_on_shared_observe_before_swap_completes() = runTest {
@@ -116,8 +115,7 @@ class LegacyFeatureProviderStatusTests {
         waitAssert {
             assertTrue(
                 seen.any { it is OpenFeatureProviderEvents.ProviderStale },
-                "inner.observe() should deliver ProviderStale from shutdown() " +
-                    "while adapter collect is still active; got $seen"
+                "inner.observe() should deliver ProviderStale from shutdown(); got $seen"
             )
         }
         collectJob.cancelAndJoin()
@@ -212,8 +210,9 @@ private class LegacyControllableProvider : FeatureProvider {
 private class LegacyTestMetadata(override val name: String? = "legacy-test") : ProviderMetadata
 
 /**
- * [shutdown] [tryEmit]s [OpenFeatureProviderEvents.ProviderStale] for tests that the legacy adapter still
- * collects the same [observe] stream through [StateManagingProvider.shutdown] before the collect [Job] is cancelled.
+ * [shutdown] [tryEmit]s [OpenFeatureProviderEvents.ProviderStale] for tests that inner [observe] still delivers
+ * the event while another collector (parallel test subscriber) remains active after the adapter cancelled
+ * its mirror [Job].
  */
 private class LegacyEmitsStaleOnShutdown : FeatureProvider {
     override val hooks: List<Hook<*>> = listOf()

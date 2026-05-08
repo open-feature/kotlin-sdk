@@ -52,31 +52,19 @@ sealed class OpenFeatureProviderEvents {
     data class ProviderReconciling(
         override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
-
-    @Deprecated("Use ProviderError instead", ReplaceWith("ProviderError"))
-    data object ProviderNotReady : OpenFeatureProviderEvents() {
-        override val eventDetails = null
-    }
 }
 
 /**
- * Maps lifecycle events to [OpenFeatureStatus], or null when the event does not change readiness
- * (for example [OpenFeatureProviderEvents.ProviderConfigurationChanged]).
+ * Derives the [OpenFeatureStatus] implied by this event for status aggregation and tracking, if any.
  *
- * [OpenFeatureProviderEvents.ProviderError] with [ErrorCode.PROVIDER_NOT_READY] matches the deprecated
- * [OpenFeatureProviderEvents.ProviderNotReady] object: both map to [OpenFeatureStatus.NotReady] for
- * aggregation and status derivation.
+ * Returns `null` when the event does not represent a status transition from the SDK's perspective.
  */
 internal fun OpenFeatureProviderEvents.toOpenFeatureStatus(): OpenFeatureStatus? = when (this) {
     is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
-    is OpenFeatureProviderEvents.ProviderNotReady -> OpenFeatureStatus.NotReady
     is OpenFeatureProviderEvents.ProviderReconciling -> OpenFeatureStatus.Reconciling
     is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
-    is OpenFeatureProviderEvents.ProviderError -> when (eventDetails?.errorCode) {
-        ErrorCode.PROVIDER_NOT_READY -> OpenFeatureStatus.NotReady
-        else -> toOpenFeatureStatusError()
-    }
     is OpenFeatureProviderEvents.ProviderConfigurationChanged -> null
+    is OpenFeatureProviderEvents.ProviderError -> toOpenFeatureStatusError()
     else -> null
 }
 
@@ -84,6 +72,7 @@ internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError():
     val code = eventDetails?.errorCode ?: return OpenFeatureStatus.Error(
         OpenFeatureError.GeneralError(eventDetails?.message ?: "Unspecified error")
     )
+    if (code == ErrorCode.PROVIDER_NOT_READY) return OpenFeatureStatus.NotReady
     val openFeatureError = OpenFeatureError.fromMessageAndErrorCode(
         errorMessage = eventDetails.message ?: "Provider did not supply an error message",
         errorCode = code

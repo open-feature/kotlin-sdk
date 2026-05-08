@@ -1,6 +1,7 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,8 +11,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * Provider that owns lifecycle [OpenFeatureStatus] in [status] and reports changes on [observe].
  *
  * Implementations must update [status] first, then emit on [observe], so readers of either see a
- * consistent order. Plain [FeatureProvider] implementations are wrapped internally; their status is
- * derived from [observe] via an SDK adapter.
+ * consistent order.
  */
 interface StateManagingProvider : FeatureProvider {
     /**
@@ -39,7 +39,8 @@ interface StateManagingProvider : FeatureProvider {
      * Called when the client lifecycle ends; release resources and threads.
      *
      * Before returning: set [status] to [OpenFeatureStatus.NotReady], then emit
-     * [OpenFeatureProviderEvents.ProviderError] on [observe].
+     * [OpenFeatureProviderEvents.ProviderError] on [observe] with [ErrorCode.PROVIDER_NOT_READY] in
+     * [OpenFeatureProviderEvents.EventDetails.errorCode].
      */
     override fun shutdown()
 
@@ -58,12 +59,11 @@ interface StateManagingProvider : FeatureProvider {
     override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext)
 
     /**
-     * Provider lifecycle events. Replace [FeatureProvider.observe]'s empty default.
+     * Lifecycle and provider events for this instance.
      *
-     * Implementations update [status] before each matching emission. For [initialize], set [status]
-     * first, then emit [OpenFeatureProviderEvents.ProviderReady] or
-     * [OpenFeatureProviderEvents.ProviderError], or the SDK remains [OpenFeatureStatus.NotReady]. Other
-     * events surface through [OpenFeatureAPI.observe].
+     * For each step, update [status] first, then emit the matching [OpenFeatureProviderEvents] on this
+     * flow; required pairings for [initialize], [shutdown], and [onContextSet] are described on those
+     * methods.
      */
     override fun observe(): Flow<OpenFeatureProviderEvents>
 }

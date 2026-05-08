@@ -407,7 +407,8 @@ public final class dev/openfeature/kotlin/sdk/ProviderStatusTracker {
 	public fun <init> ()V
 	public final fun getStatus ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun observe ()Lkotlinx/coroutines/flow/Flow;
-	public final fun send (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents;)V
+	public final fun send (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents;Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;)V
+	public static synthetic fun send$default (Ldev/openfeature/kotlin/sdk/ProviderStatusTracker;Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents;Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;ILjava/lang/Object;)V
 }
 
 public final class dev/openfeature/kotlin/sdk/Reason : java/lang/Enum {
@@ -746,15 +747,6 @@ public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$P
 	public static synthetic fun copy$default (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderError;Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;ILjava/lang/Object;)Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderError;
 	public fun equals (Ljava/lang/Object;)Z
 	public fun getEventDetails ()Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderNotReady : dev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents {
-	public static final field INSTANCE Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$ProviderNotReady;
-	public fun equals (Ljava/lang/Object;)Z
-	public synthetic fun getEventDetails ()Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents$EventDetails;
-	public fun getEventDetails ()Ljava/lang/Void;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }

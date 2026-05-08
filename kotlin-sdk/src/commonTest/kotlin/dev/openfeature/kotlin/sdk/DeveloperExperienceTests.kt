@@ -328,6 +328,7 @@ class DeveloperExperienceTests {
 
     @Test
     fun testProviderEventFlowShouldSupportFiltering() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
         val provider = OverlyEmittingProvider("Overly Emitting Provider")
         val staleEvents = mutableListOf<OpenFeatureProviderEvents>()
         val job = launch {
@@ -340,8 +341,11 @@ class DeveloperExperienceTests {
         // emits ProviderReady
         OpenFeatureAPI.setProviderAndWait(
             provider,
-            initialContext = ImmutableContext("first")
+            initialContext = ImmutableContext("first"),
+            dispatcher = testDispatcher
         )
+        testScheduler.advanceTimeBy(2000)
+        testScheduler.advanceUntilIdle()
         // emits ProviderStale + ProviderStale + ProviderStale
         OpenFeatureAPI.getClient().track("hello-world")
 

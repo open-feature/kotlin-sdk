@@ -2,6 +2,7 @@ package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
@@ -17,6 +18,16 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ProviderStatusTrackerTest {
+
+    @Test
+    fun send_explicitStatusUpdate_overridesDerivedStatus() = runTest {
+        val t = ProviderStatusTracker()
+        t.send(OpenFeatureProviderEvents.ProviderReady())
+        assertEquals(OpenFeatureStatus.Ready, t.status.value)
+        val forced = OpenFeatureStatus.Error(OpenFeatureError.GeneralError("aggregate"))
+        t.send(OpenFeatureProviderEvents.ProviderReady(), statusUpdate = forced)
+        assertEquals(forced, t.status.value)
+    }
 
     @Test
     fun send_updatesStatusFromEventMapping() = runTest {

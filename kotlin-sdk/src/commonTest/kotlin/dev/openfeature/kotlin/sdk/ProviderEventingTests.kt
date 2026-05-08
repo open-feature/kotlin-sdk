@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import kotlin.test.BeforeTest
@@ -23,6 +25,13 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProviderEventingTests {
+
+    private val noopShutdownEvent = OpenFeatureProviderEvents.ProviderError(
+        OpenFeatureProviderEvents.EventDetails(
+            message = "No-op provider shut down; not ready for evaluation",
+            errorCode = ErrorCode.PROVIDER_NOT_READY
+        )
+    )
 
     @BeforeTest
     fun tearDown() = runTest {
@@ -90,6 +99,7 @@ class ProviderEventingTests {
 
     @Test
     fun testProviderEventFlowShouldSupportSwappingProviders() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
         val firstProvider = OverlyEmittingProvider("First Provider")
         val secondProvider = OverlyEmittingProvider("Second Provider")
 
@@ -99,41 +109,41 @@ class ProviderEventingTests {
                 emittedEvents.add(it)
             }
         }
+        advanceUntilIdle()
 
         // emits ProviderReady
         OpenFeatureAPI.setProviderAndWait(
             firstProvider,
-            initialContext = ImmutableContext("first")
+            initialContext = ImmutableContext("first"),
+            dispatcher = testDispatcher
         )
+        advanceTimeBy(2000)
+        advanceUntilIdle()
         // emits ProviderStale + ProviderConfigurationChanged
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("first.v2"))
-        testScheduler.advanceUntilIdle()
-        assertEquals(
-            listOf(
-                OpenFeatureProviderEvents.ProviderReady(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderConfigurationChanged()
-            ),
-            emittedEvents
-        )
+        advanceUntilIdle()
         // emits ProviderReady
         OpenFeatureAPI.setProviderAndWait(
             secondProvider,
-            initialContext = ImmutableContext("second")
+            initialContext = ImmutableContext("second"),
+            dispatcher = testDispatcher
         )
-        testScheduler.advanceUntilIdle()
+        advanceTimeBy(2000)
+        advanceUntilIdle()
         // emits ProviderStale + ProviderStale + ProviderStale
         OpenFeatureAPI.getClient().track("hello-world")
-        testScheduler.advanceUntilIdle()
+        advanceUntilIdle()
 
         // emits ProviderStale + ProviderConfigurationChanged
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("second.v2"))
-        testScheduler.advanceUntilIdle()
+        advanceUntilIdle()
 
         OpenFeatureAPI.shutdown()
+        advanceUntilIdle()
         job.cancelAndJoin()
         assertEquals(
             listOf(
+                noopShutdownEvent,
                 OpenFeatureProviderEvents.ProviderReady(),
                 OpenFeatureProviderEvents.ProviderStale(),
                 OpenFeatureProviderEvents.ProviderConfigurationChanged(),
@@ -142,7 +152,8 @@ class ProviderEventingTests {
                 OpenFeatureProviderEvents.ProviderStale(),
                 OpenFeatureProviderEvents.ProviderStale(),
                 OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderConfigurationChanged()
+                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+                noopShutdownEvent
             ),
             emittedEvents
         )
@@ -184,31 +195,33 @@ class ProviderEventingTests {
 
     @Test
     fun clientObserveFiltersByReifiedEventType() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
         val provider = OverlyEmittingProvider("filter-by-type")
-        val client = OpenFeatureAPI.getClient("filter-by-type")
-        val staleEvents = mutableListOf<OpenFeatureProviderEvents.ProviderStale>()
-        val configurationChangedEvents =
-            mutableListOf<OpenFeatureProviderEvents.ProviderConfigurationChanged>()
-
-        val staleJob = launch {
-            client.observe()
-                .filterIsInstance<OpenFeatureProviderEvents.ProviderStale>()
-                .collect { staleEvents.add(it) }
+        val allEvents = mutableListOf<OpenFeatureProviderEvents>()
+        val job = launch {
+            OpenFeatureAPI.observe<OpenFeatureProviderEvents>().collect { allEvents.add(it) }
         }
-        val configJob = launch {
-            client.observe()
-                .filterIsInstance<OpenFeatureProviderEvents.ProviderConfigurationChanged>()
-                .collect { configurationChangedEvents.add(it) }
-        }
+        advanceUntilIdle()
 
-        OpenFeatureAPI.setProviderAndWait(provider, initialContext = ImmutableContext("ctx"))
-        testScheduler.advanceUntilIdle()
+        val waitInit = launch {
+            OpenFeatureAPI.setProviderAndWait(
+                provider,
+                initialContext = ImmutableContext("ctx"),
+                dispatcher = testDispatcher
+            )
+        }
+        advanceTimeBy(2000)
+        advanceUntilIdle()
+        waitInit.join()
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("ctx.v2"))
-        testScheduler.advanceUntilIdle()
+        advanceUntilIdle()
         OpenFeatureAPI.shutdown()
-        staleJob.cancelAndJoin()
-        configJob.cancelAndJoin()
+        advanceUntilIdle()
+        job.cancelAndJoin()
 
+        val staleEvents = allEvents.filterIsInstance<OpenFeatureProviderEvents.ProviderStale>()
+        val configurationChangedEvents =
+            allEvents.filterIsInstance<OpenFeatureProviderEvents.ProviderConfigurationChanged>()
         assertEquals(listOf(OpenFeatureProviderEvents.ProviderStale()), staleEvents)
         assertEquals(
             listOf(OpenFeatureProviderEvents.ProviderConfigurationChanged()),

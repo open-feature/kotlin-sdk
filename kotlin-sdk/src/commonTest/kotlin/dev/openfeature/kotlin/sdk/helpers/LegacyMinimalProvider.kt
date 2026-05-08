@@ -5,16 +5,13 @@ import dev.openfeature.kotlin.sdk.FeatureProvider
 import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
-import dev.openfeature.kotlin.sdk.StateManagingProvider
 import dev.openfeature.kotlin.sdk.Value
-import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import kotlinx.atomicfu.atomic
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 
 /**
- * Minimal **legacy** [FeatureProvider] (not [StateManagingProvider]) for tests that must exercise the
- * SDK-managed status / [FeatureProvider.observe] mirror path.
+ * Minimal **legacy** [FeatureProvider] for tests that exercise the
+ * SDK adapter path: [observe] defaults to empty flow; after successful
+ * [initialize], the SDK sets readiness.
  */
 class LegacyMinimalProvider(
     override val hooks: List<Hook<*>> = listOf(),
@@ -24,10 +21,8 @@ class LegacyMinimalProvider(
 ) : FeatureProvider {
     val shutdownCalls = atomic(0)
 
-    private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
-
     override suspend fun initialize(initialContext: EvaluationContext?) {
-        events.emit(OpenFeatureProviderEvents.ProviderReady())
+        // Legacy: SDK adapter sets OpenFeatureStatus.Ready after this returns successfully.
     }
 
     override fun shutdown() {
@@ -35,8 +30,6 @@ class LegacyMinimalProvider(
     }
 
     override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {}
-
-    override fun observe(): Flow<OpenFeatureProviderEvents> = events
 
     override fun getBooleanEvaluation(
         key: String,

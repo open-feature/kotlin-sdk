@@ -13,8 +13,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Single place for [OpenFeatureStatus] and the provider event stream: call [send] for each lifecycle
- * step; [status] is derived with the same [toOpenFeatureStatus] rules as the rest of the SDK. Do not
- * set readiness from another [StateFlow] outside [send]. For [StateManagingProvider], expose
+ * step. By default [status] is updated from [event] using [toOpenFeatureStatus]. Pass an explicit
+ * [statusUpdate] when the snapshot differs (for example aggregated status in a multi-provider).
+ * Do not set readiness from another [StateFlow] outside [send]. For [StateManagingProvider], expose
  * [status] and [observe] from the tracker, or use [OpenFeatureAPI.statusFlow] for readiness if registered.
  *
  * [observe] uses a [MutableSharedFlow] with `replay = 1`. New subscribers replay the
@@ -31,9 +32,12 @@ class ProviderStatusTracker {
 
     val status: StateFlow<OpenFeatureStatus> = _status.asStateFlow()
 
-    fun send(event: OpenFeatureProviderEvents) {
+    fun send(
+        event: OpenFeatureProviderEvents,
+        statusUpdate: OpenFeatureStatus? = event.toOpenFeatureStatus()
+    ) {
         synchronized(providerMutex) {
-            event.toOpenFeatureStatus()?.let { _status.value = it }
+            statusUpdate?.let { _status.value = it }
             _events.tryEmit(event)
         }
     }
