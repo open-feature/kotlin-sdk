@@ -4,8 +4,23 @@ import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlin.DeprecationLevel
+import kotlin.ReplaceWith
 import kotlin.coroutines.cancellation.CancellationException
 
+/**
+ * Flag evaluation entry point for a feature flag backend.
+ *
+ * Plain implementations remain supported; the SDK may wrap them when registered.
+ */
+@Deprecated(
+    message = "Implement StateManagingProvider for integrated lifecycle status and provider events.",
+    replaceWith = ReplaceWith(
+        expression = "StateManagingProvider",
+        imports = ["dev.openfeature.kotlin.sdk.StateManagingProvider"]
+    ),
+    level = DeprecationLevel.WARNING
+)
 interface FeatureProvider {
     val hooks: List<Hook<*>>
     val metadata: ProviderMetadata

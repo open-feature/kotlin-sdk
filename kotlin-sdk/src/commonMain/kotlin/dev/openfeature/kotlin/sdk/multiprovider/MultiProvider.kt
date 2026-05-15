@@ -6,10 +6,13 @@ import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.ProviderStatusTracker
+import dev.openfeature.kotlin.sdk.StateManagingProvider
 import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
+import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -19,13 +22,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -55,7 +54,7 @@ typealias FlagEval<T> =
 class MultiProvider(
     providers: List<FeatureProvider>,
     private val strategy: Strategy = FirstMatchStrategy()
-) : FeatureProvider {
+) : StateManagingProvider {
     private class ProviderShutdownException(
         providerName: String,
         cause: Throwable
@@ -125,10 +124,12 @@ class MultiProvider(
         }
     }
 
-    private val _statusFlow = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
-    val statusFlow = _statusFlow.asStateFlow()
+    private val statusTracker = ProviderStatusTracker()
 
-    private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+    override val status: StateFlow<OpenFeatureStatus> = statusTracker.status
+
+    // Legacy path: Add getter to return the status as statusFlow, an alias for backwards compatibility
+    val statusFlow get() = status
 
     // Track individual provider statuses, initial state of all providers is NotReady
     private val childProviderStatuses: MutableMap<ChildFeatureProvider, OpenFeatureStatus> =
@@ -167,7 +168,7 @@ class MultiProvider(
      */
     internal fun getProviderCount(): Int = childFeatureProviders.size
 
-    override fun observe(): Flow<OpenFeatureProviderEvents> = eventFlow.asSharedFlow()
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
 
     /**
      * Initializes all underlying providers with the given context.
@@ -201,27 +202,19 @@ class MultiProvider(
         }
     }
 
-    private suspend fun handleProviderEvent(provider: ChildFeatureProvider, event: OpenFeatureProviderEvents) {
-        val newChildStatus = when (event) {
-            // ProviderConfigurationChanged events should always re-emit
-            is OpenFeatureProviderEvents.ProviderConfigurationChanged -> {
-                eventFlow.emit(event)
-                return
-            }
-
-            is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
-            is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
-            is OpenFeatureProviderEvents.ProviderError -> event.toOpenFeatureStatusError()
+    private fun handleProviderEvent(provider: ChildFeatureProvider, event: OpenFeatureProviderEvents) {
+        val newChildStatus = event.toOpenFeatureStatus()
+        if (newChildStatus == null) {
+            statusTracker.send(event)
+            return
         }
 
-        val previousStatus = _statusFlow.value
+        val previousStatus = statusTracker.status.value
         childProviderStatuses[provider] = newChildStatus
         val newStatus = calculateAggregateStatus()
 
         if (previousStatus != newStatus) {
-            _statusFlow.update { newStatus }
-            // Re-emit the original event that triggered the aggregate status change
-            eventFlow.emit(event)
+            statusTracker.send(event, statusUpdate = newStatus)
         }
     }
 
@@ -237,6 +230,15 @@ class MultiProvider(
     override fun shutdown() {
         observeProviderEventsJob?.cancel(
             cause = CancellationException("Observe provider events job cancelled due to shutdown")
+        )
+
+        statusTracker.send(
+            OpenFeatureProviderEvents.ProviderError(
+                OpenFeatureProviderEvents.EventDetails(
+                    message = "MultiProvider shut down; not ready for evaluation",
+                    errorCode = ErrorCode.PROVIDER_NOT_READY
+                )
+            )
         )
 
         val shutdownErrors = mutableListOf<Pair<String, Throwable>>()

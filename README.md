@@ -139,9 +139,11 @@ coroutineScope.launch(Dispatchers.Default) {
 }
 ```
 
+After `initialize()` returns, `setProviderAndWait` waits for the provider’s `status` to move off `NotReady` and `Reconciling`. That is the provider’s contract to fulfill; the SDK does not time out. If a provider never updates `status` correctly, the call never completes. If you need a maximum wait time, wrap the call in your own `withTimeout` from `kotlinx.coroutines` (or similar) at the application level.
+
 Asynchronous API that doesn't wait is also available. It's useful when you want to set a provider and continue with other tasks.
 
-However, flag evaluations are only possible after the provider is Ready.
+However, flag evaluations are only possible after the provider is `OpenFeatureStatus.Ready`. The built-in `NoOpProvider` reports `Ready` after initialization and returns default values for flags (a lightweight placeholder until you register a real provider).
 
 ```kotlin
 OpenFeatureAPI.setProvider(MyProvider()) // can pass a dispatcher here
@@ -412,11 +414,22 @@ in an Android app.
 
 ### Develop a provider
 
-To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
-You’ll then need to write the provider by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
+Providers are developed in separate artifacts that depend on the OpenFeature SDK. New providers should implement [`StateManagingProvider`](kotlin-sdk/src/commonMain/kotlin/dev/openfeature/kotlin/sdk/StateManagingProvider.kt) so the SDK can read a single [StateFlow] of [OpenFeatureStatus] and a [Flow] of [OpenFeatureProviderEvents] without ad‑hoc `MutableStateFlow` / `SharedFlow` wiring that can get out of sync.
+
+**Recommended: [`ProviderStatusTracker`](kotlin-sdk/src/commonMain/kotlin/dev/openfeature/kotlin/sdk/ProviderStatusTracker.kt).** It keeps `status` and the event stream aligned: call [send] with the appropriate [OpenFeatureProviderEvents]; it updates the derived [OpenFeatureStatus] (same mapping as the rest of the SDK) and forwards each [send] to [observe] through a [SharedFlow] with `replay = 1`. For each lifecycle step, [send] the matching event; do not set `StateFlow<OpenFeatureStatus>` elsewhere. New [observe] collectors receive a replay of the most recent [send] (if any), then all later [send] events. For a readiness snapshot, use `status` (or the SDK’s `OpenFeatureAPI.statusFlow` after registration) — the replay is not always a lifecycle-style event (e.g. it can be a prior `ProviderConfigurationChanged`).
+
+
+* **If you only care about readiness,** collect `status` (or the SDK’s `OpenFeatureAPI.statusFlow` once registered).
+* **If you also need the event stream** (e.g. `ProviderConfigurationChanged`), use `observe()`.
+
+`NoOpProvider` in this repo uses `ProviderStatusTracker` the same way.
 
 ```kotlin
-class NewProvider(override val hooks: List<Hook<*>>, override val metadata: ProviderMetadata) : FeatureProvider {
+class NewProvider(override val hooks: List<Hook<*>>, override val metadata: ProviderMetadata) : StateManagingProvider {
+
+    private val statusTracker = ProviderStatusTracker()
+    override val status: StateFlow<OpenFeatureStatus> = statusTracker.status
+
     override fun getBooleanEvaluation(
         key: String,
         defaultValue: Boolean,
@@ -467,25 +480,44 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Prov
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         // add context-aware provider initialization
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
-        // add necessary changes on context change
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReconciling())
+        // apply context change
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
     }
-  
+
+    override fun shutdown() {
+        statusTracker.send(
+            OpenFeatureProviderEvents.ProviderError(
+                OpenFeatureProviderEvents.EventDetails(
+                    message = "Provider shut down",
+                    errorCode = dev.openfeature.kotlin.sdk.exceptions.ErrorCode.PROVIDER_NOT_READY
+                )
+            )
+        )
+        // add necessary closure
+    }
+
     override fun track(
-      trackingEventName: String,
-      context: EvaluationContext?,
-      details: TrackingEventDetails?
+        trackingEventName: String,
+        context: EvaluationContext?,
+        details: TrackingEventDetails?
     ) {
-      // Optionally track an event
+        // Optionally track an event
     }
-  
-    override fun observe(): Flow<OpenFeatureProviderEvents> {
-        // Optionally return a `Flow` of OpenFeatureProviderEvents
-    }
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
 }
 ```
+
+You can also implement [StateManagingProvider] by updating a `MutableStateFlow` and a `Flow` of events yourself, but you must always update `status` before emitting the matching `OpenFeatureProviderEvents` (or only drive both through a single function) so the SDK and `OpenFeatureAPI.observe()` do not see contradictory information.
+
+#### `FeatureProvider` DEPRECATION
+
+`FeatureProvider` is still supported although `StateManagingProvider` is preferred for new providers. It should be noted that `FeatureProvider` is a legacy behavior and will be removed in the next major version, due to its possible race condition in the presence of multi-threading.
 
 > Built a new provider? [Let us know](https://github.com/open-feature/openfeature.dev/issues/new?assignees=&labels=provider&projects=&template=document-provider.yaml&title=%5BProvider%5D%3A+) so we can add it to the docs!
 

@@ -45,12 +45,34 @@ sealed class OpenFeatureProviderEvents {
     data class ProviderStale(
         override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
+
+    /**
+     * The provider is in the process of reconciling within a context change.
+     */
+    data class ProviderReconciling(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
+}
+
+/**
+ * Derives the [OpenFeatureStatus] implied by this event for status aggregation and tracking, if any.
+ *
+ * Returns `null` when the event does not represent a status transition from the SDK's perspective.
+ */
+internal fun OpenFeatureProviderEvents.toOpenFeatureStatus(): OpenFeatureStatus? = when (this) {
+    is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
+    is OpenFeatureProviderEvents.ProviderReconciling -> OpenFeatureStatus.Reconciling
+    is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
+    is OpenFeatureProviderEvents.ProviderConfigurationChanged -> null
+    is OpenFeatureProviderEvents.ProviderError -> toOpenFeatureStatusError()
+    else -> null
 }
 
 internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError(): OpenFeatureStatus {
     val code = eventDetails?.errorCode ?: return OpenFeatureStatus.Error(
         OpenFeatureError.GeneralError(eventDetails?.message ?: "Unspecified error")
     )
+    if (code == ErrorCode.PROVIDER_NOT_READY) return OpenFeatureStatus.NotReady
     val openFeatureError = OpenFeatureError.fromMessageAndErrorCode(
         errorMessage = eventDetails.message ?: "Provider did not supply an error message",
         errorCode = code

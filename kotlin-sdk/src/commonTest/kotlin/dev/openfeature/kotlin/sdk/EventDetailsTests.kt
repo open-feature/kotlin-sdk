@@ -11,6 +11,19 @@ import kotlin.test.assertIs
 class EventDetailsTests {
 
     @Test
+    fun providerErrorWithProviderNotReadyCodeMapsToNotReadyStatus() {
+        val evt = OpenFeatureProviderEvents.ProviderError(
+            OpenFeatureProviderEvents.EventDetails(
+                message = "warming up",
+                errorCode = ErrorCode.PROVIDER_NOT_READY
+            )
+        )
+
+        val status = evt.toOpenFeatureStatusError()
+        assertEquals(OpenFeatureStatus.NotReady, status)
+    }
+
+    @Test
     fun providerErrorEventDetailsMapToFatal() {
         val evt = OpenFeatureProviderEvents.ProviderError(
             OpenFeatureProviderEvents.EventDetails(
