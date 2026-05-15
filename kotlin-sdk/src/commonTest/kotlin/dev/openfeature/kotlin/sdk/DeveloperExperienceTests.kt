@@ -340,8 +340,10 @@ class DeveloperExperienceTests {
             provider,
             initialContext = ImmutableContext("first")
         )
+        testScheduler.advanceUntilIdle()
         // emits ProviderStale + ProviderStale + ProviderStale
         OpenFeatureAPI.getClient().track("hello-world")
+        testScheduler.advanceUntilIdle()
 
         // emits ProviderStale + ProviderConfigurationChanged
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("second"))
