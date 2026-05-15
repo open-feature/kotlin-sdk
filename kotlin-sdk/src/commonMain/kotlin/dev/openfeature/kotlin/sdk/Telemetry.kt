@@ -51,7 +51,7 @@ fun <T> createEvaluationEvent(
         attributes[TELEMETRY_VARIANT] = variant
     }
 
-    if (flagEvaluationDetails.reason == Reason.ERROR.name) {
+    if (flagEvaluationDetails.reason.equals(Reason.ERROR.name, ignoreCase = true)) {
         attributes[TELEMETRY_ERROR_CODE] = flagEvaluationDetails.errorCode ?: ErrorCode.GENERAL
         flagEvaluationDetails.errorMessage?.let { attributes[TELEMETRY_ERROR_MSG] = it }
     }

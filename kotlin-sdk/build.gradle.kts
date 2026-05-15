@@ -38,6 +38,9 @@ kotlin {
                 }
             }
         }
+        testRuns["test"].executionTask.configure {
+            useJUnitPlatform()
+        }
     }
     linuxX64 {}
     iosArm64()
@@ -61,10 +64,18 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
         }
         commonTest.dependencies {
-            implementation("org.jetbrains.kotlin:kotlin-test:2.2.10")
+            implementation(kotlin("test"))
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.7.3")
             implementation("org.jetbrains.kotlinx:atomicfu:0.29.0")
+        }
+        val jvmTest by getting {
+            resources.srcDir("../spec/specification/assets/gherkin")
+            dependencies {
+                implementation("org.junit.platform:junit-platform-suite:1.10.1")
+                implementation("io.cucumber:cucumber-java:7.15.0")
+                implementation("io.cucumber:cucumber-junit-platform-engine:7.15.0")
+            }
         }
     }
 }
