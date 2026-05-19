@@ -35,10 +35,7 @@ object OpenFeatureAPI {
     private var context: EvaluationContext? = null
     val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(NOOP_PROVIDER)
 
-    /**
-     * [Dispatchers.Unconfined] keeps the shared [observe] collector on the emitting thread when possible.
-     */
-    private val providerEventsScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+    private val providerEventsScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     @PublishedApi
     @OptIn(ExperimentalCoroutinesApi::class)

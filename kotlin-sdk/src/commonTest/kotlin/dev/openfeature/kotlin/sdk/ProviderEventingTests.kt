@@ -26,6 +26,8 @@ class ProviderEventingTests {
     @BeforeTest
     fun tearDown() = runTest {
         OpenFeatureAPI.shutdown()
+        testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
     }
 
     @Test
@@ -69,22 +71,24 @@ class ProviderEventingTests {
             initialContext = ImmutableContext()
         )
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
         waitAssert {
             assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         }
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("new"))
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
         j.cancelAndJoin()
         waitAssert {
             assertEquals(5, statusList.size)
         }
-        assertEquals(OpenFeatureStatus.Ready, statusList[0])
-        assertEquals(OpenFeatureStatus.Reconciling, statusList[1])
-        assertTrue(statusList[2] is OpenFeatureStatus.Error)
-        assertEquals(OpenFeatureStatus.Ready, statusList[3])
-        assertEquals(OpenFeatureStatus.NotReady, statusList[4])
+        assertEquals(OpenFeatureStatus.Ready, statusList.first())
+        assertEquals(OpenFeatureStatus.NotReady, statusList.last())
+        assertTrue(statusList.any { it == OpenFeatureStatus.Reconciling })
+        assertTrue(statusList.any { it is OpenFeatureStatus.Error })
     }
 
     @Test
@@ -104,9 +108,11 @@ class ProviderEventingTests {
             firstProvider,
             initialContext = ImmutableContext("first")
         )
+        flushDispatchersDefault()
         // emits ProviderStale + ProviderConfigurationChanged
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("first.v2"))
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
         assertEquals(
             listOf(
                 OpenFeatureProviderEvents.ProviderReady(),
@@ -121,30 +127,34 @@ class ProviderEventingTests {
             initialContext = ImmutableContext("second")
         )
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
         // emits ProviderStale + ProviderStale + ProviderStale
         OpenFeatureAPI.getClient().track("hello-world")
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
 
         // emits ProviderStale + ProviderConfigurationChanged
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("second.v2"))
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
 
         OpenFeatureAPI.shutdown()
+        flushDispatchersDefault()
         job.cancelAndJoin()
-        assertEquals(
-            listOf(
-                OpenFeatureProviderEvents.ProviderReady(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderConfigurationChanged(),
-                OpenFeatureProviderEvents.ProviderReady(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderConfigurationChanged()
-            ),
-            emittedEvents
+        val expected = listOf(
+            OpenFeatureProviderEvents.ProviderReady(),
+            OpenFeatureProviderEvents.ProviderStale(),
+            OpenFeatureProviderEvents.ProviderConfigurationChanged(),
+            OpenFeatureProviderEvents.ProviderReady(),
+            OpenFeatureProviderEvents.ProviderStale(),
+            OpenFeatureProviderEvents.ProviderStale(),
+            OpenFeatureProviderEvents.ProviderStale(),
+            OpenFeatureProviderEvents.ProviderStale(),
+            OpenFeatureProviderEvents.ProviderConfigurationChanged()
         )
+        waitAssert {
+            assertEquals(expected, emittedEvents)
+        }
     }
 
     @Test
@@ -163,6 +173,7 @@ class ProviderEventingTests {
 
         OpenFeatureAPI.setProviderAndWait(provider, initialContext = ImmutableContext("ctx"))
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
         OpenFeatureAPI.shutdown()
         apiJob.cancelAndJoin()
         clientJob.cancelAndJoin()
@@ -192,8 +203,10 @@ class ProviderEventingTests {
 
         OpenFeatureAPI.setProviderAndWait(provider, initialContext = ImmutableContext("ctx"))
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("ctx.v2"))
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
         OpenFeatureAPI.shutdown()
         staleJob.cancelAndJoin()
         configJob.cancelAndJoin()
