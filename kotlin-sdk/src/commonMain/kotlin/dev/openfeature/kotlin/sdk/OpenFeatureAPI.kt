@@ -28,6 +28,7 @@ import kotlin.PublishedApi
 object OpenFeatureAPI {
     private var setProviderJob: Job? = null
     private var setEvaluationContextJob: Job? = null
+    private var handleProviderEventsJob: Job? = null
 
     private val providerMutex = Mutex()
     private val NOOP_PROVIDER = NoOpProvider()
@@ -79,7 +80,7 @@ object OpenFeatureAPI {
     }
 
     init {
-        providerEventsScope.launch {
+        handleProviderEventsJob = providerEventsScope.launch {
             sharedProviderEvents.collect(handleProviderEvents)
         }
     }
@@ -281,6 +282,9 @@ object OpenFeatureAPI {
         clearHooks()
         setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to shutdown"))
         setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to shutdown"))
+        handleProviderEventsJob?.cancel(
+            CancellationException("Handle provider events job was cancelled due to shutdown")
+        )
         clearProvider()
     }
 

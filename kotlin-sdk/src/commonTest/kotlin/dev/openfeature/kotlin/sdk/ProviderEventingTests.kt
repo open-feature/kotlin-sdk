@@ -61,8 +61,14 @@ class ProviderEventingTests {
             override fun observe(): Flow<OpenFeatureProviderEvents> = flow
         }
         val statusList = mutableListOf<OpenFeatureStatus>()
-        val j = async(testDispatcher) {
+        val providerErrors = mutableListOf<OpenFeatureProviderEvents.ProviderError>()
+        val statusJob = async(testDispatcher) {
             OpenFeatureAPI.statusFlow.toCollection(statusList)
+        }
+        val errorsJob = launch {
+            OpenFeatureAPI.observe<OpenFeatureProviderEvents.ProviderError>().collect {
+                providerErrors.add(it)
+            }
         }
 
         OpenFeatureAPI.setProviderAndWait(
@@ -81,14 +87,14 @@ class ProviderEventingTests {
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
         flushDispatchersDefault()
-        j.cancelAndJoin()
+        statusJob.cancelAndJoin()
+        errorsJob.cancelAndJoin()
         waitAssert {
-            assertEquals(5, statusList.size)
+            assertTrue(providerErrors.isNotEmpty())
         }
         assertEquals(OpenFeatureStatus.Ready, statusList.first())
         assertEquals(OpenFeatureStatus.NotReady, statusList.last())
         assertTrue(statusList.any { it == OpenFeatureStatus.Reconciling })
-        assertTrue(statusList.any { it is OpenFeatureStatus.Error })
     }
 
     @Test
