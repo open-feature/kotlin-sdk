@@ -340,24 +340,29 @@ class DeveloperExperienceTests {
             provider,
             initialContext = ImmutableContext("first")
         )
+        testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
         // emits ProviderStale + ProviderStale + ProviderStale
         OpenFeatureAPI.getClient().track("hello-world")
+        testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
 
         // emits ProviderStale + ProviderConfigurationChanged
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("second"))
         testScheduler.advanceUntilIdle()
+        flushDispatchersDefault()
 
         OpenFeatureAPI.shutdown()
         job.cancelAndJoin()
-        assertEquals(
-            listOf<OpenFeatureProviderEvents>(
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderStale(),
-                OpenFeatureProviderEvents.ProviderStale()
-            ),
-            staleEvents
+        val expectedStaleEvents = listOf<OpenFeatureProviderEvents>(
+            OpenFeatureProviderEvents.ProviderStale(),
+            OpenFeatureProviderEvents.ProviderStale(),
+            OpenFeatureProviderEvents.ProviderStale(),
+            OpenFeatureProviderEvents.ProviderStale()
         )
+        waitAssert {
+            assertEquals(expectedStaleEvents, staleEvents)
+        }
     }
 
     @Test
