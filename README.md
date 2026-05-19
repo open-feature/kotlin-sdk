@@ -371,8 +371,7 @@ viewModelScope.launch {
 viewModelScope.launch {
   OpenFeatureAPI.setProviderAndWait(
     MyFeatureProvider(),
-    myEvaluationContext,
-    Dispatchers.Default
+    myEvaluationContext
   )
 }
 ```

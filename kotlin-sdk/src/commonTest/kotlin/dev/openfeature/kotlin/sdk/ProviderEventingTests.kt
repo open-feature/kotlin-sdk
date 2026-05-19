@@ -73,7 +73,6 @@ class ProviderEventingTests {
 
         OpenFeatureAPI.setProviderAndWait(
             provider,
-            dispatcher = testDispatcher,
             initialContext = ImmutableContext()
         )
         testScheduler.advanceUntilIdle()

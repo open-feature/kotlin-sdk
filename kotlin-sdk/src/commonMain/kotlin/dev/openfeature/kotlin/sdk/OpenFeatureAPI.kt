@@ -113,13 +113,10 @@ object OpenFeatureAPI {
      *
      * @param provider the [FeatureProvider] to set
      * @param initialContext the initial [EvaluationContext] to use for the provider initialization. Defaults to an null context if not set.
-     * @param dispatcher retained for API compatibility (no longer used for a separate provider observe job).
      */
-    @Suppress("UNUSED_PARAMETER")
     suspend fun setProviderAndWait(
         provider: FeatureProvider,
-        initialContext: EvaluationContext? = null,
-        dispatcher: CoroutineDispatcher = Dispatchers.Default
+        initialContext: EvaluationContext? = null
     ) {
         setProviderInternal(provider, initialContext)
     }

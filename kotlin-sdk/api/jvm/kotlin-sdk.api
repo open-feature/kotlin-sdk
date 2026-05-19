@@ -292,8 +292,8 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureAPI {
 	public final fun setEvaluationContextAndWait (Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun setProvider (Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;)V
 	public static synthetic fun setProvider$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ldev/openfeature/kotlin/sdk/FeatureProvider;Lkotlinx/coroutines/CoroutineDispatcher;Ldev/openfeature/kotlin/sdk/EvaluationContext;ILjava/lang/Object;)V
-	public final fun setProviderAndWait (Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun setProviderAndWait$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun setProviderAndWait (Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun setProviderAndWait$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPI;Ldev/openfeature/kotlin/sdk/FeatureProvider;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun shutdown (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
