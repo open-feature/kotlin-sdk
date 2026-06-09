@@ -25,11 +25,15 @@ import kotlinx.coroutines.sync.withLock
  * Core implementation of the OpenFeature API.
  *
  * Each instance maintains its own independent state: provider, evaluation context, hooks, status,
- * and events. The global singleton [OpenFeatureAPI] extends this class. To create isolated,
- * independent instances use [createOpenFeatureAPIInstance].
+ * and events. The global singleton [OpenFeatureAPI] is one such instance. To create isolated,
+ * independent instances use
+ * [dev.openfeature.kotlin.sdk.isolated.createOpenFeatureAPIInstance].
+ *
+ * @apiNote Section 1.8 of the OpenFeature specification (isolated API instances) is experimental
+ *          and subject to change.
  *
  * @see OpenFeatureAPI
- * @see createOpenFeatureAPIInstance
+ * @see dev.openfeature.kotlin.sdk.isolated.createOpenFeatureAPIInstance
  */
 @Suppress("TooManyFunctions")
 open class OpenFeatureAPIInstance internal constructor() {

@@ -274,7 +274,6 @@ public final class dev/openfeature/kotlin/sdk/NoOpProvider$NoOpProviderMetadata 
 
 public final class dev/openfeature/kotlin/sdk/OpenFeatureAPI {
 	public static final field OpenFeatureAPI Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;
-	public static final fun createOpenFeatureAPIInstance ()Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;
 }
 
 public class dev/openfeature/kotlin/sdk/OpenFeatureAPIInstance {
@@ -860,6 +859,10 @@ public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook : dev/openfeatur
 
 public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook$Companion {
 	public final fun getDEFAULT_SENSITIVE_KEYS ()Ljava/util/Set;
+}
+
+public final class dev/openfeature/kotlin/sdk/isolated/OpenFeatureAPIFactoryKt {
+	public static final fun createOpenFeatureAPIInstance ()Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;
 }
 
 public final class dev/openfeature/kotlin/sdk/logging/LogLevel : java/lang/Enum {
