@@ -9,8 +9,7 @@ import dev.openfeature.kotlin.sdk.OpenFeatureAPIInstance
  * Spec 1.8.1: factory function returning a new, independent API instance.
  * Spec 1.8.3: housed in a distinct package from the global singleton.
  *
- * @apiNote Section 1.8 of the OpenFeature specification (isolated API instances) is experimental
- *          and subject to change.
+ * Note: Isolated instances are experimental and subject to change.
  *
  * @return a new [OpenFeatureAPIInstance]
  * @see <a href="https://openfeature.dev/specification/sections/flag-evaluation#18-isolated-api-instances">Spec 1.8</a>

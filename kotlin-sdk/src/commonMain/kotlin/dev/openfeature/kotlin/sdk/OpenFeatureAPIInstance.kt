@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * Core implementation of the OpenFeature API.
@@ -28,9 +30,6 @@ import kotlinx.coroutines.sync.withLock
  * and events. The global singleton [OpenFeatureAPI] is one such instance. To create isolated,
  * independent instances use
  * [dev.openfeature.kotlin.sdk.isolated.createOpenFeatureAPIInstance].
- *
- * @apiNote Section 1.8 of the OpenFeature specification (isolated API instances) is experimental
- *          and subject to change.
  *
  * @see OpenFeatureAPI
  * @see dev.openfeature.kotlin.sdk.isolated.createOpenFeatureAPIInstance
@@ -116,31 +115,45 @@ open class OpenFeatureAPIInstance internal constructor() {
             return
         }
 
-        // Atomically swap the old and new provider to prevent race conditions
-        val oldProvider = providerMutex.withLock {
-            val current = this.provider
-            this.provider = provider
-            providersFlow.value = provider
-            if (initialContext != null) context = initialContext
-            current
-        }
-
-        // Emit NotReady status after swapping provider
-        _statusFlow.emit(OpenFeatureStatus.NotReady)
-
-        // Shutdown the previous provider outside the mutex
-        if (oldProvider !== provider) {
-            tryWithStatusEmitErrorHandling {
-                untrackProviderBinding(oldProvider)
-                oldProvider.shutdown()
+        // Track whether the swap committed so a mid-flight cancellation can roll back the binding.
+        var swapCommitted = false
+        try {
+            // Atomically swap the old and new provider to prevent race conditions
+            val oldProvider = providerMutex.withLock {
+                val current = this.provider
+                this.provider = provider
+                providersFlow.value = provider
+                if (initialContext != null) context = initialContext
+                current
             }
-        }
+            swapCommitted = true
 
-        // Initialize the new provider
-        tryWithStatusEmitErrorHandling {
-            listenToProviderEvents(provider, dispatcher)
-            getProvider().initialize(context)
-            _statusFlow.emit(OpenFeatureStatus.Ready)
+            // Emit NotReady status after swapping provider
+            _statusFlow.emit(OpenFeatureStatus.NotReady)
+
+            // Shutdown the previous provider outside the mutex
+            if (oldProvider !== provider) {
+                tryWithStatusEmitErrorHandling {
+                    untrackProviderBinding(oldProvider)
+                    oldProvider.shutdown()
+                }
+            }
+
+            // Initialize the new provider
+            tryWithStatusEmitErrorHandling {
+                listenToProviderEvents(provider, dispatcher)
+                getProvider().initialize(context)
+                _statusFlow.emit(OpenFeatureStatus.Ready)
+            }
+        } catch (e: CancellationException) {
+            // if cancellation hit before we committed the swap, release the binding we just claimed
+            // so the provider can be re-registered elsewhere.
+            if (!swapCommitted) {
+                withContext(NonCancellable) {
+                    untrackProviderBinding(provider)
+                }
+            }
+            throw e
         }
     }
 
