@@ -861,6 +861,9 @@ public final class dev/openfeature/kotlin/sdk/hooks/LoggingHook$Companion {
 	public final fun getDEFAULT_SENSITIVE_KEYS ()Ljava/util/Set;
 }
 
+public abstract interface annotation class dev/openfeature/kotlin/sdk/isolated/ExperimentalIsolatedApi : java/lang/annotation/Annotation {
+}
+
 public final class dev/openfeature/kotlin/sdk/isolated/OpenFeatureAPIFactoryKt {
 	public static final fun createOpenFeatureAPIInstance ()Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;
 }
