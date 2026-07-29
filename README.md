@@ -41,7 +41,7 @@ The following [Kotlin Multiplatform Targets](https://www.jetbrains.com/help/kotl
 | --------- | -------------------- |--------------------------------------------------------------------------------|
 | ✅         | Android              | SDK 21+                                                                        |
 | ✅         | JVM                  | JDK 11+                                                                        |
-| ✅         | Native               | Linux x64, iosSimulatorArm64, iosArm64                                         |
+| ✅         | Native               | Linux x64, iosSimulatorArm64, iosArm64, iosX64                                 |
 | ❌         | Native               | [Other native targets](https://kotlinlang.org/docs/native-target-support.html) |
 | ✅         | Javascript (Node.js) |                                                                                |
 | ✅         | Javascript (Browser) |                                                                                |
