@@ -209,12 +209,10 @@ open class OpenFeatureAPIInstance internal constructor() {
     private suspend fun setEvaluationContextInternal(evaluationContext: EvaluationContext) {
         val oldContext = context
         context = evaluationContext
-        if (oldContext != evaluationContext) {
-            _statusFlow.emit(OpenFeatureStatus.Reconciling)
-            tryWithStatusEmitErrorHandling {
-                getProvider().onContextSet(oldContext, evaluationContext)
-                _statusFlow.emit(OpenFeatureStatus.Ready)
-            }
+        _statusFlow.emit(OpenFeatureStatus.Reconciling)
+        tryWithStatusEmitErrorHandling {
+            getProvider().onContextSet(oldContext, evaluationContext)
+            _statusFlow.emit(OpenFeatureStatus.Ready)
         }
     }
 
