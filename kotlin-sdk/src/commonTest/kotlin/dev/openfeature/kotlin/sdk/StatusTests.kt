@@ -6,6 +6,7 @@ import dev.openfeature.kotlin.sdk.helpers.SlowProvider
 import dev.openfeature.kotlin.sdk.helpers.SpyProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -60,6 +61,19 @@ class StatusTests {
     }
 
     @Test
+    fun testContextSetAfterClearProviderRemainsNotReady() = runTest {
+        val context = ImmutableContext("same-context")
+        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
+        OpenFeatureAPI.setEvaluationContextAndWait(context)
+        OpenFeatureAPI.clearProvider()
+
+        OpenFeatureAPI.setEvaluationContextAndWait(context)
+
+        assertTrue(OpenFeatureAPI.getEvaluationContext() === context)
+        assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+    }
+
+    @Test
     fun testProviderTransitionsToReconcilingOnContextSet() = runTest {
         waitAssert {
             assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
@@ -78,6 +92,32 @@ class StatusTests {
             assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         }
         job.cancelAndJoin()
+    }
+
+    @Test
+    fun testStatusRemainsReconcilingUntilAllEqualContextSetsComplete() = runTest {
+        val context = ImmutableContext("same-context")
+        val provider = ControllableContextProvider()
+        OpenFeatureAPI.setProviderAndWait(provider)
+
+        val firstContextSet = launch {
+            OpenFeatureAPI.setEvaluationContextAndWait(context)
+        }
+        provider.contextSetStarted.receive()
+        val secondContextSet = launch {
+            OpenFeatureAPI.setEvaluationContextAndWait(context)
+        }
+        provider.contextSetStarted.receive()
+        assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
+
+        provider.allowContextSetToComplete.send(Unit)
+        provider.contextSetCompleted.receive()
+        assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
+
+        provider.allowContextSetToComplete.send(Unit)
+        firstContextSet.join()
+        secondContextSet.join()
+        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -157,6 +197,18 @@ class StatusTests {
         // Use waitAssert for shutdown calls to handle timing differences across platforms
         waitAssert { assertEquals(1, provider1.shutdownCalls.value) }
         assertEquals(0, provider2.shutdownCalls.value)
+    }
+}
+
+private class ControllableContextProvider : NoOpProvider() {
+    val contextSetStarted = Channel<Unit>(Channel.UNLIMITED)
+    val allowContextSetToComplete = Channel<Unit>(Channel.UNLIMITED)
+    val contextSetCompleted = Channel<Unit>(Channel.UNLIMITED)
+
+    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+        contextSetStarted.send(Unit)
+        allowContextSetToComplete.receive()
+        contextSetCompleted.send(Unit)
     }
 }
 
