@@ -386,11 +386,29 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.setProviderAndWait(provider)
 
         OpenFeatureAPI.setEvaluationContextAndWait(context)
+        val emittedStatuses = mutableListOf<OpenFeatureStatus>()
+        val job = launch {
+            OpenFeatureAPI.statusFlow.collect {
+                emittedStatuses.add(it)
+            }
+        }
+        testScheduler.advanceUntilIdle()
+
         OpenFeatureAPI.setEvaluationContextAndWait(context)
+        testScheduler.advanceUntilIdle()
+        job.cancelAndJoin()
 
         assertEquals(2, provider.onContextSetCalls.size)
         assertTrue(provider.onContextSetCalls[1].first === context)
         assertTrue(provider.onContextSetCalls[1].second === context)
+        assertEquals(
+            listOf(
+                OpenFeatureStatus.Ready,
+                OpenFeatureStatus.Reconciling,
+                OpenFeatureStatus.Ready
+            ),
+            emittedStatuses
+        )
     }
 
     @Test
