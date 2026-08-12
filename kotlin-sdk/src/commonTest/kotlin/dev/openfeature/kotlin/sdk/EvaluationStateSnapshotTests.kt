@@ -91,12 +91,12 @@ class EvaluationStateSnapshotTests {
     }
 
     private class GuardedTrackingProvider(
-        private val expectedTargetingKey: String,
+        private val expectedTargetingKey: String
     ) : NoOpProvider() {
         override fun track(
             trackingEventName: String,
             context: EvaluationContext?,
-            details: TrackingEventDetails?,
+            details: TrackingEventDetails?
         ) {
             if (context?.getTargetingKey() != expectedTargetingKey) {
                 throw IllegalStateException(
@@ -114,7 +114,7 @@ class EvaluationStateSnapshotTests {
         override fun track(
             trackingEventName: String,
             context: EvaluationContext?,
-            details: TrackingEventDetails?,
+            details: TrackingEventDetails?
         ) {
             lastEventName = trackingEventName
             lastContext = context

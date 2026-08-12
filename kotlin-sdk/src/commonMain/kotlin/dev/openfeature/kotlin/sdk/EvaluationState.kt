@@ -5,5 +5,5 @@ package dev.openfeature.kotlin.sdk
  */
 internal data class EvaluationState(
     val provider: FeatureProvider,
-    val context: EvaluationContext?,
+    val context: EvaluationContext?
 )
