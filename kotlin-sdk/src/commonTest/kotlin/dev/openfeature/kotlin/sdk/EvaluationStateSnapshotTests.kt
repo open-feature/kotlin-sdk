@@ -36,9 +36,9 @@ class EvaluationStateSnapshotTests {
     }
 
     @Test
-    fun trackUsesConsistentProviderContextSnapshotUnderConcurrency() = runTest {
-        val providerA = GuardedTrackingProvider("A")
-        val providerB = GuardedTrackingProvider("B")
+    fun snapshotUsesConsistentProviderContextUnderConcurrency() = runTest {
+        val providerA = GuardedProvider("A")
+        val providerB = GuardedProvider("B")
         val mismatches = atomic(0)
 
         val swapJob = launch(Dispatchers.Default) {
@@ -61,8 +61,18 @@ class EvaluationStateSnapshotTests {
             }
         }
 
-        joinAll(swapJob, trackJob)
-        assertEquals(0, mismatches.value, "track should not observe mismatched provider/context pairs")
+        val evaluateJob = launch(Dispatchers.Default) {
+            repeat(500) {
+                try {
+                    OpenFeatureAPI.getClient().getBooleanValue("flag", false)
+                } catch (_: IllegalStateException) {
+                    mismatches.incrementAndGet()
+                }
+            }
+        }
+
+        joinAll(swapJob, trackJob, evaluateJob)
+        assertEquals(0, mismatches.value, "track and evaluation should not observe mismatched provider/context pairs")
     }
 
     @Test
@@ -90,19 +100,32 @@ class EvaluationStateSnapshotTests {
         assertEquals(Value.Integer(2), trackingProvider.lastDetails?.structure?.getValue("items"))
     }
 
-    private class GuardedTrackingProvider(
+    private class GuardedProvider(
         private val expectedTargetingKey: String
     ) : NoOpProvider() {
-        override fun track(
-            trackingEventName: String,
-            context: EvaluationContext?,
-            details: TrackingEventDetails?
-        ) {
+        private fun assertMatchingContext(context: EvaluationContext?) {
             if (context?.getTargetingKey() != expectedTargetingKey) {
                 throw IllegalStateException(
                     "Provider for '$expectedTargetingKey' received context '${context?.getTargetingKey()}'"
                 )
             }
+        }
+
+        override fun getBooleanEvaluation(
+            key: String,
+            defaultValue: Boolean,
+            context: EvaluationContext?
+        ): ProviderEvaluation<Boolean> {
+            assertMatchingContext(context)
+            return super.getBooleanEvaluation(key, defaultValue, context)
+        }
+
+        override fun track(
+            trackingEventName: String,
+            context: EvaluationContext?,
+            details: TrackingEventDetails?
+        ) {
+            assertMatchingContext(context)
         }
     }
 

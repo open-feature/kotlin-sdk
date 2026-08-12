@@ -147,8 +147,8 @@ open class OpenFeatureAPIInstance internal constructor() {
             // Initialize the new provider
             tryWithStatusEmitErrorHandling {
                 listenToProviderEvents(provider, dispatcher)
-                val initialEvaluationContext = synchronized(stateLock) { context }
-                provider.initialize(initialEvaluationContext)
+                val state = getEvaluationState()
+                state.provider.initialize(state.context)
                 _statusFlow.emit(OpenFeatureStatus.Ready)
             }
         } catch (e: CancellationException) {
