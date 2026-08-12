@@ -1,114 +1,140 @@
 package dev.openfeature.kotlin.sdk
 
 import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
+import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class EvaluationStateSnapshotTests {
 
-    @BeforeTest
-    fun setup() = runTest {
-        OpenFeatureAPI.shutdown()
-    }
-
-    @AfterTest
-    fun tearDown() = runTest {
-        OpenFeatureAPI.shutdown()
+    private suspend fun withIsolatedApi(block: suspend () -> Unit) {
+        try {
+            OpenFeatureAPI.shutdown()
+            block()
+        } finally {
+            OpenFeatureAPI.shutdown()
+        }
     }
 
     @Test
     fun getEvaluationStateReturnsProviderAndContextTogether() = runTest {
-        val provider = NoOpProvider()
-        val evaluationContext = ImmutableContext("user-1", mapOf("plan" to Value.String("premium")))
-        OpenFeatureAPI.setProviderAndWait(provider, evaluationContext)
+        withIsolatedApi {
+            val provider = NoOpProvider()
+            val evaluationContext = ImmutableContext("user-1", mapOf("plan" to Value.String("premium")))
+            OpenFeatureAPI.setProviderAndWait(provider, evaluationContext)
 
-        val state = OpenFeatureAPI.getEvaluationState()
+            val state = OpenFeatureAPI.getEvaluationState()
 
-        assertEquals(provider, state.provider)
-        assertEquals(evaluationContext, state.context)
+            assertEquals(provider, state.provider)
+            assertEquals(evaluationContext, state.context)
+        }
     }
 
     @Test
     fun snapshotUsesConsistentProviderContextUnderConcurrency() = runTest {
-        val providerA = GuardedProvider("A")
-        val providerB = GuardedProvider("B")
-        val mismatches = atomic(0)
+        withIsolatedApi {
+            val mismatches = atomic(0)
+            val callsA = atomic(0)
+            val callsB = atomic(0)
+            val startGate = CompletableDeferred<Unit>()
+            val onMismatch: () -> Unit = { mismatches.incrementAndGet(); Unit }
+            val providerA = GuardedProvider("A", onMismatch) { callsA.incrementAndGet(); Unit }
+            val providerB = GuardedProvider("B", onMismatch) { callsB.incrementAndGet(); Unit }
 
-        val swapJob = launch(Dispatchers.Default) {
-            repeat(100) {
-                if (it % 2 == 0) {
-                    OpenFeatureAPI.setProviderAndWait(providerA, ImmutableContext("A"))
-                } else {
-                    OpenFeatureAPI.setProviderAndWait(providerB, ImmutableContext("B"))
+            OpenFeatureAPI.setProviderAndWait(providerA, ImmutableContext("A"))
+
+            val swapJob = launch(Dispatchers.Default) {
+                startGate.await()
+                repeat(100) {
+                    if (it % 2 == 0) {
+                        OpenFeatureAPI.setProviderAndWait(providerA, ImmutableContext("A"))
+                    } else {
+                        OpenFeatureAPI.setProviderAndWait(providerB, ImmutableContext("B"))
+                    }
+                    yield()
                 }
             }
-        }
 
-        val trackJob = launch(Dispatchers.Default) {
-            repeat(500) {
-                try {
-                    OpenFeatureAPI.getClient().track("event")
-                } catch (_: IllegalStateException) {
-                    mismatches.incrementAndGet()
+            val trackJob = launch(Dispatchers.Default) {
+                startGate.await()
+                repeat(500) {
+                    try {
+                        OpenFeatureAPI.getClient().track("event")
+                    } catch (_: IllegalStateException) {
+                        // mismatch already recorded by GuardedProvider
+                    }
+                    yield()
                 }
             }
-        }
 
-        val evaluateJob = launch(Dispatchers.Default) {
-            repeat(500) {
-                try {
+            val evaluateJob = launch(Dispatchers.Default) {
+                startGate.await()
+                repeat(500) {
                     OpenFeatureAPI.getClient().getBooleanValue("flag", false)
-                } catch (_: IllegalStateException) {
-                    mismatches.incrementAndGet()
+                    yield()
                 }
             }
-        }
 
-        joinAll(swapJob, trackJob, evaluateJob)
-        assertEquals(0, mismatches.value, "track and evaluation should not observe mismatched provider/context pairs")
+            startGate.complete(Unit)
+            joinAll(swapJob, trackJob, evaluateJob)
+
+            assertTrue(callsA.value > 0, "providerA should handle calls during concurrent swaps")
+            assertTrue(callsB.value > 0, "providerB should handle calls during concurrent swaps")
+            assertEquals(
+                0,
+                mismatches.value,
+                "track and evaluation should not observe mismatched provider/context pairs"
+            )
+        }
     }
 
     @Test
     fun trackPassesStoredEvaluationContextToProvider() = runTest {
-        val trackingProvider = CapturingTrackingProvider()
-        val evaluationContext = ImmutableContext(
-            "user-1",
-            mapOf("plan" to Value.String("premium"), "num" to Value.Integer(10))
-        )
-        OpenFeatureAPI.setProviderAndWait(trackingProvider)
-        OpenFeatureAPI.setEvaluationContextAndWait(evaluationContext)
-
-        OpenFeatureAPI.getClient().track(
-            "test",
-            TrackingEventDetails(
-                5.0,
-                ImmutableStructure("items" to Value.Integer(2))
+        withIsolatedApi {
+            val trackingProvider = CapturingTrackingProvider()
+            val evaluationContext = ImmutableContext(
+                "user-1",
+                mapOf("plan" to Value.String("premium"), "num" to Value.Integer(10))
             )
-        )
+            OpenFeatureAPI.setProviderAndWait(trackingProvider)
+            OpenFeatureAPI.setEvaluationContextAndWait(evaluationContext)
 
-        assertEquals("test", trackingProvider.lastEventName)
-        assertEquals(evaluationContext, trackingProvider.lastContext)
-        assertNotNull(trackingProvider.lastDetails)
-        assertEquals(5.0, trackingProvider.lastDetails?.value)
-        assertEquals(Value.Integer(2), trackingProvider.lastDetails?.structure?.getValue("items"))
+            OpenFeatureAPI.getClient().track(
+                "test",
+                TrackingEventDetails(
+                    5.0,
+                    ImmutableStructure("items" to Value.Integer(2))
+                )
+            )
+
+            assertEquals("test", trackingProvider.lastEventName)
+            assertEquals(evaluationContext, trackingProvider.lastContext)
+            assertNotNull(trackingProvider.lastDetails)
+            assertEquals(5.0, trackingProvider.lastDetails?.value)
+            assertEquals(Value.Integer(2), trackingProvider.lastDetails?.structure?.getValue("items"))
+        }
     }
 
     private class GuardedProvider(
-        private val expectedTargetingKey: String
+        private val expectedTargetingKey: String,
+        private val onMismatch: () -> Unit,
+        private val onMatchedCall: () -> Unit
     ) : NoOpProvider() {
         private fun assertMatchingContext(context: EvaluationContext?) {
             if (context?.getTargetingKey() != expectedTargetingKey) {
+                onMismatch()
                 throw IllegalStateException(
                     "Provider for '$expectedTargetingKey' received context '${context?.getTargetingKey()}'"
                 )
             }
+            onMatchedCall()
         }
 
         override fun getBooleanEvaluation(
