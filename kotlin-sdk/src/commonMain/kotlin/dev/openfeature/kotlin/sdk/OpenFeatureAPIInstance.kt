@@ -3,6 +3,8 @@ package dev.openfeature.kotlin.sdk
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +43,7 @@ open class OpenFeatureAPIInstance internal constructor() {
     private var observeProviderEventsJob: Job? = null
 
     private val providerMutex = Mutex()
+    private val stateLock = SynchronizedObject()
     private val noOpProvider = NoOpProvider()
     private var provider: FeatureProvider = noOpProvider
     private var context: EvaluationContext? = null
@@ -120,11 +123,13 @@ open class OpenFeatureAPIInstance internal constructor() {
         try {
             // Atomically swap the old and new provider to prevent race conditions
             val oldProvider = providerMutex.withLock {
-                val current = this.provider
-                this.provider = provider
-                providersFlow.value = provider
-                if (initialContext != null) context = initialContext
-                current
+                synchronized(stateLock) {
+                    val current = this.provider
+                    this.provider = provider
+                    providersFlow.value = provider
+                    if (initialContext != null) context = initialContext
+                    current
+                }
             }
             swapCommitted = true
 
@@ -142,7 +147,8 @@ open class OpenFeatureAPIInstance internal constructor() {
             // Initialize the new provider
             tryWithStatusEmitErrorHandling {
                 listenToProviderEvents(provider, dispatcher)
-                getProvider().initialize(context)
+                val initialEvaluationContext = synchronized(stateLock) { context }
+                provider.initialize(initialEvaluationContext)
                 _statusFlow.emit(OpenFeatureStatus.Ready)
             }
         } catch (e: CancellationException) {
@@ -161,7 +167,16 @@ open class OpenFeatureAPIInstance internal constructor() {
      * Get the current [FeatureProvider] for this instance.
      */
     fun getProvider(): FeatureProvider {
-        return provider
+        return synchronized(stateLock) { provider }
+    }
+
+    /**
+     * Snapshot of the current provider and evaluation context for synchronous client operations.
+     */
+    internal fun getEvaluationState(): EvaluationState {
+        return synchronized(stateLock) {
+            EvaluationState(provider, context)
+        }
     }
 
     /**
@@ -169,10 +184,12 @@ open class OpenFeatureAPIInstance internal constructor() {
      */
     suspend fun clearProvider() {
         val oldProvider = providerMutex.withLock {
-            val current = this.provider
-            this.provider = noOpProvider
-            providersFlow.value = noOpProvider
-            current
+            synchronized(stateLock) {
+                val current = this.provider
+                this.provider = noOpProvider
+                providersFlow.value = noOpProvider
+                current
+            }
         }
         untrackProviderBinding(oldProvider)
         oldProvider.shutdown()
@@ -207,12 +224,15 @@ open class OpenFeatureAPIInstance internal constructor() {
     }
 
     private suspend fun setEvaluationContextInternal(evaluationContext: EvaluationContext) {
-        val oldContext = context
-        context = evaluationContext
+        val (oldContext, currentProvider) = synchronized(stateLock) {
+            val previous = context
+            context = evaluationContext
+            previous to provider
+        }
         if (oldContext != evaluationContext) {
             _statusFlow.emit(OpenFeatureStatus.Reconciling)
             tryWithStatusEmitErrorHandling {
-                getProvider().onContextSet(oldContext, evaluationContext)
+                currentProvider.onContextSet(oldContext, evaluationContext)
                 _statusFlow.emit(OpenFeatureStatus.Ready)
             }
         }
@@ -240,7 +260,7 @@ open class OpenFeatureAPIInstance internal constructor() {
      * Get the current [EvaluationContext] for this instance.
      */
     fun getEvaluationContext(): EvaluationContext? {
-        return context
+        return synchronized(stateLock) { context }
     }
 
     /**

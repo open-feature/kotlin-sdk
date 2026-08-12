@@ -198,8 +198,8 @@ class OpenFeatureClient(
 
     override fun track(trackingEventName: String, details: TrackingEventDetails?) {
         validateTrackingEventName(trackingEventName)
-        openFeatureAPI.getProvider()
-            .track(trackingEventName, openFeatureAPI.getEvaluationContext(), details)
+        val state = openFeatureAPI.getEvaluationState()
+        state.provider.track(trackingEventName, state.context, details)
     }
 
     private fun <T> evaluateFlag(
@@ -211,9 +211,10 @@ class OpenFeatureClient(
         val options = optionsIn ?: FlagEvaluationOptions(listOf(), mapOf())
         val hints = options.hookHints
         var details = FlagEvaluationDetails(key, defaultValue)
-        val provider = openFeatureAPI.getProvider()
+        val state = openFeatureAPI.getEvaluationState()
+        val provider = state.provider
         val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
-        val context = openFeatureAPI.getEvaluationContext()
+        val context = state.context
         val hooksWithContext: List<Pair<Hook<*>, HookContext<T>>> =
             mergedHooks
                 .filter { it.supportsFlagValueType(flagValueType) }

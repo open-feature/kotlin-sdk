@@ -59,6 +59,7 @@ kotlin {
         commonMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
             implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
+            implementation("org.jetbrains.kotlinx:atomicfu:0.29.0")
         }
         commonTest.dependencies {
             implementation("org.jetbrains.kotlin:kotlin-test:2.2.10")
