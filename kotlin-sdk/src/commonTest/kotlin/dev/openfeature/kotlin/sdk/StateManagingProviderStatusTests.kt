@@ -88,6 +88,25 @@ class StateManagingProviderStatusTests {
     }
 
     @Test
+    fun smp_observe_delivers_context_changed_after_setEvaluationContext() = runTest {
+        val events = mutableListOf<OpenFeatureProviderEvents.ProviderContextChanged>()
+        val job = launch {
+            OpenFeatureAPI.observe<OpenFeatureProviderEvents.ProviderContextChanged>().collect {
+                events.add(it)
+            }
+        }
+
+        OpenFeatureAPI.setProviderAndWait(NoOpProvider(), initialContext = ImmutableContext("a"))
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
+
+        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("b"))
+        waitAssert { assertTrue(events.isNotEmpty()) }
+
+        job.cancelAndJoin()
+        assertTrue(events.isNotEmpty())
+    }
+
+    @Test
     fun smp_after_legacy_swap_status_comes_from_smp_instance() = runTest {
         OpenFeatureAPI.setProviderAndWait(LegacyMinimalProvider())
         waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }

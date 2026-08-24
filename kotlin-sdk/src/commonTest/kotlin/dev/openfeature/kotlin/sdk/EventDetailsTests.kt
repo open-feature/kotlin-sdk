@@ -1,6 +1,7 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
@@ -9,6 +10,18 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class EventDetailsTests {
+
+    @Test
+    fun providerContextChangedMapsToReadyStatus() {
+        val status = OpenFeatureProviderEvents.ProviderContextChanged().toOpenFeatureStatus()
+        assertEquals(OpenFeatureStatus.Ready, status)
+    }
+
+    @Test
+    fun providerReadyMapsToReadyStatus() {
+        val status = OpenFeatureProviderEvents.ProviderReady().toOpenFeatureStatus()
+        assertEquals(OpenFeatureStatus.Ready, status)
+    }
 
     @Test
     fun providerErrorWithProviderNotReadyCodeMapsToNotReadyStatus() {

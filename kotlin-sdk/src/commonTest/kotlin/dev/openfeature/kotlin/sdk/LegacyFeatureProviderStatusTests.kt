@@ -71,6 +71,28 @@ class LegacyFeatureProviderStatusTests {
     }
 
     @Test
+    fun legacy_observe_delivers_context_changed_after_setEvaluationContext() = runTest {
+        val events = mutableListOf<OpenFeatureProviderEvents.ProviderContextChanged>()
+        val collector = launch {
+            OpenFeatureAPI.observe<OpenFeatureProviderEvents.ProviderContextChanged>().collect {
+                events.add(it)
+            }
+        }
+
+        OpenFeatureAPI.setProviderAndWait(
+            LegacySlowContextProvider(),
+            initialContext = ImmutableContext("legacy-init")
+        )
+        waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
+
+        OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("ctx-a"))
+        waitAssert { assertTrue(events.isNotEmpty()) }
+
+        collector.cancelAndJoin()
+        assertTrue(events.isNotEmpty())
+    }
+
+    @Test
     fun legacy_getStatus_reads_sdk_buffer_not_provider_state_flow() = runTest {
         val provider = LegacyControllableProvider()
         OpenFeatureAPI.setProviderAndWait(provider)

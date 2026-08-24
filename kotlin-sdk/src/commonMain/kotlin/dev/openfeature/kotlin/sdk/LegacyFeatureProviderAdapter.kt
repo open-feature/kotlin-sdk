@@ -100,6 +100,7 @@ internal class LegacyFeatureProviderAdapter(
             yield()
             inner.onContextSet(oldContext, newContext)
             _status.value = OpenFeatureStatus.Ready
+            eventFlow.emit(OpenFeatureProviderEvents.ProviderContextChanged())
         } catch (e: Throwable) {
             handleError(e)
         }

@@ -64,7 +64,7 @@ class SlowProvider(
             delay(2000)
         }.await()
         _status.value = OpenFeatureStatus.Ready
-        events.emit(OpenFeatureProviderEvents.ProviderReady())
+        events.emit(OpenFeatureProviderEvents.ProviderContextChanged())
     }
 
     override fun observe(): Flow<OpenFeatureProviderEvents> = events

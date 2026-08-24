@@ -48,8 +48,9 @@ interface StateManagingProvider : FeatureProvider {
      * Called by [OpenFeatureAPI] when the [EvaluationContext] changes.
      *
      * Reconcile as needed. For each transition, update [status] first, then emit the matching event
-     * on [observe] (for example [OpenFeatureStatus.Reconciling], then [OpenFeatureStatus.Ready] or
-     * [OpenFeatureStatus.Error]).
+     * on [observe] (for example [OpenFeatureProviderEvents.ProviderReconciling], then
+     * [OpenFeatureProviderEvents.ProviderContextChanged] on success or
+     * [OpenFeatureProviderEvents.ProviderError] on failure).
      *
      * @param oldContext previous context, if any
      * @param newContext new context

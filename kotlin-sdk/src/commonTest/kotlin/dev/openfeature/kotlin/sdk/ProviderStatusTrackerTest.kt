@@ -35,6 +35,10 @@ class ProviderStatusTrackerTest {
         assertEquals(OpenFeatureStatus.NotReady, t.status.value)
         t.send(OpenFeatureProviderEvents.ProviderReady())
         assertEquals(OpenFeatureStatus.Ready, t.status.value)
+        t.send(OpenFeatureProviderEvents.ProviderStale())
+        assertEquals(OpenFeatureStatus.Stale, t.status.value)
+        t.send(OpenFeatureProviderEvents.ProviderContextChanged())
+        assertEquals(OpenFeatureStatus.Ready, t.status.value)
         t.send(
             OpenFeatureProviderEvents.ProviderError(
                 OpenFeatureProviderEvents.EventDetails(

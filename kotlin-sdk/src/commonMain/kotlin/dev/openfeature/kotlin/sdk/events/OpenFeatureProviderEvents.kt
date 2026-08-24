@@ -52,6 +52,14 @@ sealed class OpenFeatureProviderEvents {
     data class ProviderReconciling(
         override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
+
+    /**
+     * The evaluation context changed and the provider finished reconciling.
+     * Maps to [OpenFeatureStatus.Ready].
+     */
+    data class ProviderContextChanged(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
 }
 
 /**
@@ -61,11 +69,11 @@ sealed class OpenFeatureProviderEvents {
  */
 internal fun OpenFeatureProviderEvents.toOpenFeatureStatus(): OpenFeatureStatus? = when (this) {
     is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
+    is OpenFeatureProviderEvents.ProviderContextChanged -> OpenFeatureStatus.Ready
     is OpenFeatureProviderEvents.ProviderReconciling -> OpenFeatureStatus.Reconciling
     is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
     is OpenFeatureProviderEvents.ProviderConfigurationChanged -> null
     is OpenFeatureProviderEvents.ProviderError -> toOpenFeatureStatusError()
-    else -> null
 }
 
 internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError(): OpenFeatureStatus {

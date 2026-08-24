@@ -30,7 +30,7 @@ open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : StateMan
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
-        // no-op
+        statusTracker.send(OpenFeatureProviderEvents.ProviderContextChanged())
     }
 
     override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
