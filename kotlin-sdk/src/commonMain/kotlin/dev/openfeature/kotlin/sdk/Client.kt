@@ -24,7 +24,10 @@ interface Client : Features, Tracking {
     fun addHooks(hooks: List<Hook<*>>)
 
     /**
-     * Get the current [OpenFeatureStatus] of the Provider handling this client's evaluations, or [OpenFeatureStatus.NotReady] if no Provider has been initialized.
+     * The current status of the provider handling this client's evaluations.
+     *
+     * @return the current [OpenFeatureStatus], or [OpenFeatureStatus.NotReady] if no provider has
+     * been initialized.
      */
     val providerStatus: OpenFeatureStatus
         get() = OpenFeatureStatus.NotReady

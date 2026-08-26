@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -121,6 +121,7 @@ class OpenFeatureClientTests {
         assertEquals(OpenFeatureStatus.NotReady, client.providerStatus)
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun testClientGetProviderStatusShouldReturnStaleWhenProviderEmitsStale() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -132,7 +133,7 @@ class OpenFeatureClientTests {
 
         // Call track which forces the OverlyEmittingProvider to emit ProviderStale events
         client.track("test-stale-event")
-        runCurrent()
+        advanceUntilIdle()
 
         assertEquals(OpenFeatureStatus.Stale, client.providerStatus)
     }
