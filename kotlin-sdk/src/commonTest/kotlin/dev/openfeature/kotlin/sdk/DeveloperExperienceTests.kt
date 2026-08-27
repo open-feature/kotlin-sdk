@@ -361,7 +361,7 @@ class DeveloperExperienceTests {
     }
 
     @Test
-    fun setEvaluationContextDoesDeepEqualsOnAttributes() = runTest {
+    fun setEvaluationContextUsesImmutableCopyOfAttributes() = runTest {
         val map = mutableMapOf<String, Value>()
         val provider = SpyProvider()
         OpenFeatureAPI.setProviderAndWait(provider)
@@ -369,13 +369,72 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(attributes = map))
         assertEquals(1, provider.onContextSetCalls.size)
         map["myKey"] = Value.String("myValue")
-        println(OpenFeatureAPI.getEvaluationContext()?.asMap())
+        assertNull(OpenFeatureAPI.getEvaluationContext()?.getValue("myKey"))
+
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(attributes = map))
         assertEquals(2, provider.onContextSetCalls.size)
+        assertEquals("myValue", OpenFeatureAPI.getEvaluationContext()?.getValue("myKey")?.asString())
     }
 
     @Test
-    fun setEvaluationContextDoesNotDetectDeepChangesInNestedStructures() = runTest {
+    fun setEvaluationContextReconcilesWhenGivenSameInstance() = runTest {
+        val context = ImmutableContext(
+            targetingKey = "targeting-key",
+            attributes = mapOf("key" to Value.String("value"))
+        )
+        val provider = SpyProvider()
+        OpenFeatureAPI.setProviderAndWait(provider)
+
+        OpenFeatureAPI.setEvaluationContextAndWait(context)
+        val emittedStatuses = mutableListOf<OpenFeatureStatus>()
+        val job = launch {
+            OpenFeatureAPI.statusFlow.collect {
+                emittedStatuses.add(it)
+            }
+        }
+        testScheduler.advanceUntilIdle()
+
+        OpenFeatureAPI.setEvaluationContextAndWait(context)
+        testScheduler.advanceUntilIdle()
+        job.cancelAndJoin()
+
+        assertEquals(2, provider.onContextSetCalls.size)
+        assertTrue(provider.onContextSetCalls[1].first === context)
+        assertTrue(provider.onContextSetCalls[1].second === context)
+        assertEquals(
+            listOf(
+                OpenFeatureStatus.Ready,
+                OpenFeatureStatus.Reconciling,
+                OpenFeatureStatus.Ready
+            ),
+            emittedStatuses
+        )
+    }
+
+    @Test
+    fun setEvaluationContextReconcilesWhenGivenEqualContext() = runTest {
+        val firstContext = ImmutableContext(
+            targetingKey = "targeting-key",
+            attributes = mapOf("key" to Value.String("value"))
+        )
+        val secondContext = ImmutableContext(
+            targetingKey = "targeting-key",
+            attributes = mapOf("key" to Value.String("value"))
+        )
+        val provider = SpyProvider()
+        OpenFeatureAPI.setProviderAndWait(provider)
+        assertTrue(firstContext !== secondContext)
+
+        OpenFeatureAPI.setEvaluationContextAndWait(firstContext)
+        OpenFeatureAPI.setEvaluationContextAndWait(secondContext)
+
+        assertEquals(2, provider.onContextSetCalls.size)
+        assertTrue(provider.onContextSetCalls[1].first === firstContext)
+        assertTrue(provider.onContextSetCalls[1].second === secondContext)
+    }
+
+    @Test
+    fun setEvaluationContextUsesImmutableCopyOfNestedStructures() = runTest {
         val nestedMap = mutableMapOf<String, Value>()
         val map = mutableMapOf<String, Value>()
         map["nested"] = Value.Structure(nestedMap)
@@ -387,11 +446,11 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(attributes = map))
         assertEquals(1, provider.onContextSetCalls.size)
 
-        // This won't update the `nested` list in `map`, since Value.Structure returns an immutable copy
+        // This won't update the nested structure in `map`, since Value.Structure returns an immutable copy
         nestedMap["deepKey"] = Value.String("deepValue")
 
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(attributes = map))
-        assertEquals(1, provider.onContextSetCalls.size)
+        assertEquals(2, provider.onContextSetCalls.size)
 
         val currentContext = OpenFeatureAPI.getEvaluationContext()
         val nestedStructure = currentContext?.getValue("nested")?.asStructure()
@@ -399,7 +458,7 @@ class DeveloperExperienceTests {
     }
 
     @Test
-    fun setEvaluationContextDoesNotDetectDeepChangesInNestedLists() = runTest {
+    fun setEvaluationContextUsesImmutableCopyOfNestedLists() = runTest {
         val nestedList = mutableListOf<Value>()
         val map = mutableMapOf<String, Value>()
         map["nested"] = Value.List(nestedList)
@@ -415,7 +474,7 @@ class DeveloperExperienceTests {
         nestedList.add(Value.String("deepValue"))
 
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(attributes = map))
-        assertEquals(1, provider.onContextSetCalls.size)
+        assertEquals(2, provider.onContextSetCalls.size)
 
         val currentContext = OpenFeatureAPI.getEvaluationContext()
         val nestedListFromContext = currentContext?.getValue("nested")?.asList()

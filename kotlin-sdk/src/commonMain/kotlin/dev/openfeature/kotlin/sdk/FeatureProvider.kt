@@ -24,8 +24,10 @@ interface FeatureProvider {
     fun shutdown()
 
     /**
-     * Called by OpenFeatureAPI whenever a new EvaluationContext is set by the application
-     * Perform blocking work here until the provider is ready again or throws an exception
+     * Called by OpenFeatureAPI whenever the application sets the [EvaluationContext], including when
+     * the new context is equal to or the same instance as the previous context.
+     * Implementations should suspend until the provider is ready again or throw an exception.
+     *
      * @param oldContext The old EvaluationContext
      * @param newContext The new EvaluationContext
      * @throws OpenFeatureError if the provider cannot perform the task

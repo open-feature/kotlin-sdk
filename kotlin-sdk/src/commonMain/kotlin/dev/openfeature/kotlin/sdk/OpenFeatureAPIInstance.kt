@@ -38,15 +38,29 @@ import kotlinx.coroutines.withContext
  */
 @Suppress("TooManyFunctions")
 open class OpenFeatureAPIInstance internal constructor() {
+    private data class ContextReconciliation(
+        val oldContext: EvaluationContext?,
+        val provider: FeatureProvider,
+        val providerGeneration: Long
+    )
+
     private var setProviderJob: Job? = null
     private var setEvaluationContextJob: Job? = null
     private var observeProviderEventsJob: Job? = null
 
     private val providerMutex = Mutex()
+    private val contextReconciliationMutex = Mutex()
     private val stateLock = SynchronizedObject()
     private val noOpProvider = NoOpProvider()
     private var provider: FeatureProvider = noOpProvider
+    private var providerGeneration: Long = 0
     private var context: EvaluationContext? = null
+    private var contextReconciliationGeneration: Long? = null
+    private var activeContextReconciliations: Int = 0
+    private var contextReconciliationInitialStatus: OpenFeatureStatus? = null
+    private var contextReconciliationTerminalStatus: OpenFeatureStatus? = null
+    private var providerStatusGeneration: Long = 0
+    private var contextReconciliationTerminalProviderStatusGeneration: Long? = null
     val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(noOpProvider)
 
     private val _statusFlow: MutableSharedFlow<OpenFeatureStatus> =
@@ -126,6 +140,7 @@ open class OpenFeatureAPIInstance internal constructor() {
                 synchronized(stateLock) {
                     val current = this.provider
                     this.provider = provider
+                    providerGeneration++
                     providersFlow.value = provider
                     if (initialContext != null) context = initialContext
                     current
@@ -187,6 +202,7 @@ open class OpenFeatureAPIInstance internal constructor() {
             synchronized(stateLock) {
                 val current = this.provider
                 this.provider = noOpProvider
+                providerGeneration++
                 providersFlow.value = noOpProvider
                 current
             }
@@ -224,16 +240,99 @@ open class OpenFeatureAPIInstance internal constructor() {
     }
 
     private suspend fun setEvaluationContextInternal(evaluationContext: EvaluationContext) {
-        val (oldContext, currentProvider) = synchronized(stateLock) {
-            val previous = context
-            context = evaluationContext
-            previous to provider
+        var reconciliation: ContextReconciliation? = null
+        var terminalStatus: OpenFeatureStatus? = null
+        try {
+            contextReconciliationMutex.withLock {
+                providerMutex.withLock {
+                    var shouldEmitReconciling = false
+                    synchronized(stateLock) {
+                        val oldContext = context
+                        context = evaluationContext
+                        if (provider !== noOpProvider) {
+                            reconciliation = ContextReconciliation(oldContext, provider, providerGeneration)
+                            if (contextReconciliationGeneration != providerGeneration) {
+                                contextReconciliationGeneration = providerGeneration
+                                activeContextReconciliations = 0
+                            }
+                            if (activeContextReconciliations == 0) {
+                                contextReconciliationInitialStatus = getStatus()
+                                contextReconciliationTerminalStatus = null
+                                contextReconciliationTerminalProviderStatusGeneration = null
+                            }
+                            activeContextReconciliations++
+                            shouldEmitReconciling = activeContextReconciliations == 1
+                        }
+                    }
+                    if (shouldEmitReconciling) {
+                        _statusFlow.emit(OpenFeatureStatus.Reconciling)
+                    }
+                }
+            }
+
+            val registeredReconciliation = reconciliation ?: return
+            registeredReconciliation.provider.onContextSet(
+                registeredReconciliation.oldContext,
+                evaluationContext
+            )
+            terminalStatus = OpenFeatureStatus.Ready
+        } catch (e: CancellationException) {
+            // This happens by design and shouldn't be treated as an error
+        } catch (e: OpenFeatureError) {
+            terminalStatus = OpenFeatureStatus.Error(e)
+        } catch (e: Throwable) {
+            terminalStatus = OpenFeatureStatus.Error(
+                OpenFeatureError.GeneralError(e.message ?: "Unknown error")
+            )
+        } finally {
+            val registeredReconciliation = reconciliation
+            if (registeredReconciliation != null) {
+                withContext(NonCancellable) {
+                    completeContextReconciliation(
+                        registeredReconciliation.provider,
+                        registeredReconciliation.providerGeneration,
+                        terminalStatus
+                    )
+                }
+            }
         }
-        if (oldContext != evaluationContext) {
-            _statusFlow.emit(OpenFeatureStatus.Reconciling)
-            tryWithStatusEmitErrorHandling {
-                currentProvider.onContextSet(oldContext, evaluationContext)
-                _statusFlow.emit(OpenFeatureStatus.Ready)
+    }
+
+    private suspend fun completeContextReconciliation(
+        reconciliationProvider: FeatureProvider,
+        reconciliationProviderGeneration: Long,
+        terminalStatus: OpenFeatureStatus?
+    ) {
+        contextReconciliationMutex.withLock {
+            if (contextReconciliationGeneration != reconciliationProviderGeneration) return
+
+            if (terminalStatus != null) {
+                contextReconciliationTerminalStatus = terminalStatus
+                contextReconciliationTerminalProviderStatusGeneration = providerStatusGeneration
+            }
+            activeContextReconciliations--
+            if (activeContextReconciliations == 0) {
+                val retainedTerminalStatus = contextReconciliationTerminalStatus
+                val statusToEmit = retainedTerminalStatus ?: contextReconciliationInitialStatus
+                val shouldEmitStatus = if (retainedTerminalStatus != null) {
+                    contextReconciliationTerminalProviderStatusGeneration == providerStatusGeneration
+                } else {
+                    getStatus() is OpenFeatureStatus.Reconciling
+                }
+                contextReconciliationInitialStatus = null
+                contextReconciliationTerminalStatus = null
+                contextReconciliationTerminalProviderStatusGeneration = null
+
+                providerMutex.withLock {
+                    if (
+                        synchronized(stateLock) { provider === reconciliationProvider } &&
+                        providerGeneration == reconciliationProviderGeneration &&
+                        statusToEmit != null &&
+                        shouldEmitStatus
+                    ) {
+                        _statusFlow.emit(statusToEmit)
+                    }
+                }
             }
         }
     }
@@ -323,19 +422,26 @@ open class OpenFeatureAPIInstance internal constructor() {
     private val handleProviderEvents: FlowCollector<OpenFeatureProviderEvents> = FlowCollector { providerEvent ->
         when (providerEvent) {
             is OpenFeatureProviderEvents.ProviderReady -> {
-                _statusFlow.emit(OpenFeatureStatus.Ready)
+                emitProviderStatus(OpenFeatureStatus.Ready)
             }
 
             is OpenFeatureProviderEvents.ProviderStale -> {
-                _statusFlow.emit(OpenFeatureStatus.Stale)
+                emitProviderStatus(OpenFeatureStatus.Stale)
             }
 
             is OpenFeatureProviderEvents.ProviderError -> {
-                _statusFlow.emit(providerEvent.toOpenFeatureStatusError())
+                emitProviderStatus(providerEvent.toOpenFeatureStatusError())
             }
 
             else -> { // All other states should not be emitted from here
             }
+        }
+    }
+
+    private suspend fun emitProviderStatus(status: OpenFeatureStatus) {
+        contextReconciliationMutex.withLock {
+            providerStatusGeneration++
+            _statusFlow.emit(status)
         }
     }
 

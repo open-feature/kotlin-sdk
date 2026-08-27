@@ -1,17 +1,25 @@
 package dev.openfeature.kotlin.sdk
 
+import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.helpers.BrokenInitProvider
 import dev.openfeature.kotlin.sdk.helpers.DoSomethingProvider
 import dev.openfeature.kotlin.sdk.helpers.SlowProvider
 import dev.openfeature.kotlin.sdk.helpers.SpyProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlin.random.Random
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -60,6 +68,19 @@ class StatusTests {
     }
 
     @Test
+    fun testContextSetAfterClearProviderRemainsNotReady() = runTest {
+        val context = ImmutableContext("same-context")
+        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
+        OpenFeatureAPI.setEvaluationContextAndWait(context)
+        OpenFeatureAPI.clearProvider()
+
+        OpenFeatureAPI.setEvaluationContextAndWait(context)
+
+        assertTrue(OpenFeatureAPI.getEvaluationContext() === context)
+        assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
+    }
+
+    @Test
     fun testProviderTransitionsToReconcilingOnContextSet() = runTest {
         waitAssert {
             assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
@@ -78,6 +99,120 @@ class StatusTests {
             assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         }
         job.cancelAndJoin()
+    }
+
+    @Test
+    fun testStatusRemainsReconcilingUntilAllEqualContextSetsComplete() = runTest {
+        val context = ImmutableContext("same-context")
+        val provider = ControllableContextProvider()
+        OpenFeatureAPI.setProviderAndWait(provider)
+
+        val firstContextSet = launch {
+            OpenFeatureAPI.setEvaluationContextAndWait(context)
+        }
+        provider.contextSetStarted.receive()
+        val secondContextSet = launch {
+            OpenFeatureAPI.setEvaluationContextAndWait(context)
+        }
+        provider.contextSetStarted.receive()
+        assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
+
+        provider.allowContextSetToComplete.send(Unit)
+        provider.contextSetCompleted.receive()
+        assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
+
+        provider.allowContextSetToComplete.send(Unit)
+        firstContextSet.join()
+        secondContextSet.join()
+        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+    }
+
+    @Test
+    fun testCancelledContextSetRestoresPreviousStatus() = runTest {
+        val provider = ControllableContextProvider()
+        OpenFeatureAPI.setProviderAndWait(provider)
+
+        val contextSet = launch {
+            OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("cancelled"))
+        }
+        provider.contextSetStarted.receive()
+        assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
+
+        contextSet.cancelAndJoin()
+
+        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun testCancelledContextSetFinishingLastUsesReplacementStatus() = runTest {
+        val provider = CancellationRaceProvider()
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        OpenFeatureAPI.setProviderAndWait(provider)
+
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"), dispatcher)
+        provider.firstContextSetStarted.receive()
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("replacement"), dispatcher)
+        provider.firstContextSetCancellationStarted.receive()
+        provider.replacementContextSetCompleted.receive()
+        runCurrent()
+        assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
+
+        provider.allowFirstContextSetToFinish.send(Unit)
+        advanceUntilIdle()
+
+        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun testProviderEventAfterReplacementCompletionWinsOverRetainedStatus() = runTest {
+        val provider = CancellationRaceProvider()
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = dispatcher)
+        runCurrent()
+
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"), dispatcher)
+        provider.firstContextSetStarted.receive()
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("replacement"), dispatcher)
+        provider.firstContextSetCancellationStarted.receive()
+        provider.replacementContextSetCompleted.receive()
+        runCurrent()
+
+        provider.emitStale()
+        runCurrent()
+        assertEquals(OpenFeatureStatus.Stale, OpenFeatureAPI.getStatus())
+
+        provider.allowFirstContextSetToFinish.send(Unit)
+        advanceUntilIdle()
+
+        assertEquals(OpenFeatureStatus.Stale, OpenFeatureAPI.getStatus())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun testRetiredProviderReconciliationDoesNotOverwriteReplacementStatus() = runTest {
+        val retiredProvider = ControllableContextProvider()
+        val replacementProvider = CancellationRaceProvider()
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        OpenFeatureAPI.setProviderAndWait(retiredProvider)
+
+        val retiredContextSet = launch {
+            OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("retired"))
+        }
+        retiredProvider.contextSetStarted.receive()
+        assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
+
+        OpenFeatureAPI.setProviderAndWait(replacementProvider, dispatcher = dispatcher)
+        runCurrent()
+        replacementProvider.emitStale()
+        runCurrent()
+        assertEquals(OpenFeatureStatus.Stale, OpenFeatureAPI.getStatus())
+
+        retiredProvider.allowContextSetToComplete.send(Unit)
+        retiredContextSet.join()
+
+        assertEquals(OpenFeatureStatus.Stale, OpenFeatureAPI.getStatus())
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -157,6 +292,51 @@ class StatusTests {
         // Use waitAssert for shutdown calls to handle timing differences across platforms
         waitAssert { assertEquals(1, provider1.shutdownCalls.value) }
         assertEquals(0, provider2.shutdownCalls.value)
+    }
+}
+
+private class ControllableContextProvider : NoOpProvider() {
+    val contextSetStarted = Channel<Unit>(Channel.UNLIMITED)
+    val allowContextSetToComplete = Channel<Unit>(Channel.UNLIMITED)
+    val contextSetCompleted = Channel<Unit>(Channel.UNLIMITED)
+
+    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+        contextSetStarted.send(Unit)
+        allowContextSetToComplete.receive()
+        contextSetCompleted.send(Unit)
+    }
+}
+
+private class CancellationRaceProvider : NoOpProvider() {
+    val firstContextSetStarted = Channel<Unit>(Channel.UNLIMITED)
+    val firstContextSetCancellationStarted = Channel<Unit>(Channel.UNLIMITED)
+    val allowFirstContextSetToFinish = Channel<Unit>(Channel.UNLIMITED)
+    val replacementContextSetCompleted = Channel<Unit>(Channel.UNLIMITED)
+
+    private val events = MutableSharedFlow<OpenFeatureProviderEvents>(extraBufferCapacity = 1)
+    private var contextSetCalls = 0
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = events
+
+    fun emitStale() {
+        events.tryEmit(OpenFeatureProviderEvents.ProviderStale())
+    }
+
+    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+        contextSetCalls++
+        if (contextSetCalls == 1) {
+            firstContextSetStarted.send(Unit)
+            try {
+                awaitCancellation()
+            } finally {
+                withContext(NonCancellable) {
+                    firstContextSetCancellationStarted.send(Unit)
+                    allowFirstContextSetToFinish.receive()
+                }
+            }
+        } else {
+            replacementContextSetCompleted.send(Unit)
+        }
     }
 }
 
