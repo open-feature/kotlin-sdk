@@ -9,7 +9,8 @@ sealed class OpenFeatureProviderEvents {
         val flagsChanged: Set<String> = emptySet(),
         val message: String? = null,
         val errorCode: ErrorCode? = null,
-        val eventMetadata: Map<String, Any> = emptyMap()
+        val eventMetadata: Map<String, Any> = emptyMap(),
+        val providerName: String? = null
     )
 
     abstract val eventDetails: EventDetails?
@@ -45,6 +46,36 @@ sealed class OpenFeatureProviderEvents {
     data class ProviderStale(
         override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
+
+    /**
+     * The provider started reconciling its state with a new [dev.openfeature.kotlin.sdk.EvaluationContext].
+     * [eventDetails] may supply [EventDetails.flagsChanged], [EventDetails.message], [EventDetails.errorCode], and [EventDetails.eventMetadata] as applicable.
+     */
+    data class ProviderReconciling(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
+
+    /**
+     * The provider finished reconciling its state with a new [dev.openfeature.kotlin.sdk.EvaluationContext].
+     * [eventDetails] may supply [EventDetails.flagsChanged], [EventDetails.message], [EventDetails.errorCode], and [EventDetails.eventMetadata] as applicable.
+     */
+    data class ProviderContextChanged(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
+}
+
+/**
+ * Status implied by an event, per the event/status association table in the specification.
+ *
+ * Returns null for events that carry no status transition, leaving the current status untouched.
+ */
+internal fun OpenFeatureProviderEvents.toOpenFeatureStatus(): OpenFeatureStatus? = when (this) {
+    is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
+    is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
+    is OpenFeatureProviderEvents.ProviderError -> toOpenFeatureStatusError()
+    is OpenFeatureProviderEvents.ProviderReconciling -> OpenFeatureStatus.Reconciling
+    is OpenFeatureProviderEvents.ProviderContextChanged -> OpenFeatureStatus.Ready
+    is OpenFeatureProviderEvents.ProviderConfigurationChanged -> null
 }
 
 internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError(): OpenFeatureStatus {
