@@ -151,7 +151,8 @@ class DeveloperExperienceTests {
         val job = CoroutineScope(dispatcher).launch {
             OpenFeatureAPI.setProviderAndWait(
                 SlowProvider(dispatcher = dispatcher),
-                ImmutableContext()
+                ImmutableContext(),
+                dispatcher = dispatcher
             )
         }
         testScheduler.advanceTimeBy(1) // Make sure setProviderAndWait is called
@@ -182,7 +183,8 @@ class DeveloperExperienceTests {
         // start out with Not Ready
         OpenFeatureAPI.setProviderAndWait(
             SlowProvider(dispatcher = dispatcher),
-            ImmutableContext(targetingKey = "0")
+            ImmutableContext(targetingKey = "0"),
+            dispatcher = dispatcher
         )
         testScheduler.advanceUntilIdle()
         // After 2 seconds the slow provider is ready
@@ -208,6 +210,7 @@ class DeveloperExperienceTests {
 
     @Test
     fun testStatusFlowWithErrors() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
         val emittedStatuses = mutableListOf<OpenFeatureStatus>()
         val job = launch {
             OpenFeatureAPI.statusFlow.collect {
@@ -219,7 +222,8 @@ class DeveloperExperienceTests {
         // start out with Not Ready
         OpenFeatureAPI.setProviderAndWait(
             BrokenInitProvider(),
-            ImmutableContext(targetingKey = "0")
+            ImmutableContext(targetingKey = "0"),
+            dispatcher = dispatcher
         )
         testScheduler.advanceUntilIdle()
 
@@ -231,15 +235,13 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
         job.cancelAndJoin()
-        // statusFlow is a snapshot: the transient Reconciling between onContextSet starting and
-        // completing is conflated away here. StatusTests covers that transition against a provider
-        // that holds onContextSet open.
-        assertEquals(4, emittedStatuses.size)
+        assertEquals(5, emittedStatuses.size)
         assertTrue(emittedStatuses[0] is OpenFeatureStatus.NotReady)
         assertTrue(emittedStatuses[1] is OpenFeatureStatus.Error)
         assertTrue((emittedStatuses[1] as OpenFeatureStatus.Error).error is OpenFeatureError.ProviderNotReadyError)
-        assertTrue(emittedStatuses[2] is OpenFeatureStatus.Ready)
-        assertTrue(emittedStatuses[3] is OpenFeatureStatus.NotReady)
+        assertTrue(emittedStatuses[2] is OpenFeatureStatus.Reconciling)
+        assertTrue(emittedStatuses[3] is OpenFeatureStatus.Ready)
+        assertTrue(emittedStatuses[4] is OpenFeatureStatus.NotReady)
     }
 
     @Test
@@ -383,7 +385,7 @@ class DeveloperExperienceTests {
             attributes = mapOf("key" to Value.String("value"))
         )
         val provider = SpyProvider()
-        OpenFeatureAPI.setProviderAndWait(provider)
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
 
         OpenFeatureAPI.setEvaluationContextAndWait(context)
         OpenFeatureAPI.setEvaluationContextAndWait(context)

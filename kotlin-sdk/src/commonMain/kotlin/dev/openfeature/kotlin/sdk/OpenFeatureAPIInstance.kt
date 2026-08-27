@@ -9,6 +9,7 @@ import dev.openfeature.kotlin.sdk.logging.LoggerFactory
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -43,29 +45,27 @@ private const val LOGGER_NAME = "OpenFeatureAPI"
  */
 @Suppress("TooManyFunctions")
 open class OpenFeatureAPIInstance internal constructor() {
-    private data class ContextReconciliation(
-        val oldContext: EvaluationContext?,
-        val provider: FeatureProvider,
-        val providerGeneration: Long
-    )
-
     private var setProviderJob: Job? = null
     private var setEvaluationContextJob: Job? = null
     private var observeProviderEventsJob: Job? = null
 
     private val providerMutex = Mutex()
-    private val contextReconciliationMutex = Mutex()
     private val stateLock = SynchronizedObject()
     private val noOpProvider = NoOpProvider()
+
+    /** The provider as registered by the application: what evaluations and [getProvider] use. */
     private var provider: FeatureProvider = noOpProvider
+
+    /**
+     * The provider the lifecycle is driven through and whose events are relayed. Identical to [provider]
+     * for a [StateManagingProvider]; otherwise the [LegacyProviderWrapper] standing in for it.
+     */
+    private var lifecycleProvider: FeatureProvider = noOpProvider
     private var providerGeneration: Long = 0
     private var context: EvaluationContext? = null
-    private var contextReconciliationGeneration: Long? = null
-    private var activeContextReconciliations: Int = 0
-    private var contextReconciliationInitialStatus: OpenFeatureStatus? = null
-    private var contextReconciliationTerminalStatus: OpenFeatureStatus? = null
-    private var providerStatusGeneration: Long = 0
-    private var contextReconciliationTerminalProviderStatusGeneration: Long? = null
+
+    /** Completed when the active provider reports a lifecycle event, so registration can settle. */
+    private var pendingLifecycleReport: CompletableDeferred<Unit>? = null
     val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(noOpProvider)
 
     private val _status: MutableStateFlow<OpenFeatureStatus> = MutableStateFlow(OpenFeatureStatus.NotReady)
@@ -91,7 +91,7 @@ open class OpenFeatureAPIInstance internal constructor() {
             // Replays the state, not the last event: a handler attached while the provider is already
             // in a state must run, but a stateless event must not resurface.
             _status.value.toCurrentStateEvent()
-                ?.withProviderName(getProvider().metadata.name)
+                ?.withProviderName(getProvider().attributionName())
                 ?.let { emit(it) }
         }
 
@@ -132,13 +132,69 @@ open class OpenFeatureAPIInstance internal constructor() {
         setProviderInternal(provider, dispatcher, initialContext)
     }
 
-    private fun listenToProviderEvents(provider: FeatureProvider, dispatcher: CoroutineDispatcher) {
-        observeProviderEventsJob?.cancel(CancellationException("Provider job was cancelled due to new provider"))
-        this.observeProviderEventsJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
-            provider.observe().collect { event ->
-                dispatchProviderEvent(event, provider.metadata.name)
-            }
+    private class ReplacedProvider(val registered: FeatureProvider, val lifecycle: FeatureProvider)
+
+    /**
+     * Provider name for attribution and diagnostics, or null if the provider cannot supply one.
+     *
+     * Naming an event's origin must never be the reason a registration or an evaluation fails, so a
+     * provider whose metadata is unavailable simply goes unattributed.
+     */
+    private fun FeatureProvider.attributionName(): String? = runCatching { metadata.name }.getOrNull()
+
+    /**
+     * Returns the provider the lifecycle should be driven through: the provider itself when it emits its
+     * own lifecycle events, otherwise a wrapper that synthesises them on its behalf.
+     */
+    private fun normalizeProvider(
+        provider: FeatureProvider,
+        dispatcher: CoroutineDispatcher
+    ): FeatureProvider {
+        if (provider is StateManagingProvider) return provider
+        LoggerFactory.getLogger(LOGGER_NAME).warn({
+            "Provider ${provider.attributionName()} does not implement StateManagingProvider, so the SDK is " +
+                "synthesizing its lifecycle events. This compatibility behavior is deprecated and will " +
+                "be removed in a future major version; see StateManagingProvider."
+        })
+        return LegacyProviderWrapper(provider, dispatcher)
+    }
+
+    /**
+     * Waits for the provider's own lifecycle event to be applied to the status, so that registration
+     * settles on what the provider reported rather than on the fact that `initialize` returned.
+     *
+     * A provider that terminates `initialize` without reporting anything leaves nothing to wait for; the
+     * violation is logged rather than worked around, since substituting a status here is what created the
+     * race this design removes.
+     */
+    private suspend fun awaitLifecycleReport(report: CompletableDeferred<Unit>, provider: FeatureProvider) {
+        if (!report.isCompleted) {
+            LoggerFactory.getLogger(LOGGER_NAME).warn({
+                "Provider ${provider.attributionName()} returned from initialize without emitting a " +
+                    "lifecycle event; waiting for it. Providers must emit ProviderReady or ProviderError " +
+                    "before initialize terminates."
+            })
         }
+        report.await()
+    }
+
+    /**
+     * Starts relaying [provider]'s events, returning once collection has begun.
+     *
+     * Providers are required to report readiness before `initialize` terminates, so the relay has to be
+     * listening before `initialize` is called or that report can be missed.
+     */
+    private suspend fun listenToProviderEvents(provider: FeatureProvider, dispatcher: CoroutineDispatcher) {
+        observeProviderEventsJob?.cancel(CancellationException("Provider job was cancelled due to new provider"))
+        val listening = CompletableDeferred<Unit>()
+        this.observeProviderEventsJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
+            provider.observe()
+                .onStart { listening.complete(Unit) }
+                .collect { event ->
+                    dispatchProviderEvent(event, provider.attributionName())
+                }
+        }
+        listening.await()
     }
 
     private suspend fun setProviderInternal(
@@ -155,17 +211,26 @@ open class OpenFeatureAPIInstance internal constructor() {
             return
         }
 
+        // Reusing the wrapper avoids initializing the provider twice and orphaning the old relay.
+        val reusable = synchronized(stateLock) { if (this.provider === provider) lifecycleProvider else null }
+        val normalizedProvider = reusable ?: normalizeProvider(provider, dispatcher)
+        val lifecycleReport = CompletableDeferred<Unit>()
+
         // Track whether the swap committed so a mid-flight cancellation can roll back the binding.
         var swapCommitted = false
         try {
             // Atomically swap the old and new provider to prevent race conditions
-            val oldProvider = providerMutex.withLock {
+            val replaced = providerMutex.withLock {
                 synchronized(stateLock) {
-                    val current = this.provider
+                    val current = ReplacedProvider(this.provider, this.lifecycleProvider)
                     this.provider = provider
+                    this.lifecycleProvider = normalizedProvider
                     providerGeneration++
                     providersFlow.value = provider
                     if (initialContext != null) context = initialContext
+                    // Release a registration waiting on a provider it no longer owns.
+                    pendingLifecycleReport?.complete(Unit)
+                    pendingLifecycleReport = lifecycleReport
                     current
                 }
             }
@@ -175,19 +240,26 @@ open class OpenFeatureAPIInstance internal constructor() {
             _status.value = OpenFeatureStatus.NotReady
 
             // Shutdown the previous provider outside the mutex
-            if (oldProvider !== provider) {
+            if (replaced.registered !== provider) {
                 tryWithStatusEmitErrorHandling {
-                    untrackProviderBinding(oldProvider)
-                    oldProvider.shutdown()
+                    untrackProviderBinding(replaced.registered)
+                    replaced.lifecycle.shutdown()
                 }
             }
 
             // Initialize the new provider
-            tryWithStatusEmitErrorHandling {
-                listenToProviderEvents(provider, dispatcher)
-                val state = getEvaluationState()
-                state.provider.initialize(state.context)
-                _status.value = OpenFeatureStatus.Ready
+            try {
+                listenToProviderEvents(normalizedProvider, dispatcher)
+                normalizedProvider.initialize(getEvaluationState().context)
+                awaitLifecycleReport(lifecycleReport, normalizedProvider)
+            } catch (e: CancellationException) {
+                // This happens by design and shouldn't be treated as an error
+            } catch (e: Throwable) {
+                // The provider's event sets the status; writing one here would publish it twice.
+                LoggerFactory.getLogger(LOGGER_NAME).warn(
+                    { "Provider ${normalizedProvider.attributionName()} failed to initialize" },
+                    throwable = e
+                )
             }
         } catch (e: CancellationException) {
             // if cancellation hit before we committed the swap, release the binding we just claimed
@@ -221,17 +293,21 @@ open class OpenFeatureAPIInstance internal constructor() {
      * Clear the current [FeatureProvider] and reset to a no-op provider.
      */
     suspend fun clearProvider() {
-        val oldProvider = providerMutex.withLock {
+        val replaced = providerMutex.withLock {
             synchronized(stateLock) {
-                val current = this.provider
+                val current = ReplacedProvider(this.provider, this.lifecycleProvider)
                 this.provider = noOpProvider
+                this.lifecycleProvider = noOpProvider
                 providerGeneration++
                 providersFlow.value = noOpProvider
+                // Release any registration still waiting.
+                pendingLifecycleReport?.complete(Unit)
+                pendingLifecycleReport = null
                 current
             }
         }
-        untrackProviderBinding(oldProvider)
-        oldProvider.shutdown()
+        untrackProviderBinding(replaced.registered)
+        replaced.lifecycle.shutdown()
         _status.value = OpenFeatureStatus.NotReady
     }
 
@@ -263,102 +339,28 @@ open class OpenFeatureAPIInstance internal constructor() {
     }
 
     private suspend fun setEvaluationContextInternal(evaluationContext: EvaluationContext) {
-        var reconciliation: ContextReconciliation? = null
-        var terminalStatus: OpenFeatureStatus? = null
-        try {
-            contextReconciliationMutex.withLock {
-                providerMutex.withLock {
-                    var shouldEmitReconciling = false
-                    synchronized(stateLock) {
-                        val oldContext = context
-                        context = evaluationContext
-                        if (provider !== noOpProvider) {
-                            reconciliation = ContextReconciliation(oldContext, provider, providerGeneration)
-                            if (contextReconciliationGeneration != providerGeneration) {
-                                contextReconciliationGeneration = providerGeneration
-                                activeContextReconciliations = 0
-                            }
-                            if (activeContextReconciliations == 0) {
-                                contextReconciliationInitialStatus = getStatus()
-                                contextReconciliationTerminalStatus = null
-                                contextReconciliationTerminalProviderStatusGeneration = null
-                            }
-                            activeContextReconciliations++
-                            shouldEmitReconciling = activeContextReconciliations == 1
-                        }
-                    }
-                    if (shouldEmitReconciling) {
-                        _status.value = OpenFeatureStatus.Reconciling
-                    }
-                }
-            }
-
-            val registeredReconciliation = reconciliation ?: return
-            registeredReconciliation.provider.onContextSet(
-                registeredReconciliation.oldContext,
-                evaluationContext
-            )
-            terminalStatus = OpenFeatureStatus.Ready
-        } catch (e: CancellationException) {
-            // This happens by design and shouldn't be treated as an error
-        } catch (e: OpenFeatureError) {
-            terminalStatus = OpenFeatureStatus.Error(e)
-        } catch (e: Throwable) {
-            terminalStatus = OpenFeatureStatus.Error(
-                OpenFeatureError.GeneralError(e.message ?: "Unknown error")
-            )
-        } finally {
-            val registeredReconciliation = reconciliation
-            if (registeredReconciliation != null) {
-                withContext(NonCancellable) {
-                    completeContextReconciliation(
-                        registeredReconciliation.provider,
-                        registeredReconciliation.providerGeneration,
-                        terminalStatus
-                    )
-                }
-            }
-        }
-    }
-
-    private suspend fun completeContextReconciliation(
-        reconciliationProvider: FeatureProvider,
-        reconciliationProviderGeneration: Long,
-        terminalStatus: OpenFeatureStatus?
-    ) {
-        contextReconciliationMutex.withLock {
-            if (contextReconciliationGeneration != reconciliationProviderGeneration) return
-
-            if (terminalStatus != null) {
-                contextReconciliationTerminalStatus = terminalStatus
-                contextReconciliationTerminalProviderStatusGeneration = providerStatusGeneration
-            }
-            activeContextReconciliations--
-            if (activeContextReconciliations == 0) {
-                val retainedTerminalStatus = contextReconciliationTerminalStatus
-                val statusToEmit = retainedTerminalStatus ?: contextReconciliationInitialStatus
-                val shouldEmitStatus = if (retainedTerminalStatus != null) {
-                    contextReconciliationTerminalProviderStatusGeneration == providerStatusGeneration
+        val reconciliation = providerMutex.withLock {
+            synchronized(stateLock) {
+                val oldContext = context
+                context = evaluationContext
+                if (provider === noOpProvider) {
+                    null
                 } else {
-                    getStatus() is OpenFeatureStatus.Reconciling
-                }
-                contextReconciliationInitialStatus = null
-                contextReconciliationTerminalStatus = null
-                contextReconciliationTerminalProviderStatusGeneration = null
-
-                providerMutex.withLock {
-                    if (
-                        synchronized(stateLock) { provider === reconciliationProvider } &&
-                        providerGeneration == reconciliationProviderGeneration &&
-                        statusToEmit != null &&
-                        shouldEmitStatus
-                    ) {
-                        _status.value = statusToEmit
-                    }
+                    ContextReconciliation(oldContext, lifecycleProvider)
                 }
             }
+        } ?: return
+
+        try {
+            reconciliation.provider.onContextSet(reconciliation.oldContext, evaluationContext)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // The outcome arrives as an event; not rethrown so a failed reconciliation is not fatal.
         }
     }
+
+    private class ContextReconciliation(val oldContext: EvaluationContext?, val provider: FeatureProvider)
 
     private suspend fun tryWithStatusEmitErrorHandling(function: suspend () -> Unit) {
         try {
@@ -441,20 +443,16 @@ open class OpenFeatureAPIInstance internal constructor() {
      * Aligning the state management to
      * https://openfeature.dev/specification/sections/events#requirement-535
      */
-    private suspend fun dispatchProviderEvent(event: OpenFeatureProviderEvents, providerName: String?) {
+    private fun dispatchProviderEvent(event: OpenFeatureProviderEvents, providerName: String?) {
         val stamped = event.withProviderName(providerName)
-        stamped.toOpenFeatureStatus()?.let { emitProviderStatus(it) }
+        stamped.toOpenFeatureStatus()?.let { status ->
+            _status.value = status
+            synchronized(stateLock) { pendingLifecycleReport }?.complete(Unit)
+        }
         if (!_events.tryEmit(stamped)) {
             LoggerFactory.getLogger(LOGGER_NAME).warn(
                 { "Dropped provider event ${stamped::class.simpleName}: a subscriber is not keeping up." }
             )
-        }
-    }
-
-    private suspend fun emitProviderStatus(status: OpenFeatureStatus) {
-        contextReconciliationMutex.withLock {
-            providerStatusGeneration++
-            _status.value = status
         }
     }
 

@@ -105,7 +105,7 @@ class StatusTests {
     fun testStatusRemainsReconcilingUntilAllEqualContextSetsComplete() = runTest {
         val context = ImmutableContext("same-context")
         val provider = ControllableContextProvider()
-        OpenFeatureAPI.setProviderAndWait(provider)
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
 
         val firstContextSet = launch {
             OpenFeatureAPI.setEvaluationContextAndWait(context)
@@ -115,31 +115,35 @@ class StatusTests {
             OpenFeatureAPI.setEvaluationContextAndWait(context)
         }
         provider.contextSetStarted.receive()
+        advanceUntilIdle()
         assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
 
         provider.allowContextSetToComplete.send(Unit)
         provider.contextSetCompleted.receive()
+        advanceUntilIdle()
         assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
 
         provider.allowContextSetToComplete.send(Unit)
         firstContextSet.join()
         secondContextSet.join()
+        advanceUntilIdle()
         assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
     }
 
     @Test
     fun testCancelledContextSetRestoresPreviousStatus() = runTest {
         val provider = ControllableContextProvider()
-        OpenFeatureAPI.setProviderAndWait(provider)
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
 
         val contextSet = launch {
             OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("cancelled"))
         }
         provider.contextSetStarted.receive()
+        advanceUntilIdle()
         assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
 
         contextSet.cancelAndJoin()
-
+        advanceUntilIdle()
         assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
     }
 
@@ -148,7 +152,7 @@ class StatusTests {
     fun testCancelledContextSetFinishingLastUsesReplacementStatus() = runTest {
         val provider = CancellationRaceProvider()
         val dispatcher = StandardTestDispatcher(testScheduler)
-        OpenFeatureAPI.setProviderAndWait(provider)
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = dispatcher)
 
         OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"), dispatcher)
         provider.firstContextSetStarted.receive()
@@ -195,12 +199,13 @@ class StatusTests {
         val retiredProvider = ControllableContextProvider()
         val replacementProvider = CancellationRaceProvider()
         val dispatcher = StandardTestDispatcher(testScheduler)
-        OpenFeatureAPI.setProviderAndWait(retiredProvider)
+        OpenFeatureAPI.setProviderAndWait(retiredProvider, dispatcher = dispatcher)
 
         val retiredContextSet = launch {
             OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("retired"))
         }
         retiredProvider.contextSetStarted.receive()
+        advanceUntilIdle()
         assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus())
 
         OpenFeatureAPI.setProviderAndWait(replacementProvider, dispatcher = dispatcher)
@@ -211,7 +216,7 @@ class StatusTests {
 
         retiredProvider.allowContextSetToComplete.send(Unit)
         retiredContextSet.join()
-
+        advanceUntilIdle()
         assertEquals(OpenFeatureStatus.Stale, OpenFeatureAPI.getStatus())
     }
 

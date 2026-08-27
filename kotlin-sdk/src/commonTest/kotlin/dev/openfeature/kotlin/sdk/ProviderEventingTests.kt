@@ -78,13 +78,14 @@ class ProviderEventingTests {
         testScheduler.advanceUntilIdle()
         j.cancelAndJoin()
         waitAssert {
-            assertEquals(5, statusList.size)
+            assertEquals(6, statusList.size)
         }
-        assertEquals(OpenFeatureStatus.Ready, statusList[0])
-        assertEquals(OpenFeatureStatus.Reconciling, statusList[1])
-        assertTrue(statusList[2] is OpenFeatureStatus.Error)
-        assertEquals(OpenFeatureStatus.Ready, statusList[3])
-        assertEquals(OpenFeatureStatus.NotReady, statusList[4])
+        assertEquals(OpenFeatureStatus.NotReady, statusList[0])
+        assertEquals(OpenFeatureStatus.Ready, statusList[1])
+        assertEquals(OpenFeatureStatus.Reconciling, statusList[2])
+        assertTrue(statusList[3] is OpenFeatureStatus.Error)
+        assertEquals(OpenFeatureStatus.Ready, statusList[4])
+        assertEquals(OpenFeatureStatus.NotReady, statusList[5])
     }
 
     @Test
@@ -114,8 +115,10 @@ class ProviderEventingTests {
         assertEquals(
             listOf(
                 OpenFeatureProviderEvents.ProviderReady::class,
+                OpenFeatureProviderEvents.ProviderReconciling::class,
                 OpenFeatureProviderEvents.ProviderStale::class,
-                OpenFeatureProviderEvents.ProviderConfigurationChanged::class
+                OpenFeatureProviderEvents.ProviderConfigurationChanged::class,
+                OpenFeatureProviderEvents.ProviderContextChanged::class
             ),
             emittedEvents.map { it::class }
         )
@@ -140,20 +143,24 @@ class ProviderEventingTests {
         assertEquals(
             listOf(
                 OpenFeatureProviderEvents.ProviderReady::class,
+                OpenFeatureProviderEvents.ProviderReconciling::class,
                 OpenFeatureProviderEvents.ProviderStale::class,
                 OpenFeatureProviderEvents.ProviderConfigurationChanged::class,
+                OpenFeatureProviderEvents.ProviderContextChanged::class,
                 OpenFeatureProviderEvents.ProviderReady::class,
                 OpenFeatureProviderEvents.ProviderStale::class,
                 OpenFeatureProviderEvents.ProviderStale::class,
                 OpenFeatureProviderEvents.ProviderStale::class,
+                OpenFeatureProviderEvents.ProviderReconciling::class,
                 OpenFeatureProviderEvents.ProviderStale::class,
-                OpenFeatureProviderEvents.ProviderConfigurationChanged::class
+                OpenFeatureProviderEvents.ProviderConfigurationChanged::class,
+                OpenFeatureProviderEvents.ProviderContextChanged::class
             ),
             emittedEvents.map { it::class }
         )
         // The relay attributes each event to whichever provider was active when it was emitted.
         assertEquals(
-            List(3) { "First Provider" } + List(6) { "Second Provider" },
+            List(5) { "First Provider" } + List(8) { "Second Provider" },
             emittedEvents.map { it.eventDetails?.providerName }
         )
     }

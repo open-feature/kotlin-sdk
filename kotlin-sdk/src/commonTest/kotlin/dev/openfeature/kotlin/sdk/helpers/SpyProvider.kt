@@ -9,10 +9,10 @@ import dev.openfeature.kotlin.sdk.Value
 import kotlinx.atomicfu.atomic
 
 class SpyProvider : FeatureProvider {
-    override val hooks: List<Hook<*>>
-        get() = TODO("Not yet implemented")
-    override val metadata: ProviderMetadata
-        get() = TODO("Not yet implemented")
+    override val hooks: List<Hook<*>> = listOf()
+    override val metadata: ProviderMetadata = object : ProviderMetadata {
+        override val name: String = "SpyProvider"
+    }
 
     val initializeCalls = mutableListOf<EvaluationContext?>()
     val onContextSetCalls = mutableListOf<Pair<EvaluationContext?, EvaluationContext>>()
