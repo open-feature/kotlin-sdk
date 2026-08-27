@@ -64,6 +64,37 @@ sealed class OpenFeatureProviderEvents {
     ) : OpenFeatureProviderEvents()
 }
 
+internal fun OpenFeatureProviderEvents.withProviderName(providerName: String?): OpenFeatureProviderEvents {
+    val details = (eventDetails ?: OpenFeatureProviderEvents.EventDetails()).copy(providerName = providerName)
+    return when (this) {
+        is OpenFeatureProviderEvents.ProviderReady -> copy(eventDetails = details)
+        is OpenFeatureProviderEvents.ProviderError -> copy(eventDetails = details)
+        is OpenFeatureProviderEvents.ProviderConfigurationChanged -> copy(eventDetails = details)
+        is OpenFeatureProviderEvents.ProviderStale -> copy(eventDetails = details)
+        is OpenFeatureProviderEvents.ProviderReconciling -> copy(eventDetails = details)
+        is OpenFeatureProviderEvents.ProviderContextChanged -> copy(eventDetails = details)
+    }
+}
+
+/**
+ * Event representing this status, so that a handler attached once the provider is already in a given
+ * state runs immediately.
+ *
+ * Returns null for [OpenFeatureStatus.NotReady], which has no corresponding event type.
+ */
+internal fun OpenFeatureStatus.toCurrentStateEvent(): OpenFeatureProviderEvents? = when (this) {
+    is OpenFeatureStatus.Ready -> OpenFeatureProviderEvents.ProviderReady()
+    is OpenFeatureStatus.Stale -> OpenFeatureProviderEvents.ProviderStale()
+    is OpenFeatureStatus.Reconciling -> OpenFeatureProviderEvents.ProviderReconciling()
+    is OpenFeatureStatus.Error -> OpenFeatureProviderEvents.ProviderError(
+        OpenFeatureProviderEvents.EventDetails(message = error.message, errorCode = error.errorCode())
+    )
+    is OpenFeatureStatus.Fatal -> OpenFeatureProviderEvents.ProviderError(
+        OpenFeatureProviderEvents.EventDetails(message = error.message, errorCode = ErrorCode.PROVIDER_FATAL)
+    )
+    is OpenFeatureStatus.NotReady -> null
+}
+
 /**
  * Status implied by an event, per the event/status association table in the specification.
  *

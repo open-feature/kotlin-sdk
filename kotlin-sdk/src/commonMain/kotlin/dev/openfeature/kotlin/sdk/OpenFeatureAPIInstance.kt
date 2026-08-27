@@ -1,29 +1,34 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
+import dev.openfeature.kotlin.sdk.events.toCurrentStateEvent
+import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
+import dev.openfeature.kotlin.sdk.events.withProviderName
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import dev.openfeature.kotlin.sdk.logging.LoggerFactory
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+
+private const val EVENT_BUFFER_CAPACITY = 64
+private const val LOGGER_NAME = "OpenFeatureAPI"
 
 /**
  * Core implementation of the OpenFeature API.
@@ -63,13 +68,32 @@ open class OpenFeatureAPIInstance internal constructor() {
     private var contextReconciliationTerminalProviderStatusGeneration: Long? = null
     val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(noOpProvider)
 
-    private val _statusFlow: MutableSharedFlow<OpenFeatureStatus> =
-        MutableSharedFlow<OpenFeatureStatus>(replay = 1, extraBufferCapacity = 5)
-            .apply {
-                tryEmit(OpenFeatureStatus.NotReady)
-            }
+    private val _status: MutableStateFlow<OpenFeatureStatus> = MutableStateFlow(OpenFeatureStatus.NotReady)
 
-    val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
+    val statusFlow: StateFlow<OpenFeatureStatus> get() = _status
+
+    /**
+     * Events from the active provider, republished by the SDK so that the status is always updated
+     * before subscribers observe the event that caused it.
+     *
+     * Overflow drops the oldest event rather than suspending: a slow subscriber must never stall the
+     * SDK's own status derivation.
+     */
+    private val _events: MutableSharedFlow<OpenFeatureProviderEvents> = MutableSharedFlow(
+        replay = 0,
+        extraBufferCapacity = EVENT_BUFFER_CAPACITY,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    @PublishedApi
+    internal val providerEvents: Flow<OpenFeatureProviderEvents>
+        get() = _events.onSubscription {
+            // Replays the state, not the last event: a handler attached while the provider is already
+            // in a state must run, but a stateless event must not resurface.
+            _status.value.toCurrentStateEvent()
+                ?.withProviderName(getProvider().metadata.name)
+                ?.let { emit(it) }
+        }
 
     var hooks: List<Hook<*>> = listOf()
         private set
@@ -111,11 +135,12 @@ open class OpenFeatureAPIInstance internal constructor() {
     private fun listenToProviderEvents(provider: FeatureProvider, dispatcher: CoroutineDispatcher) {
         observeProviderEventsJob?.cancel(CancellationException("Provider job was cancelled due to new provider"))
         this.observeProviderEventsJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
-            provider.observe().collect(handleProviderEvents)
+            provider.observe().collect { event ->
+                dispatchProviderEvent(event, provider.metadata.name)
+            }
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun setProviderInternal(
         provider: FeatureProvider,
         dispatcher: CoroutineDispatcher,
@@ -124,10 +149,8 @@ open class OpenFeatureAPIInstance internal constructor() {
         try {
             trackProviderBinding(provider)
         } catch (e: Throwable) {
-            _statusFlow.emit(
-                OpenFeatureStatus.Error(
-                    OpenFeatureError.GeneralError(e.message ?: "Unknown error")
-                )
+            _status.value = OpenFeatureStatus.Error(
+                OpenFeatureError.GeneralError(e.message ?: "Unknown error")
             )
             return
         }
@@ -149,7 +172,7 @@ open class OpenFeatureAPIInstance internal constructor() {
             swapCommitted = true
 
             // Emit NotReady status after swapping provider
-            _statusFlow.emit(OpenFeatureStatus.NotReady)
+            _status.value = OpenFeatureStatus.NotReady
 
             // Shutdown the previous provider outside the mutex
             if (oldProvider !== provider) {
@@ -164,7 +187,7 @@ open class OpenFeatureAPIInstance internal constructor() {
                 listenToProviderEvents(provider, dispatcher)
                 val state = getEvaluationState()
                 state.provider.initialize(state.context)
-                _statusFlow.emit(OpenFeatureStatus.Ready)
+                _status.value = OpenFeatureStatus.Ready
             }
         } catch (e: CancellationException) {
             // if cancellation hit before we committed the swap, release the binding we just claimed
@@ -209,7 +232,7 @@ open class OpenFeatureAPIInstance internal constructor() {
         }
         untrackProviderBinding(oldProvider)
         oldProvider.shutdown()
-        _statusFlow.emit(OpenFeatureStatus.NotReady)
+        _status.value = OpenFeatureStatus.NotReady
     }
 
     /**
@@ -265,7 +288,7 @@ open class OpenFeatureAPIInstance internal constructor() {
                         }
                     }
                     if (shouldEmitReconciling) {
-                        _statusFlow.emit(OpenFeatureStatus.Reconciling)
+                        _status.value = OpenFeatureStatus.Reconciling
                     }
                 }
             }
@@ -330,7 +353,7 @@ open class OpenFeatureAPIInstance internal constructor() {
                         statusToEmit != null &&
                         shouldEmitStatus
                     ) {
-                        _statusFlow.emit(statusToEmit)
+                        _status.value = statusToEmit
                     }
                 }
             }
@@ -343,13 +366,11 @@ open class OpenFeatureAPIInstance internal constructor() {
         } catch (e: CancellationException) {
             // This happens by design and shouldn't be treated as an error
         } catch (e: OpenFeatureError) {
-            _statusFlow.emit(OpenFeatureStatus.Error(e))
+            _status.value = OpenFeatureStatus.Error(e)
         } catch (e: Throwable) {
-            _statusFlow.emit(
-                OpenFeatureStatus.Error(
-                    OpenFeatureError.GeneralError(
-                        e.message ?: "Unknown error"
-                    )
+            _status.value = OpenFeatureStatus.Error(
+                OpenFeatureError.GeneralError(
+                    e.message ?: "Unknown error"
                 )
             )
         }
@@ -406,42 +427,34 @@ open class OpenFeatureAPIInstance internal constructor() {
     /**
      * Get the current [OpenFeatureStatus] of this instance.
      */
-    fun getStatus(): OpenFeatureStatus = _statusFlow.replayCache.first()
+    fun getStatus(): OpenFeatureStatus = _status.value
 
     /**
-     * Observe events from the currently configured Provider.
+     * Observe events of type [T] from the currently configured Provider.
+     *
+     * The status is always updated before an event reaches subscribers. Subscribing while the provider
+     * is already in a state yields the event for that state immediately.
      */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> = providersFlow
-        .flatMapLatest { it.observe() }.filterIsInstance()
+    inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> = providerEvents.filterIsInstance()
 
     /**
      * Aligning the state management to
      * https://openfeature.dev/specification/sections/events#requirement-535
      */
-    private val handleProviderEvents: FlowCollector<OpenFeatureProviderEvents> = FlowCollector { providerEvent ->
-        when (providerEvent) {
-            is OpenFeatureProviderEvents.ProviderReady -> {
-                emitProviderStatus(OpenFeatureStatus.Ready)
-            }
-
-            is OpenFeatureProviderEvents.ProviderStale -> {
-                emitProviderStatus(OpenFeatureStatus.Stale)
-            }
-
-            is OpenFeatureProviderEvents.ProviderError -> {
-                emitProviderStatus(providerEvent.toOpenFeatureStatusError())
-            }
-
-            else -> { // All other states should not be emitted from here
-            }
+    private suspend fun dispatchProviderEvent(event: OpenFeatureProviderEvents, providerName: String?) {
+        val stamped = event.withProviderName(providerName)
+        stamped.toOpenFeatureStatus()?.let { emitProviderStatus(it) }
+        if (!_events.tryEmit(stamped)) {
+            LoggerFactory.getLogger(LOGGER_NAME).warn(
+                { "Dropped provider event ${stamped::class.simpleName}: a subscriber is not keeping up." }
+            )
         }
     }
 
     private suspend fun emitProviderStatus(status: OpenFeatureStatus) {
         contextReconciliationMutex.withLock {
             providerStatusGeneration++
-            _statusFlow.emit(status)
+            _status.value = status
         }
     }
 

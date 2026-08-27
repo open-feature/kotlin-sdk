@@ -286,10 +286,11 @@ public class dev/openfeature/kotlin/sdk/OpenFeatureAPIInstance {
 	public final fun getEvaluationContext ()Ldev/openfeature/kotlin/sdk/EvaluationContext;
 	public final fun getHooks ()Ljava/util/List;
 	public final fun getProvider ()Ldev/openfeature/kotlin/sdk/FeatureProvider;
+	public final fun getProviderEvents ()Lkotlinx/coroutines/flow/Flow;
 	public final fun getProviderMetadata ()Ldev/openfeature/kotlin/sdk/ProviderMetadata;
 	public final fun getProvidersFlow ()Lkotlinx/coroutines/flow/MutableStateFlow;
 	public final fun getStatus ()Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;
-	public final fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
+	public final fun getStatusFlow ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun setEvaluationContext (Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;)V
 	public static synthetic fun setEvaluationContext$default (Ldev/openfeature/kotlin/sdk/OpenFeatureAPIInstance;Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlinx/coroutines/CoroutineDispatcher;ILjava/lang/Object;)V
 	public final fun setEvaluationContextAndWait (Ldev/openfeature/kotlin/sdk/EvaluationContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -329,7 +330,8 @@ public final class dev/openfeature/kotlin/sdk/OpenFeatureClient : dev/openfeatur
 	public fun getObjectDetails (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;)Ldev/openfeature/kotlin/sdk/Value;
 	public fun getObjectValue (Ljava/lang/String;Ldev/openfeature/kotlin/sdk/Value;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/Value;
-	public fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
+	public synthetic fun getStatusFlow ()Lkotlinx/coroutines/flow/Flow;
+	public fun getStatusFlow ()Lkotlinx/coroutines/flow/StateFlow;
 	public fun getStringDetails (Ljava/lang/String;Ljava/lang/String;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getStringDetails (Ljava/lang/String;Ljava/lang/String;Ldev/openfeature/kotlin/sdk/FlagEvaluationOptions;)Ldev/openfeature/kotlin/sdk/FlagEvaluationDetails;
 	public fun getStringValue (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
