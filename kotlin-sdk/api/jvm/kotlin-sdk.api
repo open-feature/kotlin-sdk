@@ -402,6 +402,16 @@ public final class dev/openfeature/kotlin/sdk/ProviderEvaluation {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/openfeature/kotlin/sdk/ProviderEventEmitter {
+	public fun <init> ()V
+	public fun <init> (I)V
+	public synthetic fun <init> (IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun emit (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents;)V
+	public final fun initializing (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun observe ()Lkotlinx/coroutines/flow/Flow;
+	public final fun reconciling (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public abstract interface class dev/openfeature/kotlin/sdk/ProviderMetadata {
 	public abstract fun getName ()Ljava/lang/String;
 	public fun getOriginalMetadata ()Ljava/util/Map;
