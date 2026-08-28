@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.9.0](https://github.com/open-feature/kotlin-sdk/compare/v0.8.0...v0.9.0) (2026-08-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* add isolated api instances ([#243](https://github.com/open-feature/kotlin-sdk/issues/243))
+* Remove deprecated ProviderNotReady event ([#239](https://github.com/open-feature/kotlin-sdk/issues/239))
+* Add observe() method to Client interface ([#234](https://github.com/open-feature/kotlin-sdk/issues/234))
+* Adding Long type support ([#225](https://github.com/open-feature/kotlin-sdk/issues/225))
+
+### 🐛 Bug Fixes
+
+* reconcile evaluation context on every set ([#251](https://github.com/open-feature/kotlin-sdk/issues/251)) ([a530753](https://github.com/open-feature/kotlin-sdk/commit/a530753428264112c706b451a07ba4f6c7d2b957))
+* snapshot provider and context for track and evaluation ([#253](https://github.com/open-feature/kotlin-sdk/issues/253)) ([4e865ce](https://github.com/open-feature/kotlin-sdk/commit/4e865ce2d45efe5558312f2d42585de53aac5679))
+* validate documentation links in CI ([#257](https://github.com/open-feature/kotlin-sdk/issues/257)) ([a889712](https://github.com/open-feature/kotlin-sdk/commit/a8897122167e81421ec8f86b4157168597a23fdd))
+
+
+### ✨ New Features
+
+* add isolated api instances ([#243](https://github.com/open-feature/kotlin-sdk/issues/243)) ([43a7c91](https://github.com/open-feature/kotlin-sdk/commit/43a7c91504c48f333826686f821599efe723d4f5))
+* Add observe() method to Client interface ([#234](https://github.com/open-feature/kotlin-sdk/issues/234)) ([134f97d](https://github.com/open-feature/kotlin-sdk/commit/134f97d176ddc05a98cd8c5c734bb289a899ead6))
+* Adding Long type support ([#225](https://github.com/open-feature/kotlin-sdk/issues/225)) ([37bdea7](https://github.com/open-feature/kotlin-sdk/commit/37bdea76ba2aa8b2ff7cde443cfd676039c6d92c))
+* Remove deprecated ProviderNotReady event ([#239](https://github.com/open-feature/kotlin-sdk/issues/239)) ([bbab739](https://github.com/open-feature/kotlin-sdk/commit/bbab739372c77bea84357f219f325a8779da716f))
+
+
+### 🧹 Chore
+
+* **deps:** replace google-github-actions/release-please-action action with googleapis/release-please-action v3 ([#193](https://github.com/open-feature/kotlin-sdk/issues/193)) ([cfe7ac4](https://github.com/open-feature/kotlin-sdk/commit/cfe7ac44d92aef0366e4e6cb8bd01ce070ea06d7))
+
+
+### 📚 Documentation
+
+* fix link for Domains section in README ([#244](https://github.com/open-feature/kotlin-sdk/issues/244)) ([689485d](https://github.com/open-feature/kotlin-sdk/commit/689485d0e8b73710a0f0c14bfb062a35a18467eb))
+* mark Logging as complete, Domains as in-progress in feature table ([#236](https://github.com/open-feature/kotlin-sdk/issues/236)) ([f50d9d9](https://github.com/open-feature/kotlin-sdk/commit/f50d9d9c342a1b319e223eb3b3e1074d81a60fcb))
+
 ## [0.8.0](https://github.com/open-feature/kotlin-sdk/compare/v0.7.2...v0.8.0) (2026-04-21)
 
 
