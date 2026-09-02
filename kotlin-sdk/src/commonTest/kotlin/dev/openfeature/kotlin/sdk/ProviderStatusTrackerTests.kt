@@ -346,7 +346,7 @@ class ProviderStatusTrackerTests {
     }
 
     @Test
-    fun aNotReadyProviderDoesNotReportReconciling() = runTest {
+    fun aReconciliationOnANotReadyProviderReportsNothing() = runTest {
         val tracker = ProviderStatusTracker()
 
         val received = record(tracker)
@@ -354,12 +354,65 @@ class ProviderStatusTrackerTests {
         advanceUntilIdle()
         received.stop()
 
-        // Nothing to reconcile from, so nothing is announced; the outcome still applies.
+        // Readiness is initialize's to report, so reconciling a context cannot confer it.
+        assertEquals(emptyList(), received.map { it::class.simpleName })
+        assertEquals(OpenFeatureStatus.NotReady, tracker.status)
+    }
+
+    @Test
+    fun aFailedReconciliationOnANotReadyProviderReportsNothingAndStillThrows() = runTest {
+        val tracker = ProviderStatusTracker()
+
+        val received = record(tracker)
+        var thrown: Throwable? = null
+        try {
+            tracker.reconciling { throw OpenFeatureError.GeneralError("reconcile failed") }
+        } catch (e: Throwable) {
+            thrown = e
+        }
+        advanceUntilIdle()
+        received.stop()
+
+        assertIs<OpenFeatureError.GeneralError>(thrown)
+        assertEquals(emptyList(), received.map { it::class.simpleName })
+        assertEquals(OpenFeatureStatus.NotReady, tracker.status)
+    }
+
+    @Test
+    fun aNotReadyProviderThatReportsFromInsideTheBlockIsBelieved() = runTest {
+        val tracker = ProviderStatusTracker()
+
+        val received = record(tracker)
+        // The gate suppresses what the SDK would synthesise, not the provider's own voice.
+        tracker.reconciling { tracker.send(OpenFeatureProviderEvents.ProviderReady()) }
+        advanceUntilIdle()
+        received.stop()
+
         assertEquals(
-            listOf(OpenFeatureProviderEvents.ProviderContextChanged::class),
+            listOf(OpenFeatureProviderEvents.ProviderReady::class),
             received.map { it::class }
         )
         assertEquals(OpenFeatureStatus.Ready, tracker.status)
+    }
+
+    @Test
+    fun aReconciliationAfterANotReadyOneStillResolves() = runTest {
+        val tracker = ProviderStatusTracker()
+        // Reports nothing, but must still count itself out. Deciding before the invocation count is
+        // decremented strands it above zero, and every later reconciliation then reads the stale
+        // not-ready restore point and reports nothing either.
+        tracker.reconciling { }
+        tracker.send(OpenFeatureProviderEvents.ProviderReady())
+
+        try {
+            tracker.reconciling { throw OpenFeatureError.GeneralError("later reconcile failed") }
+        } catch (_: Throwable) {
+            // Reported through the event stream; the throw is the provider's own to see.
+        }
+        advanceUntilIdle()
+
+        val status = assertIs<OpenFeatureStatus.Error>(tracker.status)
+        assertEquals("later reconcile failed", status.error.message)
     }
 
     @Test

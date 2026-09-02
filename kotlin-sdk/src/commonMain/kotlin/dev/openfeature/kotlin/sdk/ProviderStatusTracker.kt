@@ -151,6 +151,11 @@ class ProviderStatusTracker {
      * Where every invocation was cancelled, the status preceding reconciliation is reported again
      * rather than leaving the provider reconciling forever. Where [block] reported a status of its
      * own, that report stands and no outcome is synthesised over it.
+     *
+     * A reconciliation that begins while the provider is [OpenFeatureStatus.NotReady] reports nothing
+     * at all — not the transition, not the outcome. Readiness is [FeatureProvider.initialize]'s to
+     * report, so reconciling a context cannot confer it, and there is no earlier status to restore.
+     * A provider that does become usable during [block] can still say so itself.
      */
     suspend fun reconciling(block: suspend () -> Unit) {
         // One critical section: registering, reporting that reconciliation began, and taking the mark
@@ -242,8 +247,15 @@ class ProviderStatusTracker {
             if (outcome != null) terminal = outcome
             if (--active > 0) return null
 
-            val reported = this.reportedByBlock
-            val result = if (reported) null else terminal ?: restore?.toCurrentStateEvent()
+            // Decided only once the last invocation is out, so the counter is always decremented:
+            // returning earlier would strand it above zero and no later reconciliation would resolve.
+            val result = when {
+                // The block spoke for itself, so nothing is synthesised over it.
+                reportedByBlock -> null
+                // Nothing was ready when this began, so nothing is concluded from it having ended.
+                restore == OpenFeatureStatus.NotReady -> null
+                else -> terminal ?: restore?.toCurrentStateEvent()
+            }
             restore = null
             terminal = null
             this.reportedByBlock = false
