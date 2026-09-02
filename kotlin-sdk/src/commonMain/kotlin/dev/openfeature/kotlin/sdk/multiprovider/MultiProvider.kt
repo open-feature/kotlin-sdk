@@ -6,26 +6,22 @@ import dev.openfeature.kotlin.sdk.Hook
 import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.ProviderStatusTracker
 import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.events.toCurrentStateEvent
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -92,17 +88,16 @@ class MultiProvider(
             evaluationContext: EvaluationContext?,
             flagEval: FlagEval<T>
         ): ProviderEvaluation<T>
-    }
 
-    private val OpenFeatureStatus.precedence: Int
-        get() = when (this) {
-            is OpenFeatureStatus.Fatal -> 5
-            is OpenFeatureStatus.NotReady -> 4
-            is OpenFeatureStatus.Error -> 3
-            is OpenFeatureStatus.Reconciling -> 2 // Not specified in precedence; treat similar to Stale
-            is OpenFeatureStatus.Stale -> 2
-            is OpenFeatureStatus.Ready -> 1
-        }
+        /**
+         * Aggregates the statuses of [providers] into the MultiProvider's own status.
+         *
+         * The default reports the most severe, which is the order the specification's Multi-Provider
+         * appendix defines: Fatal, then NotReady, then Error, then Stale, then Ready.
+         */
+        fun status(providers: List<FeatureProvider>): OpenFeatureStatus =
+            providers.map { it.status }.maxByOrNull { it.severity } ?: OpenFeatureStatus.NotReady
+    }
 
     // TODO: Support hooks
     override val hooks: List<Hook<*>> = emptyList()
@@ -125,16 +120,9 @@ class MultiProvider(
         }
     }
 
-    override val status: OpenFeatureStatus get() = _statusFlow.value
+    private val statusTracker = ProviderStatusTracker()
 
-    private val _statusFlow = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
-    val statusFlow = _statusFlow.asStateFlow()
-
-    private val eventFlow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
-
-    // Track individual provider statuses, initial state of all providers is NotReady
-    private val childProviderStatuses: MutableMap<ChildFeatureProvider, OpenFeatureStatus> =
-        childFeatureProviders.associateWithTo(mutableMapOf()) { OpenFeatureStatus.NotReady }
+    override val status: OpenFeatureStatus get() = statusTracker.status
 
     private fun List<FeatureProvider>.toChildFeatureProviders(): List<ChildFeatureProvider> {
         // Extract a stable base name per provider, falling back for unnamed providers
@@ -162,14 +150,14 @@ class MultiProvider(
         }
     }
 
-    private var observeProviderEventsJob: Job? = null
+    private var watchChildrenJob: Job? = null
 
     /**
      * @return Number of unique providers
      */
     internal fun getProviderCount(): Int = childFeatureProviders.size
 
-    override fun observe(): Flow<OpenFeatureProviderEvents> = eventFlow.asSharedFlow()
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
 
     /**
      * Initializes all underlying providers with the given context.
@@ -179,51 +167,75 @@ class MultiProvider(
      */
     override suspend fun initialize(initialContext: EvaluationContext?) {
         coroutineScope {
-            observeProviderEventsJob?.cancel(
-                cause = CancellationException("Observe provider events job cancelled due to new initialize call")
-            )
-            observeProviderEventsJob = CoroutineScope(this.coroutineContext + SupervisorJob()).launch {
-                // Listen to events emitted by providers to emit our own set of events
-                // according to https://openfeature.dev/specification/appendix-a/#status-and-event-handling
-                childFeatureProviders.forEach { provider ->
-                    provider.observe()
-                        .onEach { event ->
-                            handleProviderEvent(provider, event)
-                        }
-                        .launchIn(this)
+            // Started before the children, not after: the terminal updateStatus() re-reads every
+            // child's status so a late watcher would still converge, but a configuration change a
+            // child reports while initializing carries no status and could not be recovered.
+            watchChildren()
+            childFeatureProviders
+                .map { async { it.initialize(initialContext) } }
+                .awaitAll()
+            updateStatus()
+        }
+    }
+
+    /**
+     * Subscribes to every child's events, synchronously.
+     *
+     * Undispatched, so each subscription is established before this returns: merely launching the
+     * collectors would let a child report and finish before anyone was listening, and a child's
+     * replay only carries its current status, so the transitions in between would be lost. The scope
+     * outlives the call, since the children keep reporting after initialization.
+     */
+    private fun CoroutineScope.watchChildren() {
+        watchChildrenJob?.cancel(
+            cause = CancellationException("Observe provider events job cancelled due to new initialize call")
+        )
+        val watchScope = CoroutineScope(coroutineContext + SupervisorJob())
+        watchChildrenJob = watchScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            childFeatureProviders.forEach { child ->
+                launch(start = CoroutineStart.UNDISPATCHED) {
+                    child.observe().collect { handleChildEvent(it) }
                 }
             }
-
-            launch {
-                // State updates captured by observing individual Feature Flag providers
-                childFeatureProviders
-                    .map { async { it.initialize(initialContext) } }
-                    .awaitAll()
-            }
         }
     }
 
-    private suspend fun handleProviderEvent(provider: ChildFeatureProvider, event: OpenFeatureProviderEvents) {
-        // An event carrying no status is re-emitted as-is; ProviderConfigurationChanged is the only one.
-        val newChildStatus = event.toOpenFeatureStatus() ?: run {
-            eventFlow.emit(event)
-            return
-        }
-
-        val previousStatus = _statusFlow.value
-        childProviderStatuses[provider] = newChildStatus
-        val newStatus = calculateAggregateStatus()
-
-        if (previousStatus != newStatus) {
-            _statusFlow.update { newStatus }
-            // Re-emit the original event that triggered the aggregate status change
-            eventFlow.emit(event)
+    /**
+     * A child's event either changes the aggregate status or is a configuration change.
+     *
+     * The specification's Multi-Provider appendix asks for a configuration change to be re-emitted
+     * whenever any provider reports one, and for an aggregate transition to carry the details of the
+     * child event that triggered it.
+     */
+    private fun handleChildEvent(event: OpenFeatureProviderEvents) {
+        if (event.toOpenFeatureStatus() == null) {
+            statusTracker.send(event)
+        } else {
+            updateStatus(event)
         }
     }
 
-    private fun calculateAggregateStatus(): OpenFeatureStatus {
-        val highestPrecedenceStatus = childProviderStatuses.values.maxBy { it.precedence }
-        return highestPrecedenceStatus
+    /** Reports the aggregate status, carrying [trigger]'s details where one triggered the change. */
+    private fun updateStatus(trigger: OpenFeatureProviderEvents? = null) {
+        val aggregate = strategy.status(childFeatureProviders)
+        val details = trigger?.eventDetails
+        val event = when (aggregate) {
+            // NotReady has no event to report, so the aggregate simply stays where it was.
+            is OpenFeatureStatus.NotReady -> null
+            is OpenFeatureStatus.Ready ->
+                if (statusTracker.status is OpenFeatureStatus.Reconciling) {
+                    OpenFeatureProviderEvents.ProviderContextChanged(details)
+                } else {
+                    OpenFeatureProviderEvents.ProviderReady(details)
+                }
+            is OpenFeatureStatus.Stale -> OpenFeatureProviderEvents.ProviderStale(details)
+            is OpenFeatureStatus.Reconciling -> OpenFeatureProviderEvents.ProviderReconciling(details)
+            is OpenFeatureStatus.Error, is OpenFeatureStatus.Fatal ->
+                aggregate.toCurrentStateEvent()
+        }
+        if (event != null && event.toOpenFeatureStatus() != statusTracker.status) {
+            statusTracker.send(event)
+        }
     }
 
     /**
@@ -231,9 +243,10 @@ class MultiProvider(
      * This allows providers to clean up resources and complete any pending operations.
      */
     override fun shutdown() {
-        observeProviderEventsJob?.cancel(
+        watchChildrenJob?.cancel(
             cause = CancellationException("Observe provider events job cancelled due to shutdown")
         )
+        statusTracker.reset()
 
         val shutdownErrors = mutableListOf<Pair<String, Throwable>>()
         childFeatureProviders.forEach { provider ->
@@ -266,13 +279,15 @@ class MultiProvider(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReconciling())
         coroutineScope {
-            // If any of these fail, they should individually bubble up their fail
-            // event and that is handled by handleProviderEvent()
+            // A child that fails reports its own error event; the aggregate picks it up from the
+            // child's status, so one failing child does not fail the group.
             childFeatureProviders
-                .map { async { it.onContextSet(oldContext, newContext) } }
+                .map { async { runCatching { it.onContextSet(oldContext, newContext) } } }
                 .awaitAll()
         }
+        updateStatus()
     }
 
     override fun getBooleanEvaluation(
@@ -396,3 +411,15 @@ class MultiProvider(
         private const val UNDEFINED_PROVIDER_NAME = "<unnamed>"
     }
 }
+
+/** Most severe wins, per the specification's Multi-Provider appendix. */
+private val OpenFeatureStatus.severity: Int
+    get() = when (this) {
+        is OpenFeatureStatus.Fatal -> 5
+        is OpenFeatureStatus.NotReady -> 4
+        is OpenFeatureStatus.Error -> 3
+        // Not in the appendix's list; treated as Stale is, since both mean "usable but not current".
+        is OpenFeatureStatus.Reconciling -> 2
+        is OpenFeatureStatus.Stale -> 2
+        is OpenFeatureStatus.Ready -> 1
+    }

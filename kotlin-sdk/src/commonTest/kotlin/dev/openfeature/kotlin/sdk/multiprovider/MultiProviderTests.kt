@@ -174,7 +174,7 @@ class MultiProviderTests {
         advanceUntilIdle()
 
         // Final aggregate status should be ERROR (C ends in ERROR; beats READY and STALE)
-        val finalStatus = multi.statusFlow.value
+        val finalStatus = multi.status
         assertIs<OpenFeatureStatus.Error>(finalStatus)
         initJob.cancelAndJoin()
     }
@@ -205,7 +205,7 @@ class MultiProviderTests {
         val initJob = launch { multi.initialize(null) }
         advanceUntilIdle()
 
-        val finalStatus = multi.statusFlow.value
+        val finalStatus = multi.status
         val errStatus = assertIs<OpenFeatureStatus.Fatal>(finalStatus)
         assertIs<OpenFeatureError.ProviderFatalError>(errStatus.error)
         initJob.cancelAndJoin()
@@ -245,7 +245,7 @@ class MultiProviderTests {
         val initJob = launch { multi.initialize(null) }
         advanceUntilIdle()
 
-        val finalStatus = multi.statusFlow.value
+        val finalStatus = multi.status
         assertIs<OpenFeatureStatus.Error>(finalStatus)
         initJob.cancelAndJoin()
     }
@@ -283,7 +283,7 @@ class MultiProviderTests {
         val initJob = launch { multi.initialize(null) }
         advanceUntilIdle()
 
-        val finalStatus = multi.statusFlow.value
+        val finalStatus = multi.status
         assertIs<OpenFeatureStatus.NotReady>(finalStatus)
         initJob.cancelAndJoin()
     }
@@ -294,8 +294,7 @@ class MultiProviderTests {
             name = "A",
             eventsToEmitOnInit = listOf(
                 OpenFeatureProviderEvents.ProviderReady(),
-                OpenFeatureProviderEvents.ProviderReady(),
-                OpenFeatureProviderEvents.ProviderStale()
+                OpenFeatureProviderEvents.ProviderReady()
             )
         )
         val multi = MultiProvider(listOf(provider))
@@ -306,11 +305,16 @@ class MultiProviderTests {
         val initJob = launch { multi.initialize(null) }
         advanceUntilIdle()
 
+        // A later transition is reported, an unchanged aggregate is not.
+        provider.emit(OpenFeatureProviderEvents.ProviderStale())
+        advanceUntilIdle()
+        provider.emit(OpenFeatureProviderEvents.ProviderStale())
+        advanceUntilIdle()
+
         collectJob.cancelAndJoin()
         initJob.cancelAndJoin()
 
         val nonConfig = collected.filter { it !is OpenFeatureProviderEvents.ProviderConfigurationChanged }
-        // Should only emit Ready once (transition) and Stale once (transition)
         assertEquals(
             listOf(
                 OpenFeatureProviderEvents.ProviderReady(),
@@ -450,6 +454,8 @@ private class FakeEventProvider(
         // Emit any preconfigured events during initialize so MultiProvider observers receive them
         eventsToEmitOnInit.forEach { statusTracker.send(it) }
     }
+
+    fun emit(event: OpenFeatureProviderEvents) = statusTracker.send(event)
 
     override fun shutdown() {
         shutdownCalls += 1
