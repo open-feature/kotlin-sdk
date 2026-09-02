@@ -346,6 +346,80 @@ class ProviderStatusTrackerTests {
     }
 
     @Test
+    fun aNotReadyProviderDoesNotReportReconciling() = runTest {
+        val tracker = ProviderStatusTracker()
+
+        val received = record(tracker)
+        tracker.reconciling { }
+        advanceUntilIdle()
+        received.stop()
+
+        // Nothing to reconcile from, so nothing is announced; the outcome still applies.
+        assertEquals(
+            listOf(OpenFeatureProviderEvents.ProviderContextChanged::class),
+            received.map { it::class }
+        )
+        assertEquals(OpenFeatureStatus.Ready, tracker.status)
+    }
+
+    @Test
+    fun aCancelledReconciliationOnANotReadyProviderLeavesItNotReady() = runTest {
+        val tracker = ProviderStatusTracker()
+
+        val job = launch { tracker.reconciling { awaitCancellation() } }
+        runCurrent()
+        job.cancelAndJoin()
+        advanceUntilIdle()
+
+        // Reconciling was never announced, so there is nothing to restore and nothing to get stuck on.
+        assertEquals(OpenFeatureStatus.NotReady, tracker.status)
+    }
+
+    @Test
+    fun aReconciliationSupersededByResetCannotReportOverTheNextOne() = runTest {
+        val tracker = ProviderStatusTracker()
+        tracker.send(OpenFeatureProviderEvents.ProviderReady())
+        val staleStarted = CompletableDeferred<Unit>()
+        val releaseStale = CompletableDeferred<Unit>()
+        val freshStarted = CompletableDeferred<Unit>()
+        val releaseFresh = CompletableDeferred<Unit>()
+
+        val stale = launch {
+            tracker.reconciling {
+                staleStarted.complete(Unit)
+                releaseStale.await()
+            }
+        }
+        staleStarted.await()
+        tracker.reset()
+        assertEquals(OpenFeatureStatus.NotReady, tracker.status)
+
+        // A reconciliation belonging to the generation that replaced the superseded one.
+        tracker.send(OpenFeatureProviderEvents.ProviderReady())
+        val fresh = launch {
+            runCatching {
+                tracker.reconciling {
+                    freshStarted.complete(Unit)
+                    releaseFresh.await()
+                    throw OpenFeatureError.GeneralError("fresh reconciliation failed")
+                }
+            }
+        }
+        freshStarted.await()
+
+        // The superseded invocation terminates while the fresh one is still in flight. Counting it
+        // out would make it look like the last in flight and hand it the fresh one's outcome.
+        releaseStale.complete(Unit)
+        stale.join()
+        releaseFresh.complete(Unit)
+        fresh.join()
+        advanceUntilIdle()
+
+        val status = assertIs<OpenFeatureStatus.Error>(tracker.status)
+        assertEquals("fresh reconciliation failed", status.error.message)
+    }
+
+    @Test
     fun aReconciliationCancelledThroughoutRestoresThePrecedingStatus() = runTest {
         val tracker = ProviderStatusTracker()
         tracker.send(OpenFeatureProviderEvents.ProviderStale())
