@@ -97,16 +97,21 @@ class ProviderStatusTracker {
     val status: OpenFeatureStatus get() = synchronized(lock) { currentStatus }
 
     /** Reports [event], updating [status] and publishing it to [observe]'s subscribers. */
-    fun send(event: OpenFeatureProviderEvents) {
-        synchronized(lock) {
-            val status = event.toOpenFeatureStatus()
-            sequence++
-            if (status != null) {
-                currentStatus = status
-                statusSequence = sequence
-            }
-            events.tryEmit(Emission(sequence, event))
+    fun send(event: OpenFeatureProviderEvents) = synchronized(lock) { record(event) }
+
+    /**
+     * Publishes [event] and applies its status. The caller must hold [lock]: deciding what to report
+     * and reporting it have to be one step, or a reconciliation starting in between reads a status
+     * that is about to be replaced and captures it as the one to restore.
+     */
+    private fun record(event: OpenFeatureProviderEvents) {
+        val status = event.toOpenFeatureStatus()
+        sequence++
+        if (status != null) {
+            currentStatus = status
+            statusSequence = sequence
         }
+        events.tryEmit(Emission(sequence, event))
     }
 
     /** Stream to return from [FeatureProvider.observe]. */
@@ -148,9 +153,19 @@ class ProviderStatusTracker {
      * own, that report stands and no outcome is synthesised over it.
      */
     suspend fun reconciling(block: suspend () -> Unit) {
-        val first = reconciliations.begin(status)
-        if (first) send(OpenFeatureProviderEvents.ProviderReconciling())
-        val mark = synchronized(lock) { statusSequence }
+        // One critical section: registering, reporting that reconciliation began, and taking the mark
+        // have to be atomic, or an overlapping invocation reads its mark before this send bumps the
+        // sequence and mistakes that send for a report of its own.
+        val registration = synchronized(lock) {
+            val registration = reconciliations.begin(currentStatus)
+            // Nothing to reconcile from while not ready, and nothing to restore to either, so the
+            // transition is not reported. Requirement 5.3.4.1 asks that RECONCILING handlers run while
+            // onContextSet executes, not that a not-ready provider announce one.
+            if (registration.first && currentStatus != OpenFeatureStatus.NotReady) {
+                record(OpenFeatureProviderEvents.ProviderReconciling())
+            }
+            registration.copy(mark = statusSequence)
+        }
 
         var outcome: OpenFeatureProviderEvents? = null
         try {
@@ -164,8 +179,10 @@ class ProviderStatusTracker {
         } finally {
             // A cancelled invocation still owes the reconciliation an outcome or a restoration.
             withContext(NonCancellable) {
-                val reportedByBlock = synchronized(lock) { statusSequence > mark }
-                reconciliations.end(outcome, reportedByBlock)?.let { send(it) }
+                synchronized(lock) {
+                    val reportedByBlock = statusSequence > registration.mark
+                    reconciliations.end(registration, outcome, reportedByBlock)?.let { record(it) }
+                }
             }
         }
     }
@@ -176,12 +193,10 @@ class ProviderStatusTracker {
      * Call this from [FeatureProvider.shutdown] where the provider can be registered again, so a
      * reused instance does not report the status it held before it was shut down.
      */
-    fun reset() {
-        synchronized(lock) {
-            currentStatus = OpenFeatureStatus.NotReady
-            sequence++
-            statusSequence = sequence
-        }
+    fun reset() = synchronized(lock) {
+        currentStatus = OpenFeatureStatus.NotReady
+        sequence++
+        statusSequence = sequence
         reconciliations.reset()
     }
 
@@ -192,40 +207,51 @@ class ProviderStatusTracker {
      * invocation that terminated normally still owns it when a later, overlapping one is cancelled.
      */
     private class Reconciliations {
-        private val lock = SynchronizedObject()
+        private var generation = 0L
         private var active = 0
         private var restore: OpenFeatureStatus? = null
         private var terminal: OpenFeatureProviderEvents? = null
         private var reportedByBlock = false
 
-        /** Registers an invocation, returning whether it should report that reconciliation began. */
-        fun begin(restoreTo: OpenFeatureStatus): Boolean = synchronized(lock) {
+        /** One invocation's place in a reconciliation, so a stale one cannot disturb a newer one. */
+        data class Registration(val generation: Long, val first: Boolean, val mark: Long = 0)
+
+        /** Registers an invocation, reporting whether it is the one that opens the reconciliation. */
+        fun begin(restoreTo: OpenFeatureStatus): Registration {
             if (active == 0) {
                 restore = restoreTo
                 terminal = null
                 reportedByBlock = false
             }
-            ++active == 1
+            return Registration(generation, ++active == 1)
         }
 
-        /** Registers an invocation's outcome, returning what to report if it was the last in flight. */
+        /**
+         * Registers an invocation's outcome, returning what to report if it was the last in flight.
+         *
+         * An invocation from a superseded generation reports nothing and disturbs nothing: counting it
+         * out would let it clear the state of the reconciliation that replaced it.
+         */
         fun end(
+            registration: Registration,
             outcome: OpenFeatureProviderEvents?,
             reportedByBlock: Boolean
-        ): OpenFeatureProviderEvents? = synchronized(lock) {
+        ): OpenFeatureProviderEvents? {
+            if (registration.generation != generation) return null
             if (reportedByBlock) this.reportedByBlock = true
             if (outcome != null) terminal = outcome
-            if (--active > 0) return@synchronized null
+            if (--active > 0) return null
 
             val reported = this.reportedByBlock
             val result = if (reported) null else terminal ?: restore?.toCurrentStateEvent()
             restore = null
             terminal = null
             this.reportedByBlock = false
-            result
+            return result
         }
 
-        fun reset() = synchronized(lock) {
+        fun reset() {
+            generation++
             active = 0
             restore = null
             terminal = null
