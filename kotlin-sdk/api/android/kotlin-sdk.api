@@ -409,6 +409,15 @@ public final class dev/openfeature/kotlin/sdk/ProviderMetadata$DefaultImpls {
 	public static fun getOriginalMetadata (Ldev/openfeature/kotlin/sdk/ProviderMetadata;)Ljava/util/Map;
 }
 
+public final class dev/openfeature/kotlin/sdk/ProviderStatusTracker {
+	public fun <init> ()V
+	public final fun getStatus ()Ldev/openfeature/kotlin/sdk/OpenFeatureStatus;
+	public final fun observe ()Lkotlinx/coroutines/flow/Flow;
+	public final fun reconciling (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun reset ()V
+	public final fun send (Ldev/openfeature/kotlin/sdk/events/OpenFeatureProviderEvents;)V
+}
+
 public final class dev/openfeature/kotlin/sdk/Reason : java/lang/Enum {
 	public static final field CACHED Ldev/openfeature/kotlin/sdk/Reason;
 	public static final field DEFAULT Ldev/openfeature/kotlin/sdk/Reason;
