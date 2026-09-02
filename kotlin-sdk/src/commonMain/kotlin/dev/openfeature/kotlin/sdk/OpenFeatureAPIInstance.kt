@@ -9,6 +9,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -21,8 +22,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.ContinuationInterceptor
@@ -93,10 +94,17 @@ open class OpenFeatureAPIInstance internal constructor() {
     @OptIn(ExperimentalCoroutinesApi::class)
     val statusFlow: Flow<OpenFeatureStatus> = providerRegistrations
         .flatMapLatest { current ->
-            // Per event, not by re-reading provider.status: two transitions reported back to back
-            // would otherwise both read the later status, and the earlier one would be lost.
             current.provider.observe()
-                .mapNotNull { it.toOpenFeatureStatus() }
+                .transform { event ->
+                    // The event's own status, not a re-read of provider.status: two transitions
+                    // reported back to back would otherwise both read the later one.
+                    val reported = event.toOpenFeatureStatus()
+                    reported?.let { emit(it) }
+                    // Then catch up, so a subscriber whose buffer overflowed and lost an event still
+                    // converges on the truth at the next one rather than staying behind for good.
+                    val live = current.provider.status
+                    if (live != reported) emit(live)
+                }
                 .onStart { emit(current.provider.status) }
         }
         .distinctUntilChanged()
@@ -152,17 +160,20 @@ open class OpenFeatureAPIInstance internal constructor() {
         val next = ProviderRegistration(newProvider, dispatcher)
         val (previous, initializationContext) = synchronized(stateLock) {
             val previous = registration
-            previous.providerJob?.cancel(
-                CancellationException("Provider set job was cancelled due to new provider")
-            )
             registration = next
             if (initialContext != null) context = initialContext
+            // Published under the same lock that commits the swap: otherwise two concurrent swaps can
+            // leave evaluations on one provider and statusFlow/observe() pinned to the other.
+            providerRegistrations.value = next
             previous to context
         }
-        providerRegistrations.value = next
+
+        // Retired here rather than from the successor's job: that job can be cancelled before it is
+        // ever dispatched, which would leave the outgoing provider running and never shut down.
+        release(previous)
+        if (previous.provider !== newProvider) retireProvider(previous.provider)
 
         next.providerJob = next.dispatchLifecycle("initialize") {
-            if (previous.provider !== newProvider) retire(previous)
             newProvider.initialize(initializationContext)
         }
         return requireNotNull(next.providerJob)
@@ -190,29 +201,38 @@ open class OpenFeatureAPIInstance internal constructor() {
         val next = ProviderRegistration(NoProvider(), Dispatchers.Default)
         val previous = synchronized(stateLock) {
             val previous = registration
-            previous.providerJob?.cancel(CancellationException("Provider set job was cancelled due to clearProvider"))
-            previous.contextSetJob?.cancel(
-                CancellationException("Set context job was cancelled due to clearProvider")
-            )
             registration = next
+            providerRegistrations.value = next
             previous
         }
-        providerRegistrations.value = next
-        retire(previous)
+        release(previous)
+        retireProvider(previous.provider)
     }
 
-    /** Releases a retired registration: unbinds it, shuts its provider down, and stops its scope. */
-    private fun retire(retired: ProviderRegistration) {
-        val provider = retired.provider
+    /**
+     * Stops a registration's lifecycle work, which every swap owes its predecessor — including one
+     * that re-registers the same provider instance, whose scope would otherwise be left running.
+     */
+    private fun release(retired: ProviderRegistration) {
+        val cause = CancellationException("Provider registration was replaced")
+        retired.providerJob?.cancel(cause)
+        retired.contextSetJob?.cancel(cause)
+        retired.scope.cancel(cause)
+    }
+
+    /**
+     * Unbinds a provider and shuts it down.
+     *
+     * Only for a provider that is actually being dropped: re-registering the same instance must not
+     * shut it down. A `CancellationException` from `shutdown` is logged rather than rethrown — it
+     * belongs to the provider being retired, not to whoever asked for the swap.
+     */
+    private fun retireProvider(provider: FeatureProvider) {
         untrackProviderBinding(provider)
         try {
             provider.shutdown()
-        } catch (e: CancellationException) {
-            throw e
         } catch (e: Throwable) {
             logger.warn({ "Provider ${provider.attributionName()} failed to shut down" }, throwable = e)
-        } finally {
-            retired.scope.cancel(CancellationException("Provider scope cancelled: provider was retired"))
         }
     }
 
@@ -233,38 +253,40 @@ open class OpenFeatureAPIInstance internal constructor() {
     /**
      * Set the [EvaluationContext] for this instance. Returns once the reconciliation has started.
      *
+     * Reconciliation runs on the dispatcher the provider was registered with, so that it is ordered
+     * against that provider's `initialize`.
+     *
      * @param evaluationContext the [EvaluationContext] to set
-     * @param dispatcher unused: reconciliation runs on the dispatcher the provider was registered
-     * with, so that it is ordered against that provider's `initialize`
      */
-    @Suppress("UNUSED_PARAMETER")
-    fun setEvaluationContext(
-        evaluationContext: EvaluationContext,
-        dispatcher: CoroutineDispatcher = Dispatchers.Default
-    ) {
-        // Only the fire-and-forget path supersedes its predecessor. An awaited context set must not
-        // cancel another awaited one: overlapping reconciliations are legal, and the provider
+    fun setEvaluationContext(evaluationContext: EvaluationContext) {
+        // Started lazily so that superseding the previous job and recording this one are one step:
+        // otherwise two concurrent calls can leave one of the two jobs untracked and uncancellable.
+        // Only the fire-and-forget path supersedes its predecessor — an awaited context set must not
+        // cancel another awaited one, since overlapping reconciliations are legal and the provider
         // collapses them into a single reported transition.
-        synchronized(stateLock) {
-            registration.contextSetJob?.cancel(
+        val job = updateContext(evaluationContext, CoroutineStart.LAZY) { current, job ->
+            current.contextSetJob?.cancel(
                 CancellationException("Set context job was cancelled due to new context")
             )
+            current.contextSetJob = job
         }
-        val job = updateContext(evaluationContext)
-        synchronized(stateLock) { registration.contextSetJob = job }
+        job.start()
     }
 
-    private fun updateContext(newContext: EvaluationContext): Job {
-        val (current, oldContext) = synchronized(stateLock) {
-            val current = registration
-            val oldContext = context
-            context = newContext
-            current to oldContext
-        }
+    private fun updateContext(
+        newContext: EvaluationContext,
+        start: CoroutineStart = CoroutineStart.DEFAULT,
+        record: (ProviderRegistration, Job) -> Unit = { _, _ -> }
+    ): Job = synchronized(stateLock) {
+        val current = registration
+        val oldContext = context
+        context = newContext
 
-        return current.dispatchLifecycle("onContextSet") {
+        val job = current.dispatchLifecycle("onContextSet", start) {
             current.provider.onContextSet(oldContext, newContext)
         }
+        record(current, job)
+        job
     }
 
     /**
@@ -293,8 +315,9 @@ open class OpenFeatureAPIInstance internal constructor() {
      */
     private fun ProviderRegistration.dispatchLifecycle(
         operation: String,
+        start: CoroutineStart = CoroutineStart.DEFAULT,
         work: suspend () -> Unit
-    ): Job = scope.launch {
+    ): Job = scope.launch(start = start) {
         try {
             work()
         } catch (e: CancellationException) {
