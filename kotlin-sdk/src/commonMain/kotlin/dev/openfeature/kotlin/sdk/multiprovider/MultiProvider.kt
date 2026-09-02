@@ -9,7 +9,7 @@ import dev.openfeature.kotlin.sdk.ProviderMetadata
 import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
+import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -202,16 +202,10 @@ class MultiProvider(
     }
 
     private suspend fun handleProviderEvent(provider: ChildFeatureProvider, event: OpenFeatureProviderEvents) {
-        val newChildStatus = when (event) {
-            // ProviderConfigurationChanged events should always re-emit
-            is OpenFeatureProviderEvents.ProviderConfigurationChanged -> {
-                eventFlow.emit(event)
-                return
-            }
-
-            is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
-            is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
-            is OpenFeatureProviderEvents.ProviderError -> event.toOpenFeatureStatusError()
+        // An event carrying no status is re-emitted as-is; ProviderConfigurationChanged is the only one.
+        val newChildStatus = event.toOpenFeatureStatus() ?: run {
+            eventFlow.emit(event)
+            return
         }
 
         val previousStatus = _statusFlow.value
