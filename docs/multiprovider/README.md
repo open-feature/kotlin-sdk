@@ -65,7 +65,9 @@ Children are evaluated in the order provided. Put the most authoritative or fast
 
 ### Events and status aggregation
 
-`MultiProvider` listens to child provider events and emits a single, aggregate status via `OpenFeatureAPI.statusFlow`. Per the OpenFeature specification: a child stays `NOT_READY` until it emits `PROVIDER_READY`, `PROVIDER_ERROR`, or `PROVIDER_STALE` (or only `PROVIDER_CONFIGURATION_CHANGED`, which does not change readiness). The highest-precedence status among children wins:
+`MultiProvider` owns a `ProviderStatusTracker` like any other provider, and reports a single aggregate status through it. A child stays `NOT_READY` until it reports `PROVIDER_READY`, `PROVIDER_ERROR` or `PROVIDER_STALE`; `PROVIDER_CONFIGURATION_CHANGED` carries no status and does not change readiness.
+
+Aggregation is `Strategy.status(providers)`, which you can override. The default reports the most severe child status, which is the order the specification's [Multi-Provider appendix](https://openfeature.dev/specification/appendix-a/#status-and-event-handling) defines:
 
 1. Fatal
 2. NotReady
@@ -73,11 +75,17 @@ Children are evaluated in the order provided. Put the most authoritative or fast
 4. Reconciling / Stale
 5. Ready
 
-`ProviderConfigurationChanged` is re-emitted as-is. When the aggregate status changes due to a child event, the original triggering event is also emitted.
+`RECONCILING` is not in the appendix's list; it is treated as `STALE` is, since both mean the provider is usable but not current.
+
+An aggregate transition carries the `EventDetails` of the child event that triggered it, as the appendix asks, and `ProviderConfigurationChanged` is re-emitted whenever any child reports one.
+
+Because aggregation reads each child's current status rather than replaying what it observed, a child that reports several transitions in one burst is observed at the status it settles on.
+
+> **Divergence from the Swift SDK.** Its `Strategy.status` default selects the *best* child status, so one fatal child among healthy ones reports `READY`. That contradicts the appendix, so this SDK keeps the pessimistic ordering above. This SDK also keeps reacting to child events after initialization, where the Swift implementation only re-aggregates at lifecycle boundaries.
 
 ### Context propagation
 
-When the evaluation context changes, `MultiProvider` calls `onContextSet` on all child providers concurrently. Aggregate status transitions to Reconciling and then back to Ready (or Error) in line with SDK behavior.
+When the evaluation context changes, `MultiProvider` reports `PROVIDER_RECONCILING`, calls `onContextSet` on all child providers concurrently, and then re-aggregates. A child that fails reports its own error event, so one failing child does not fail the others; the aggregate settles on whatever the children report — `Ready`, but equally `Error`, `Fatal` or `Stale`.
 
 ### Provider metadata
 
