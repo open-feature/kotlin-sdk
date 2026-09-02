@@ -4,20 +4,23 @@ import dev.openfeature.kotlin.sdk.EvaluationContext
 import dev.openfeature.kotlin.sdk.EvaluationMetadata
 import dev.openfeature.kotlin.sdk.FeatureProvider
 import dev.openfeature.kotlin.sdk.Hook
+import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.ProviderStatusTracker
 import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 
 open class DoSomethingProvider(
     override val hooks: List<Hook<*>> = listOf(),
     override val metadata: ProviderMetadata = DoSomethingProviderMetadata()
 ) : FeatureProvider {
-    protected val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+    protected val statusTracker = ProviderStatusTracker()
+
+    override val status: OpenFeatureStatus get() = statusTracker.status
     companion object {
         val evaluationMetadata = EvaluationMetadata.builder()
             .putString("key1", "value1")
@@ -27,19 +30,19 @@ open class DoSomethingProvider(
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         delay(1000)
-        events.emit(OpenFeatureProviderEvents.ProviderReady())
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override fun shutdown() {
-        // no-op
+        statusTracker.reset()
     }
 
     override suspend fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
-    ) {
+    ) = statusTracker.reconciling {
         delay(500)
-        events.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged())
+        statusTracker.send(OpenFeatureProviderEvents.ProviderConfigurationChanged())
     }
 
     override fun getBooleanEvaluation(
@@ -95,9 +98,7 @@ open class DoSomethingProvider(
 
     class DoSomethingProviderMetadata(override val name: String? = "something") : ProviderMetadata
 
-    override fun observe(): Flow<OpenFeatureProviderEvents> {
-        return events
-    }
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
 }
 
 class OverlyEmittingProvider(name: String) : DoSomethingProvider(
@@ -109,8 +110,8 @@ class OverlyEmittingProvider(name: String) : DoSomethingProvider(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
-        events.emit(OpenFeatureProviderEvents.ProviderStale())
-        events.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged())
+        statusTracker.send(OpenFeatureProviderEvents.ProviderStale())
+        statusTracker.send(OpenFeatureProviderEvents.ProviderConfigurationChanged())
     }
 
     override fun track(
@@ -119,8 +120,8 @@ class OverlyEmittingProvider(name: String) : DoSomethingProvider(
         details: TrackingEventDetails?
     ) {
         super.track(trackingEventName, context, details)
-        events.tryEmit(OpenFeatureProviderEvents.ProviderStale())
-        events.tryEmit(OpenFeatureProviderEvents.ProviderStale())
-        events.tryEmit(OpenFeatureProviderEvents.ProviderStale())
+        statusTracker.send(OpenFeatureProviderEvents.ProviderStale())
+        statusTracker.send(OpenFeatureProviderEvents.ProviderStale())
+        statusTracker.send(OpenFeatureProviderEvents.ProviderStale())
     }
 }

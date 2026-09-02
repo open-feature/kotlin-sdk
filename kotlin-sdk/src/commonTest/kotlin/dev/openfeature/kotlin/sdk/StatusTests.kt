@@ -13,7 +13,6 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -155,7 +154,8 @@ class StatusTests {
     fun testCancelledContextSetFinishingLastUsesReplacementStatus() = runTest {
         val provider = CancellationRaceProvider()
         val dispatcher = StandardTestDispatcher(testScheduler)
-        OpenFeatureAPI.setProviderAndWait(provider)
+        // The registration's dispatcher is what runs its reconciliations, so virtual time needs it.
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = dispatcher)
 
         OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"), dispatcher)
         provider.firstContextSetStarted.receive()
@@ -303,15 +303,30 @@ class StatusTests {
 }
 
 private class ControllableContextProvider : NoOpProvider() {
+    private val statusTracker = ProviderStatusTracker()
+
     val contextSetStarted = Channel<Unit>(Channel.UNLIMITED)
     val allowContextSetToComplete = Channel<Unit>(Channel.UNLIMITED)
     val contextSetCompleted = Channel<Unit>(Channel.UNLIMITED)
 
-    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+    override val status: OpenFeatureStatus get() = statusTracker.status
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
+
+    override suspend fun initialize(initialContext: EvaluationContext?) {
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
+    }
+
+    override suspend fun onContextSet(
+        oldContext: EvaluationContext?,
+        newContext: EvaluationContext
+    ) = statusTracker.reconciling {
         contextSetStarted.send(Unit)
         allowContextSetToComplete.receive()
         contextSetCompleted.send(Unit)
     }
+
+    override fun shutdown() = statusTracker.reset()
 }
 
 private class CancellationRaceProvider : NoOpProvider() {
@@ -320,16 +335,27 @@ private class CancellationRaceProvider : NoOpProvider() {
     val allowFirstContextSetToFinish = Channel<Unit>(Channel.UNLIMITED)
     val replacementContextSetCompleted = Channel<Unit>(Channel.UNLIMITED)
 
-    private val events = MutableSharedFlow<OpenFeatureProviderEvents>(extraBufferCapacity = 1)
+    private val statusTracker = ProviderStatusTracker()
     private var contextSetCalls = 0
 
-    override fun observe(): Flow<OpenFeatureProviderEvents> = events
+    override val status: OpenFeatureStatus get() = statusTracker.status
 
-    fun emitStale() {
-        events.tryEmit(OpenFeatureProviderEvents.ProviderStale())
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
+
+    override suspend fun initialize(initialContext: EvaluationContext?) {
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
     }
 
-    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+    override fun shutdown() = statusTracker.reset()
+
+    fun emitStale() {
+        statusTracker.send(OpenFeatureProviderEvents.ProviderStale())
+    }
+
+    override suspend fun onContextSet(
+        oldContext: EvaluationContext?,
+        newContext: EvaluationContext
+    ) = statusTracker.reconciling {
         contextSetCalls++
         if (contextSetCalls == 1) {
             firstContextSetStarted.send(Unit)

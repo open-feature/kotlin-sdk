@@ -125,6 +125,8 @@ class MultiProvider(
         }
     }
 
+    override val status: OpenFeatureStatus get() = _statusFlow.value
+
     private val _statusFlow = MutableStateFlow<OpenFeatureStatus>(OpenFeatureStatus.NotReady)
     val statusFlow = _statusFlow.asStateFlow()
 

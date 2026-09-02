@@ -152,7 +152,8 @@ class DeveloperExperienceTests {
         val job = CoroutineScope(dispatcher).launch {
             OpenFeatureAPI.setProviderAndWait(
                 SlowProvider(dispatcher = dispatcher),
-                ImmutableContext()
+                ImmutableContext(),
+                dispatcher = dispatcher
             )
         }
         testScheduler.advanceTimeBy(1) // Make sure setProviderAndWait is called
@@ -232,13 +233,13 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
         job.cancelAndJoin()
-        assertEquals(5, emittedStatuses.size)
+        // BrokenInitProvider reports its failure and then reconciles without reporting anything, so
+        // the context set contributes no transition: the SDK no longer invents one on its behalf.
+        assertEquals(3, emittedStatuses.size, "collected $emittedStatuses")
         assertTrue(emittedStatuses[0] is OpenFeatureStatus.NotReady)
         assertTrue(emittedStatuses[1] is OpenFeatureStatus.Error)
         assertTrue((emittedStatuses[1] as OpenFeatureStatus.Error).error is OpenFeatureError.ProviderNotReadyError)
-        assertTrue(emittedStatuses[2] is OpenFeatureStatus.Reconciling)
-        assertTrue(emittedStatuses[3] is OpenFeatureStatus.Ready)
-        assertTrue(emittedStatuses[4] is OpenFeatureStatus.NotReady)
+        assertTrue(emittedStatuses[2] is OpenFeatureStatus.NotReady)
     }
 
     @Test

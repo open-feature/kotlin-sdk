@@ -3,15 +3,16 @@ package dev.openfeature.kotlin.sdk.helpers
 import dev.openfeature.kotlin.sdk.EvaluationContext
 import dev.openfeature.kotlin.sdk.FeatureProvider
 import dev.openfeature.kotlin.sdk.Hook
+import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.ProviderStatusTracker
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 
 class AutoHealingProvider(
     val healDelay: Long = 1000L,
@@ -21,10 +22,16 @@ class AutoHealingProvider(
         override val name: String = "AutoHealingProvider"
     }
     private var ready = false
-    private val _events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+
+    private val statusTracker = ProviderStatusTracker()
+
+    override val status: OpenFeatureStatus get() = statusTracker.status
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
+
     override suspend fun initialize(initialContext: EvaluationContext?) {
         ready = false
-        _events.emit(
+        statusTracker.send(
             OpenFeatureProviderEvents.ProviderError(
                 OpenFeatureProviderEvents.EventDetails(
                     message = "AutoHealingProvider got an error. trying to heal",
@@ -33,12 +40,13 @@ class AutoHealingProvider(
             )
         )
         delay(healDelay)
-        _events.emit(OpenFeatureProviderEvents.ProviderReady())
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
         ready = true
     }
 
     override fun shutdown() {
-        // no-op
+        ready = false
+        statusTracker.reset()
     }
 
     override suspend fun onContextSet(
@@ -100,9 +108,5 @@ class AutoHealingProvider(
     ): ProviderEvaluation<Value> {
         if (!ready) throw OpenFeatureError.FlagNotFoundError(key)
         return ProviderEvaluation(Value.Null)
-    }
-
-    override fun observe(): Flow<OpenFeatureProviderEvents> {
-        return _events
     }
 }

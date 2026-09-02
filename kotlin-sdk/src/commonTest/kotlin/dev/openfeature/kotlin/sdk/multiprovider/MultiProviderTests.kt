@@ -7,6 +7,7 @@ import dev.openfeature.kotlin.sdk.ImmutableContext
 import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.ProviderStatusTracker
 import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
@@ -14,7 +15,6 @@ import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -430,7 +430,11 @@ private class FakeEventProvider(
         override val name: String? = this@FakeEventProvider.name
     }
 
-    private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 16)
+    private val statusTracker = ProviderStatusTracker()
+
+    override val status: OpenFeatureStatus get() = statusTracker.status
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
 
     var initializeCalls: Int = 0
         private set
@@ -444,7 +448,7 @@ private class FakeEventProvider(
     override suspend fun initialize(initialContext: EvaluationContext?) {
         initializeCalls += 1
         // Emit any preconfigured events during initialize so MultiProvider observers receive them
-        eventsToEmitOnInit.forEach { events.emit(it) }
+        eventsToEmitOnInit.forEach { statusTracker.send(it) }
     }
 
     override fun shutdown() {
@@ -503,8 +507,6 @@ private class FakeEventProvider(
     ): ProviderEvaluation<Value> {
         return ProviderEvaluation(defaultValue)
     }
-
-    override fun observe(): Flow<OpenFeatureProviderEvents> = events
 
     override fun track(
         trackingEventName: String,
