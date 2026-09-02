@@ -45,6 +45,22 @@ sealed class OpenFeatureProviderEvents {
     data class ProviderStale(
         override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
+
+    /**
+     * The provider started reconciling its state with a new [dev.openfeature.kotlin.sdk.EvaluationContext].
+     * [eventDetails] may supply [EventDetails.flagsChanged], [EventDetails.message], [EventDetails.errorCode], and [EventDetails.eventMetadata] as applicable.
+     */
+    data class ProviderReconciling(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
+
+    /**
+     * The provider finished reconciling its state with a new [dev.openfeature.kotlin.sdk.EvaluationContext].
+     * [eventDetails] may supply [EventDetails.flagsChanged], [EventDetails.message], [EventDetails.errorCode], and [EventDetails.eventMetadata] as applicable.
+     */
+    data class ProviderContextChanged(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
 }
 
 internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError(): OpenFeatureStatus {
@@ -60,4 +76,40 @@ internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError():
     } else {
         OpenFeatureStatus.Error(openFeatureError)
     }
+}
+
+/**
+ * Status implied by this event, per the event/status association table in the specification.
+ *
+ * Returns null for [OpenFeatureProviderEvents.ProviderConfigurationChanged], which carries no status.
+ */
+internal fun OpenFeatureProviderEvents.toOpenFeatureStatus(): OpenFeatureStatus? = when (this) {
+    is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
+    is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
+    is OpenFeatureProviderEvents.ProviderError -> toOpenFeatureStatusError()
+    is OpenFeatureProviderEvents.ProviderReconciling -> OpenFeatureStatus.Reconciling
+    is OpenFeatureProviderEvents.ProviderContextChanged -> OpenFeatureStatus.Ready
+    is OpenFeatureProviderEvents.ProviderConfigurationChanged -> null
+}
+
+/**
+ * Event representing this status, so a subscriber attaching once the provider is already in a given
+ * state is told about it immediately.
+ *
+ * Returns null for [OpenFeatureStatus.NotReady], which has no corresponding event type.
+ */
+internal fun OpenFeatureStatus.toCurrentStateEvent(): OpenFeatureProviderEvents? = when (this) {
+    is OpenFeatureStatus.NotReady -> null
+    is OpenFeatureStatus.Ready -> OpenFeatureProviderEvents.ProviderReady()
+    is OpenFeatureStatus.Stale -> OpenFeatureProviderEvents.ProviderStale()
+    is OpenFeatureStatus.Reconciling -> OpenFeatureProviderEvents.ProviderReconciling()
+    is OpenFeatureStatus.Error -> OpenFeatureProviderEvents.ProviderError(
+        OpenFeatureProviderEvents.EventDetails(message = error.message, errorCode = error.errorCode())
+    )
+    is OpenFeatureStatus.Fatal -> OpenFeatureProviderEvents.ProviderError(
+        OpenFeatureProviderEvents.EventDetails(
+            message = error.message,
+            errorCode = ErrorCode.PROVIDER_FATAL
+        )
+    )
 }
