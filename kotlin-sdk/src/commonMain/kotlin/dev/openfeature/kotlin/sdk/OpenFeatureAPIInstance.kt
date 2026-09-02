@@ -53,9 +53,16 @@ open class OpenFeatureAPIInstance internal constructor() {
     private class NoProvider : NoOpProvider()
 
     /**
-     * One registration of one provider, boxed so that [MutableStateFlow] never conflates two of
-     * them: a fresh box is never equal to its predecessor, so every swap restarts the subscriptions
-     * derived from it, which is what keeps a retired provider's events out of its successor's stream.
+     * One registration of one provider, boxed so that [MutableStateFlow] never conflates two
+     * registrations of *different* providers: a fresh box is never equal to its predecessor, so the
+     * swap restarts the subscriptions derived from it, which is what keeps a retired provider's
+     * events out of its successor's stream.
+     *
+     * Re-registering the same provider instance deliberately reuses its box, so no restart happens.
+     * That is correct rather than an oversight — it is the same provider and the same tracker, its
+     * subscribers are still attached, and a re-emitted status would be swallowed by
+     * `distinctUntilChanged` anyway. Allocating a second box would instead put the provider's next
+     * lifecycle call on an unrelated serial dispatcher and cancel the scope it is still running on.
      */
     private class ProviderRegistration(
         val provider: FeatureProvider,
@@ -79,6 +86,19 @@ open class OpenFeatureAPIInstance internal constructor() {
 
     private var registration = ProviderRegistration(NoProvider(), Dispatchers.Default)
     private val providerRegistrations = MutableStateFlow(registration)
+
+    /**
+     * Runs retirements, and is never cancelled: dropping one leaks the provider it was meant to
+     * release. Independent of any registration's scope, which a swap cancels.
+     */
+    private val retirementScope = CoroutineScope(
+        SupervisorJob() +
+            Dispatchers.Default +
+            // Retiring one provider must not fail whoever registered the next one.
+            CoroutineExceptionHandler { _, throwable ->
+                logger.warn({ "Retiring a replaced provider failed" }, throwable = throwable)
+            }
+    )
 
     private var context: EvaluationContext? = null
 
@@ -111,10 +131,13 @@ open class OpenFeatureAPIInstance internal constructor() {
 
     /**
      * Set the [FeatureProvider] for this instance. Returns once the provider is registered, having
-     * started its initialization; the provider reports readiness itself through its events.
+     * started its initialization; the provider reports readiness itself through its events. The
+     * outgoing provider is shut down in the background, so this does not wait for its teardown.
      *
      * @param provider the provider to set
-     * @param dispatcher the dispatcher this provider's lifecycle calls run on
+     * @param dispatcher the dispatcher this provider's lifecycle calls run on. Registering a provider
+     * that is already registered keeps the dispatcher it was first registered with, since its
+     * lifecycle calls have to stay ordered against each other on one dispatcher.
      * @param initialContext the initial [EvaluationContext] for provider initialization
      */
     fun setProvider(
@@ -143,9 +166,15 @@ open class OpenFeatureAPIInstance internal constructor() {
         initialContext: EvaluationContext? = null,
         dispatcher: CoroutineDispatcher? = null
     ) {
-        swapProvider(provider, initialContext, dispatcher ?: callerDispatcher())
-            .joinPropagatingCancellation()
+        val swap = swapProvider(provider, initialContext, dispatcher ?: callerDispatcher())
+        // The outgoing provider's teardown is awaited here, unlike on the fire-and-forget path: a
+        // suspending caller can be told that the provider it replaced is actually down.
+        swap.retirement?.join()
+        swap.initialization.joinPropagatingCancellation()
     }
+
+    /** The two pieces of work a swap starts: initializing the new provider, retiring the old one. */
+    private class Swap(val initialization: Job, val retirement: Job?)
 
     private suspend fun callerDispatcher(): CoroutineDispatcher =
         currentCoroutineContext()[ContinuationInterceptor] as? CoroutineDispatcher ?: Dispatchers.Default
@@ -154,29 +183,36 @@ open class OpenFeatureAPIInstance internal constructor() {
         newProvider: FeatureProvider,
         initialContext: EvaluationContext?,
         dispatcher: CoroutineDispatcher
-    ): Job {
+    ): Swap {
         trackProviderBinding(newProvider)
 
-        val next = ProviderRegistration(newProvider, dispatcher)
-        val (previous, initializationContext) = synchronized(stateLock) {
+        val (current, retired, initializationContext) = synchronized(stateLock) {
             val previous = registration
-            registration = next
+            // Re-registering the same instance reuses its registration. Allocating a second one would
+            // put this initialize on an unrelated serial dispatcher, so it would not be ordered
+            // against the provider's own in-flight work, and would cancel the scope that work runs on.
+            val rebinding = previous.provider === newProvider
+            val current = if (rebinding) previous else ProviderRegistration(newProvider, dispatcher)
+            registration = current
             if (initialContext != null) context = initialContext
             // Published under the same lock that commits the swap: otherwise two concurrent swaps can
             // leave evaluations on one provider and statusFlow/observe() pinned to the other.
-            providerRegistrations.value = next
-            previous to context
+            providerRegistrations.value = current
+            Triple(current, previous.takeUnless { rebinding }, context)
         }
 
         // Retired here rather than from the successor's job: that job can be cancelled before it is
         // ever dispatched, which would leave the outgoing provider running and never shut down.
-        release(previous)
-        if (previous.provider !== newProvider) retireProvider(previous.provider)
+        val retirement = retired?.let { retire(it) }
 
-        next.providerJob = next.dispatchLifecycle("initialize") {
+        // A rebind cancels neither of the provider's jobs. Its in-flight work is its own to supersede,
+        // which is the contract in FeatureProvider: calls are entered in order, and the SDK does not
+        // wait for one to finish before entering the next.
+        val initialization = current.dispatchLifecycle("initialize") {
             newProvider.initialize(initializationContext)
         }
-        return requireNotNull(next.providerJob)
+        synchronized(stateLock) { current.providerJob = initialization }
+        return Swap(initialization, retirement)
     }
 
     /**
@@ -205,19 +241,26 @@ open class OpenFeatureAPIInstance internal constructor() {
             providerRegistrations.value = next
             previous
         }
-        release(previous)
-        retireProvider(previous.provider)
+        // Awaited, unlike the fire-and-forget swap: this is a suspending call, so a caller asking for
+        // the provider to be cleared can be told when it actually has been.
+        retire(previous).join()
     }
 
     /**
-     * Stops a registration's lifecycle work, which every swap owes its predecessor — including one
-     * that re-registers the same provider instance, whose scope would otherwise be left running.
+     * Retires a replaced registration: stops its lifecycle work, then unbinds and shuts its provider
+     * down away from the caller's thread.
+     *
+     * `shutdown` is documented as releasing resources and threads, and `MultiProvider` fans it out
+     * over every child, so running it inline would make registering a provider block on the outgoing
+     * one's whole teardown. The scope it runs on is never cancelled, because a retirement that is
+     * dropped leaks the provider it was meant to release.
      */
-    private fun release(retired: ProviderRegistration) {
+    private fun retire(retired: ProviderRegistration): Job {
         val cause = CancellationException("Provider registration was replaced")
         retired.providerJob?.cancel(cause)
         retired.contextSetJob?.cancel(cause)
         retired.scope.cancel(cause)
+        return retirementScope.launch { retireProvider(retired.provider) }
     }
 
     /**
