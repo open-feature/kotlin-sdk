@@ -130,39 +130,14 @@ class ProviderStatusTrackerConcurrencyTest {
         }
     }
 
-    @Test
-    fun aStatelessEventIsNotFencedOutFromUnderALaterOne() = runBlocking {
-        repeat(ITERATIONS) { iteration ->
-            val tracker = ProviderStatusTracker()
-            tracker.send(OpenFeatureProviderEvents.ProviderReady())
-
-            val observed = mutableListOf<OpenFeatureProviderEvents>()
-            val collector = launch(Dispatchers.Default) {
-                tracker.observe().collect { observed.add(it) }
-            }
-            // Racing the subscription: the configuration change is sent first, so if the later stale
-            // report got through then the configuration change must have too. Fencing an event that
-            // carries no status would drop it here, because the replay cannot stand in for it.
-            launch(Dispatchers.Default) {
-                tracker.send(OpenFeatureProviderEvents.ProviderConfigurationChanged())
-                tracker.send(OpenFeatureProviderEvents.ProviderStale())
-            }.join()
-
-            withTimeout(5_000) { while (tracker.status != OpenFeatureStatus.Stale) yield() }
-            collector.cancel()
-            collector.join()
-
-            val snapshot = observed.toList()
-            val sawStaleLive = snapshot.drop(1).any { it is OpenFeatureProviderEvents.ProviderStale }
-            if (sawStaleLive) {
-                assertTrue(
-                    snapshot.any { it is OpenFeatureProviderEvents.ProviderConfigurationChanged },
-                    "iteration $iteration delivered the later event but dropped the earlier one: " +
-                        snapshot.map { it::class.simpleName }
-                )
-            }
-        }
-    }
+    // The fence's third clause — an event carrying no status is never fenced out, because the replay
+    // cannot stand in for it — is deliberately not tested here, and cannot be. It only decides
+    // anything for an event buffered after the collector's slot was allocated but before the snapshot
+    // was read, and that window is not observable from outside the class: an event sent a moment
+    // earlier is correctly never delivered at all, so "the later event arrived but the earlier one did
+    // not" has a legitimate reading as well as a buggy one. A test asserting the buggy reading has a
+    // false-positive mode, which is what it did under load. The clause is covered by construction and
+    // by the deterministic aStatelessEventIsDeliveredButNeverReplayed in ProviderStatusTrackerTests.
 
     private fun errorNumbered(number: Int) = OpenFeatureProviderEvents.ProviderError(
         OpenFeatureProviderEvents.EventDetails(message = number.toString())
