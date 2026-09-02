@@ -157,9 +157,9 @@ class StatusTests {
         // The registration's dispatcher is what runs its reconciliations, so virtual time needs it.
         OpenFeatureAPI.setProviderAndWait(provider, dispatcher = dispatcher)
 
-        OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"), dispatcher)
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"))
         provider.firstContextSetStarted.receive()
-        OpenFeatureAPI.setEvaluationContext(ImmutableContext("replacement"), dispatcher)
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("replacement"))
         provider.firstContextSetCancellationStarted.receive()
         provider.replacementContextSetCompleted.receive()
         runCurrent()
@@ -179,9 +179,9 @@ class StatusTests {
         OpenFeatureAPI.setProviderAndWait(provider, dispatcher = dispatcher)
         runCurrent()
 
-        OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"), dispatcher)
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"))
         provider.firstContextSetStarted.receive()
-        OpenFeatureAPI.setEvaluationContext(ImmutableContext("replacement"), dispatcher)
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("replacement"))
         provider.firstContextSetCancellationStarted.receive()
         provider.replacementContextSetCompleted.receive()
         runCurrent()
