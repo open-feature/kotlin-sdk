@@ -4,7 +4,6 @@ import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.hooks.LoggingHook
 import dev.openfeature.kotlin.sdk.logging.TestLogger
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -19,16 +18,20 @@ class LoggingIntegrationTests {
     private val testProvider = object : FeatureProvider {
         override val metadata: ProviderMetadata = TestProviderMetadata()
         override val hooks: List<Hook<*>> = listOf()
-        private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+        private val statusTracker = ProviderStatusTracker()
+
+        override val status: OpenFeatureStatus get() = statusTracker.status
+
+        override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
 
         override suspend fun initialize(initialContext: EvaluationContext?) {
-            events.emit(OpenFeatureProviderEvents.ProviderReady())
+            statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
         }
 
         override fun shutdown() {}
 
         override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
-            events.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged())
+            statusTracker.send(OpenFeatureProviderEvents.ProviderConfigurationChanged())
         }
 
         override fun getBooleanEvaluation(
@@ -85,10 +88,6 @@ class LoggingIntegrationTests {
             context: EvaluationContext?
         ): ProviderEvaluation<Value> {
             return ProviderEvaluation(value = defaultValue)
-        }
-
-        override fun observe(): Flow<OpenFeatureProviderEvents> {
-            return events
         }
     }
 
@@ -277,10 +276,14 @@ class LoggingIntegrationTests {
         val errorProvider = object : FeatureProvider {
             override val metadata: ProviderMetadata = TestProviderMetadata("error-provider")
             override val hooks: List<Hook<*>> = listOf()
-            private val events = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
+            private val statusTracker = ProviderStatusTracker()
+
+            override val status: OpenFeatureStatus get() = statusTracker.status
+
+            override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
 
             override suspend fun initialize(initialContext: EvaluationContext?) {
-                events.emit(OpenFeatureProviderEvents.ProviderReady())
+                statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
             }
 
             override fun shutdown() {}
@@ -333,10 +336,6 @@ class LoggingIntegrationTests {
                 context: EvaluationContext?
             ): ProviderEvaluation<Value> {
                 return ProviderEvaluation(value = defaultValue)
-            }
-
-            override fun observe(): Flow<OpenFeatureProviderEvents> {
-                return events
             }
         }
 

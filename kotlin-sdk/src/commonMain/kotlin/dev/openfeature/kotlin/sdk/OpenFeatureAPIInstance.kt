@@ -1,85 +1,112 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatusError
-import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
+import dev.openfeature.kotlin.sdk.logging.LoggerFactory
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.ContinuationInterceptor
+
+private const val LOGGER_NAME = "OpenFeatureAPI"
 
 /**
  * Core implementation of the OpenFeature API.
  *
- * Each instance maintains its own independent state: provider, evaluation context, hooks, status,
- * and events. The global singleton [OpenFeatureAPI] is one such instance. To create isolated,
- * independent instances use
- * [dev.openfeature.kotlin.sdk.isolated.createOpenFeatureAPIInstance].
+ * Each instance maintains its own independent state: provider, evaluation context and hooks. The
+ * global singleton [OpenFeatureAPI] is one such instance. To create isolated, independent instances
+ * use [dev.openfeature.kotlin.sdk.isolated.createOpenFeatureAPIInstance].
+ *
+ * Status belongs to the registered provider, not to this instance: [getStatus] and [statusFlow] both
+ * read [FeatureProvider.status], and the SDK never sets it. The one exception is shutdown, where the
+ * SDK infers not-ready because it is the SDK that initiated the shutdown.
  *
  * @see OpenFeatureAPI
  * @see dev.openfeature.kotlin.sdk.isolated.createOpenFeatureAPIInstance
  */
 @Suppress("TooManyFunctions")
 open class OpenFeatureAPIInstance internal constructor() {
-    private data class ContextReconciliation(
-        val oldContext: EvaluationContext?,
-        val provider: FeatureProvider,
-        val providerGeneration: Long
-    )
-
-    private var setProviderJob: Job? = null
-    private var setEvaluationContextJob: Job? = null
-    private var observeProviderEventsJob: Job? = null
-
-    private val providerMutex = Mutex()
-    private val contextReconciliationMutex = Mutex()
+    private val logger = LoggerFactory.getLogger(LOGGER_NAME)
     private val stateLock = SynchronizedObject()
-    private val noOpProvider = NoOpProvider()
-    private var provider: FeatureProvider = noOpProvider
-    private var providerGeneration: Long = 0
+
+    /** The provider installed when none has been registered, or once one has been cleared. */
+    private class NoProvider : NoOpProvider()
+
+    /**
+     * One registration of one provider, boxed so that [MutableStateFlow] never conflates two of
+     * them: a fresh box is never equal to its predecessor, so every swap restarts the subscriptions
+     * derived from it, which is what keeps a retired provider's events out of its successor's stream.
+     */
+    private class ProviderRegistration(
+        val provider: FeatureProvider,
+        dispatcher: CoroutineDispatcher
+    ) {
+        /**
+         * Serial, so this provider's lifecycle calls are entered one at a time and in the order they
+         * were made. A call that suspends releases the dispatcher, so the SDK never waits for one
+         * lifecycle call to finish before entering the next.
+         */
+        @OptIn(ExperimentalCoroutinesApi::class)
+        val scope = CoroutineScope(
+            SupervisorJob() +
+                dispatcher.limitedParallelism(1) +
+                CoroutineExceptionHandler { _, _ -> /* reported by dispatchLifecycle */ }
+        )
+
+        var providerJob: Job? = null
+        var contextSetJob: Job? = null
+    }
+
+    private var registration = ProviderRegistration(NoProvider(), Dispatchers.Default)
+    private val providerRegistrations = MutableStateFlow(registration)
+
     private var context: EvaluationContext? = null
-    private var contextReconciliationGeneration: Long? = null
-    private var activeContextReconciliations: Int = 0
-    private var contextReconciliationInitialStatus: OpenFeatureStatus? = null
-    private var contextReconciliationTerminalStatus: OpenFeatureStatus? = null
-    private var providerStatusGeneration: Long = 0
-    private var contextReconciliationTerminalProviderStatusGeneration: Long? = null
-    val providersFlow: MutableStateFlow<FeatureProvider> = MutableStateFlow(noOpProvider)
-
-    private val _statusFlow: MutableSharedFlow<OpenFeatureStatus> =
-        MutableSharedFlow<OpenFeatureStatus>(replay = 1, extraBufferCapacity = 5)
-            .apply {
-                tryEmit(OpenFeatureStatus.NotReady)
-            }
-
-    val statusFlow: Flow<OpenFeatureStatus> get() = _statusFlow.distinctUntilChanged()
 
     var hooks: List<Hook<*>> = listOf()
         private set
 
     /**
-     * Set the [FeatureProvider] for this instance. Returns immediately and initializes the provider
-     * in a coroutine scope. When successfully initialized, status transitions to Ready.
+     * The status of the registered provider, and every transition it reports.
+     *
+     * A projection of [FeatureProvider.status], so it can never disagree with [getStatus]. A
+     * provider that reports nothing yields exactly one [OpenFeatureStatus.NotReady].
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val statusFlow: Flow<OpenFeatureStatus> = providerRegistrations
+        .flatMapLatest { current ->
+            // Per event, not by re-reading provider.status: two transitions reported back to back
+            // would otherwise both read the later status, and the earlier one would be lost.
+            current.provider.observe()
+                .mapNotNull { it.toOpenFeatureStatus() }
+                .onStart { emit(current.provider.status) }
+        }
+        .distinctUntilChanged()
+
+    /**
+     * Set the [FeatureProvider] for this instance. Returns once the provider is registered, having
+     * started its initialization; the provider reports readiness itself through its events.
      *
      * @param provider the provider to set
-     * @param dispatcher the dispatcher for the initialization coroutine
+     * @param dispatcher the dispatcher this provider's lifecycle calls run on
      * @param initialContext the initial [EvaluationContext] for provider initialization
      */
     fun setProvider(
@@ -87,271 +114,197 @@ open class OpenFeatureAPIInstance internal constructor() {
         dispatcher: CoroutineDispatcher = Dispatchers.Default,
         initialContext: EvaluationContext? = null
     ) {
-        setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to new provider"))
-        this.setProviderJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
-            setProviderInternal(provider, dispatcher, initialContext)
-        }
+        swapProvider(provider, initialContext, dispatcher)
     }
 
     /**
-     * Set the [FeatureProvider] for this instance. Suspends until the provider is initialized.
+     * Set the [FeatureProvider] for this instance, suspending until its `initialize` has terminated.
+     *
+     * A provider reports its own outcome, so this does not throw when initialization fails: the
+     * failure arrives as an [OpenFeatureProviderEvents.ProviderError] and as
+     * [OpenFeatureStatus.Error]. A provider that throws without reporting anything stays
+     * [OpenFeatureStatus.NotReady], and the failure is logged.
      *
      * @param provider the [FeatureProvider] to set
      * @param initialContext the initial [EvaluationContext] for provider initialization
-     * @param dispatcher the dispatcher for event observation
+     * @param dispatcher the dispatcher this provider's lifecycle calls run on; the caller's own
+     * dispatcher by default, so that a caller controlling time controls the provider's lifecycle too
      */
     suspend fun setProviderAndWait(
         provider: FeatureProvider,
         initialContext: EvaluationContext? = null,
-        dispatcher: CoroutineDispatcher = Dispatchers.Default
+        dispatcher: CoroutineDispatcher? = null
     ) {
-        setProviderInternal(provider, dispatcher, initialContext)
+        swapProvider(provider, initialContext, dispatcher ?: callerDispatcher())
+            .joinPropagatingCancellation()
     }
 
-    private fun listenToProviderEvents(provider: FeatureProvider, dispatcher: CoroutineDispatcher) {
-        observeProviderEventsJob?.cancel(CancellationException("Provider job was cancelled due to new provider"))
-        this.observeProviderEventsJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
-            provider.observe().collect(handleProviderEvents)
-        }
-    }
+    private suspend fun callerDispatcher(): CoroutineDispatcher =
+        currentCoroutineContext()[ContinuationInterceptor] as? CoroutineDispatcher ?: Dispatchers.Default
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private suspend fun setProviderInternal(
-        provider: FeatureProvider,
-        dispatcher: CoroutineDispatcher,
-        initialContext: EvaluationContext? = null
-    ) {
-        try {
-            trackProviderBinding(provider)
-        } catch (e: Throwable) {
-            _statusFlow.emit(
-                OpenFeatureStatus.Error(
-                    OpenFeatureError.GeneralError(e.message ?: "Unknown error")
-                )
+    private fun swapProvider(
+        newProvider: FeatureProvider,
+        initialContext: EvaluationContext?,
+        dispatcher: CoroutineDispatcher
+    ): Job {
+        trackProviderBinding(newProvider)
+
+        val next = ProviderRegistration(newProvider, dispatcher)
+        val (previous, initializationContext) = synchronized(stateLock) {
+            val previous = registration
+            previous.providerJob?.cancel(
+                CancellationException("Provider set job was cancelled due to new provider")
             )
-            return
+            registration = next
+            if (initialContext != null) context = initialContext
+            previous to context
         }
+        providerRegistrations.value = next
 
-        // Track whether the swap committed so a mid-flight cancellation can roll back the binding.
-        var swapCommitted = false
-        try {
-            // Atomically swap the old and new provider to prevent race conditions
-            val oldProvider = providerMutex.withLock {
-                synchronized(stateLock) {
-                    val current = this.provider
-                    this.provider = provider
-                    providerGeneration++
-                    providersFlow.value = provider
-                    if (initialContext != null) context = initialContext
-                    current
-                }
-            }
-            swapCommitted = true
-
-            // Emit NotReady status after swapping provider
-            _statusFlow.emit(OpenFeatureStatus.NotReady)
-
-            // Shutdown the previous provider outside the mutex
-            if (oldProvider !== provider) {
-                tryWithStatusEmitErrorHandling {
-                    untrackProviderBinding(oldProvider)
-                    oldProvider.shutdown()
-                }
-            }
-
-            // Initialize the new provider
-            tryWithStatusEmitErrorHandling {
-                listenToProviderEvents(provider, dispatcher)
-                val state = getEvaluationState()
-                state.provider.initialize(state.context)
-                _statusFlow.emit(OpenFeatureStatus.Ready)
-            }
-        } catch (e: CancellationException) {
-            // if cancellation hit before we committed the swap, release the binding we just claimed
-            // so the provider can be re-registered elsewhere.
-            if (!swapCommitted) {
-                withContext(NonCancellable) {
-                    untrackProviderBinding(provider)
-                }
-            }
-            throw e
+        next.providerJob = next.dispatchLifecycle("initialize") {
+            if (previous.provider !== newProvider) retire(previous)
+            newProvider.initialize(initializationContext)
         }
+        return requireNotNull(next.providerJob)
     }
 
     /**
      * Get the current [FeatureProvider] for this instance.
      */
-    fun getProvider(): FeatureProvider {
-        return synchronized(stateLock) { provider }
-    }
+    fun getProvider(): FeatureProvider = synchronized(stateLock) { registration.provider }
 
     /**
-     * Snapshot of the current provider and evaluation context for synchronous client operations.
+     * Snapshot of the provider, evaluation context and hooks for synchronous client operations.
      */
-    internal fun getEvaluationState(): EvaluationState {
-        return synchronized(stateLock) {
-            EvaluationState(provider, context)
-        }
+    internal fun getEvaluationState(): EvaluationState = synchronized(stateLock) {
+        EvaluationState(registration.provider, context, hooks)
     }
 
     /**
      * Clear the current [FeatureProvider] and reset to a no-op provider.
+     *
+     * Installs a provider that was never initialized, so the status is not-ready once this returns,
+     * as requirement 1.7.6 asks: the SDK initiated the shutdown, so no provider event is involved.
      */
     suspend fun clearProvider() {
-        val oldProvider = providerMutex.withLock {
-            synchronized(stateLock) {
-                val current = this.provider
-                this.provider = noOpProvider
-                providerGeneration++
-                providersFlow.value = noOpProvider
-                current
-            }
+        val next = ProviderRegistration(NoProvider(), Dispatchers.Default)
+        val previous = synchronized(stateLock) {
+            val previous = registration
+            previous.providerJob?.cancel(CancellationException("Provider set job was cancelled due to clearProvider"))
+            previous.contextSetJob?.cancel(
+                CancellationException("Set context job was cancelled due to clearProvider")
+            )
+            registration = next
+            previous
         }
-        untrackProviderBinding(oldProvider)
-        oldProvider.shutdown()
-        _statusFlow.emit(OpenFeatureStatus.NotReady)
+        providerRegistrations.value = next
+        retire(previous)
+    }
+
+    /** Releases a retired registration: unbinds it, shuts its provider down, and stops its scope. */
+    private fun retire(retired: ProviderRegistration) {
+        val provider = retired.provider
+        untrackProviderBinding(provider)
+        try {
+            provider.shutdown()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            logger.warn({ "Provider ${provider.attributionName()} failed to shut down" }, throwable = e)
+        } finally {
+            retired.scope.cancel(CancellationException("Provider scope cancelled: provider was retired"))
+        }
     }
 
     /**
-     * Set the [EvaluationContext] for this instance. Suspends until the context is set and the
-     * provider has reconciled.
+     * Set the [EvaluationContext] for this instance, suspending until the provider's `onContextSet`
+     * has terminated.
+     *
+     * The provider reports the transitions around its own reconciliation, so a provider still
+     * reconciling in the background leaves the status [OpenFeatureStatus.Reconciling] when this
+     * returns.
      *
      * @param evaluationContext the [EvaluationContext] to set
      */
     suspend fun setEvaluationContextAndWait(evaluationContext: EvaluationContext) {
-        setEvaluationContextInternal(evaluationContext)
+        updateContext(evaluationContext).joinPropagatingCancellation()
     }
 
     /**
-     * Set the [EvaluationContext] for this instance. Returns immediately and sets the context
-     * in a coroutine scope.
+     * Set the [EvaluationContext] for this instance. Returns once the reconciliation has started.
      *
      * @param evaluationContext the [EvaluationContext] to set
-     * @param dispatcher the dispatcher for the context-set coroutine
+     * @param dispatcher unused: reconciliation runs on the dispatcher the provider was registered
+     * with, so that it is ordered against that provider's `initialize`
      */
+    @Suppress("UNUSED_PARAMETER")
     fun setEvaluationContext(
         evaluationContext: EvaluationContext,
         dispatcher: CoroutineDispatcher = Dispatchers.Default
     ) {
-        setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to new context"))
-        this.setEvaluationContextJob = CoroutineScope(SupervisorJob() + dispatcher).launch {
-            setEvaluationContextInternal(evaluationContext)
+        // Only the fire-and-forget path supersedes its predecessor. An awaited context set must not
+        // cancel another awaited one: overlapping reconciliations are legal, and the provider
+        // collapses them into a single reported transition.
+        synchronized(stateLock) {
+            registration.contextSetJob?.cancel(
+                CancellationException("Set context job was cancelled due to new context")
+            )
+        }
+        val job = updateContext(evaluationContext)
+        synchronized(stateLock) { registration.contextSetJob = job }
+    }
+
+    private fun updateContext(newContext: EvaluationContext): Job {
+        val (current, oldContext) = synchronized(stateLock) {
+            val current = registration
+            val oldContext = context
+            context = newContext
+            current to oldContext
+        }
+
+        return current.dispatchLifecycle("onContextSet") {
+            current.provider.onContextSet(oldContext, newContext)
         }
     }
 
-    private suspend fun setEvaluationContextInternal(evaluationContext: EvaluationContext) {
-        var reconciliation: ContextReconciliation? = null
-        var terminalStatus: OpenFeatureStatus? = null
+    /**
+     * Awaits a lifecycle call, cancelling it if the caller is cancelled.
+     *
+     * The call runs on the registration's own scope so that its ordering does not depend on the
+     * caller, which means cancelling the caller would otherwise leave it running.
+     */
+    private suspend fun Job.joinPropagatingCancellation() {
         try {
-            contextReconciliationMutex.withLock {
-                providerMutex.withLock {
-                    var shouldEmitReconciling = false
-                    synchronized(stateLock) {
-                        val oldContext = context
-                        context = evaluationContext
-                        if (provider !== noOpProvider) {
-                            reconciliation = ContextReconciliation(oldContext, provider, providerGeneration)
-                            if (contextReconciliationGeneration != providerGeneration) {
-                                contextReconciliationGeneration = providerGeneration
-                                activeContextReconciliations = 0
-                            }
-                            if (activeContextReconciliations == 0) {
-                                contextReconciliationInitialStatus = getStatus()
-                                contextReconciliationTerminalStatus = null
-                                contextReconciliationTerminalProviderStatusGeneration = null
-                            }
-                            activeContextReconciliations++
-                            shouldEmitReconciling = activeContextReconciliations == 1
-                        }
-                    }
-                    if (shouldEmitReconciling) {
-                        _statusFlow.emit(OpenFeatureStatus.Reconciling)
-                    }
-                }
-            }
-
-            val registeredReconciliation = reconciliation ?: return
-            registeredReconciliation.provider.onContextSet(
-                registeredReconciliation.oldContext,
-                evaluationContext
-            )
-            terminalStatus = OpenFeatureStatus.Ready
+            join()
         } catch (e: CancellationException) {
-            // This happens by design and shouldn't be treated as an error
-        } catch (e: OpenFeatureError) {
-            terminalStatus = OpenFeatureStatus.Error(e)
-        } catch (e: Throwable) {
-            terminalStatus = OpenFeatureStatus.Error(
-                OpenFeatureError.GeneralError(e.message ?: "Unknown error")
-            )
-        } finally {
-            val registeredReconciliation = reconciliation
-            if (registeredReconciliation != null) {
-                withContext(NonCancellable) {
-                    completeContextReconciliation(
-                        registeredReconciliation.provider,
-                        registeredReconciliation.providerGeneration,
-                        terminalStatus
-                    )
-                }
-            }
+            cancel(e)
+            // Awaited so the provider has finished unwinding — and reported the outcome it owes the
+            // reconciliation — before the caller sees the cancellation.
+            withContext(NonCancellable) { join() }
+            throw e
         }
     }
 
-    private suspend fun completeContextReconciliation(
-        reconciliationProvider: FeatureProvider,
-        reconciliationProviderGeneration: Long,
-        terminalStatus: OpenFeatureStatus?
-    ) {
-        contextReconciliationMutex.withLock {
-            if (contextReconciliationGeneration != reconciliationProviderGeneration) return
-
-            if (terminalStatus != null) {
-                contextReconciliationTerminalStatus = terminalStatus
-                contextReconciliationTerminalProviderStatusGeneration = providerStatusGeneration
-            }
-            activeContextReconciliations--
-            if (activeContextReconciliations == 0) {
-                val retainedTerminalStatus = contextReconciliationTerminalStatus
-                val statusToEmit = retainedTerminalStatus ?: contextReconciliationInitialStatus
-                val shouldEmitStatus = if (retainedTerminalStatus != null) {
-                    contextReconciliationTerminalProviderStatusGeneration == providerStatusGeneration
-                } else {
-                    getStatus() is OpenFeatureStatus.Reconciling
-                }
-                contextReconciliationInitialStatus = null
-                contextReconciliationTerminalStatus = null
-                contextReconciliationTerminalProviderStatusGeneration = null
-
-                providerMutex.withLock {
-                    if (
-                        synchronized(stateLock) { provider === reconciliationProvider } &&
-                        providerGeneration == reconciliationProviderGeneration &&
-                        statusToEmit != null &&
-                        shouldEmitStatus
-                    ) {
-                        _statusFlow.emit(statusToEmit)
-                    }
-                }
-            }
-        }
-    }
-
-    private suspend fun tryWithStatusEmitErrorHandling(function: suspend () -> Unit) {
+    /**
+     * Runs one of [provider]'s lifecycle calls.
+     *
+     * A throw is not a status signal — the provider owns its status — so it is logged and the status
+     * left alone. Cancellation still propagates, so structured concurrency and timeouts work.
+     */
+    private fun ProviderRegistration.dispatchLifecycle(
+        operation: String,
+        work: suspend () -> Unit
+    ): Job = scope.launch {
         try {
-            function()
+            work()
         } catch (e: CancellationException) {
-            // This happens by design and shouldn't be treated as an error
-        } catch (e: OpenFeatureError) {
-            _statusFlow.emit(OpenFeatureStatus.Error(e))
+            throw e
         } catch (e: Throwable) {
-            _statusFlow.emit(
-                OpenFeatureStatus.Error(
-                    OpenFeatureError.GeneralError(
-                        e.message ?: "Unknown error"
-                    )
-                )
-            )
+            logger.warn({
+                "Provider ${provider.attributionName()} failed during $operation. The SDK does not " +
+                    "derive status from a thrown exception: report the failure by emitting a " +
+                    "ProviderError event."
+            }, throwable = e)
         }
     }
 
@@ -380,14 +333,14 @@ open class OpenFeatureAPIInstance internal constructor() {
      * Add [Hook]s to this instance.
      */
     fun addHooks(hooks: List<Hook<*>>) {
-        this.hooks += hooks
+        synchronized(stateLock) { this.hooks += hooks }
     }
 
     /**
      * Clear all [Hook]s from this instance.
      */
     fun clearHooks() {
-        this.hooks = listOf()
+        synchronized(stateLock) { this.hooks = listOf() }
     }
 
     /**
@@ -395,59 +348,37 @@ open class OpenFeatureAPIInstance internal constructor() {
      */
     suspend fun shutdown() {
         clearHooks()
-        setEvaluationContextJob?.cancel(CancellationException("Set context job was cancelled due to shutdown"))
-        setProviderJob?.cancel(CancellationException("Provider set job was cancelled due to shutdown"))
-        observeProviderEventsJob?.cancel(
-            CancellationException("Provider event observe job was cancelled due to shutdown")
-        )
         clearProvider()
     }
 
     /**
-     * Get the current [OpenFeatureStatus] of this instance.
+     * Get the current [OpenFeatureStatus] of this instance, as reported by its provider.
      */
-    fun getStatus(): OpenFeatureStatus = _statusFlow.replayCache.first()
+    fun getStatus(): OpenFeatureStatus = getProvider().status
 
     /**
-     * Observe events from the currently configured Provider.
+     * Observe the events emitted by the currently configured provider.
+     *
+     * Switches to the new provider on a swap, so a retired provider's events stop arriving. To handle
+     * one event type, narrow with the reified [observe] overload or with
+     * [kotlinx.coroutines.flow.filterIsInstance].
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    inline fun <reified T : OpenFeatureProviderEvents> observe(): Flow<T> = providersFlow
-        .flatMapLatest { it.observe() }.filterIsInstance()
+    fun observe(): Flow<OpenFeatureProviderEvents> =
+        providerRegistrations.flatMapLatest { it.provider.observe() }
 
     /**
-     * Aligning the state management to
-     * https://openfeature.dev/specification/sections/events#requirement-535
+     * Claims [provider] for this instance.
+     *
+     * Two instances driving one provider would drive one [ProviderStatusTracker], leaving its status
+     * undefined, so this is a programming error rather than a provider failure — and with status
+     * owned by the provider there is no status channel left to report it on.
+     *
+     * @throws IllegalStateException if another instance already owns [provider]
      */
-    private val handleProviderEvents: FlowCollector<OpenFeatureProviderEvents> = FlowCollector { providerEvent ->
-        when (providerEvent) {
-            is OpenFeatureProviderEvents.ProviderReady -> {
-                emitProviderStatus(OpenFeatureStatus.Ready)
-            }
-
-            is OpenFeatureProviderEvents.ProviderStale -> {
-                emitProviderStatus(OpenFeatureStatus.Stale)
-            }
-
-            is OpenFeatureProviderEvents.ProviderError -> {
-                emitProviderStatus(providerEvent.toOpenFeatureStatusError())
-            }
-
-            else -> { // All other states should not be emitted from here
-            }
-        }
-    }
-
-    private suspend fun emitProviderStatus(status: OpenFeatureStatus) {
-        contextReconciliationMutex.withLock {
-            providerStatusGeneration++
-            _statusFlow.emit(status)
-        }
-    }
-
-    private suspend fun trackProviderBinding(provider: FeatureProvider) {
-        if (provider === noOpProvider) return
-        bindingMutex.withLock {
+    private fun trackProviderBinding(provider: FeatureProvider) {
+        if (provider is NoProvider) return
+        synchronized(bindingLock) {
             val existingOwner = boundProviders.findOwner(provider)
             if (existingOwner != null && existingOwner !== this) {
                 throw IllegalStateException(
@@ -459,9 +390,9 @@ open class OpenFeatureAPIInstance internal constructor() {
         }
     }
 
-    private suspend fun untrackProviderBinding(provider: FeatureProvider) {
-        if (provider === noOpProvider) return
-        bindingMutex.withLock {
+    private fun untrackProviderBinding(provider: FeatureProvider) {
+        if (provider is NoProvider) return
+        synchronized(bindingLock) {
             if (boundProviders.findOwner(provider) === this) {
                 boundProviders.removeProvider(provider)
             }
@@ -475,7 +406,7 @@ open class OpenFeatureAPIInstance internal constructor() {
          * when providers implement equals/hashCode.
          */
         private val boundProviders = IdentityRegistry()
-        private val bindingMutex = Mutex()
+        private val bindingLock = SynchronizedObject()
 
         /**
          * Clear all provider bindings. Intended for test isolation only.
@@ -485,6 +416,17 @@ open class OpenFeatureAPIInstance internal constructor() {
         }
     }
 }
+
+/**
+ * Observe one type of event from the currently configured provider.
+ *
+ * The unparameterised [OpenFeatureAPIInstance.observe] yields every event; this narrows it.
+ */
+inline fun <reified T : OpenFeatureProviderEvents> OpenFeatureAPIInstance.observe(): Flow<T> =
+    observe().filterIsInstance()
+
+/** Provider name for a log line, or null: naming a provider must never fail a registration. */
+internal fun FeatureProvider.attributionName(): String? = runCatching { metadata.name }.getOrNull()
 
 /**
  * Simple identity-based registry. All lookups use referential equality (===) so that

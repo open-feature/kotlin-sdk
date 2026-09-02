@@ -31,8 +31,7 @@ class OpenFeatureClient(
     override val statusFlow = openFeatureAPI.statusFlow
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun observe(): Flow<OpenFeatureProviderEvents> =
-        openFeatureAPI.observe<OpenFeatureProviderEvents>()
+    override fun observe(): Flow<OpenFeatureProviderEvents> = openFeatureAPI.observe()
 
     override fun getBooleanValue(key: String, defaultValue: Boolean): Boolean {
         return getBooleanDetails(key, defaultValue).value
@@ -213,7 +212,8 @@ class OpenFeatureClient(
         var details = FlagEvaluationDetails(key, defaultValue)
         val state = openFeatureAPI.getEvaluationState()
         val provider = state.provider
-        val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + openFeatureAPI.hooks
+        // One snapshot, so a concurrent addHooks cannot be observed half-applied mid-evaluation.
+        val mergedHooks: List<Hook<*>> = provider.hooks + options.hooks + hooks + state.hooks
         val context = state.context
         val hooksWithContext: List<Pair<Hook<*>, HookContext<T>>> =
             mergedHooks
@@ -231,7 +231,6 @@ class OpenFeatureClient(
                 }
         try {
             hookSupport.beforeHooks(flagValueType, hooksWithContext, hints)
-            shortCircuitIfNotReady()
             val providerEval = createProviderEvaluation(
                 flagValueType,
                 key,
@@ -258,15 +257,6 @@ class OpenFeatureClient(
         }
         hookSupport.afterAllHooks(flagValueType, details, hooksWithContext, hints)
         return details
-    }
-
-    private fun shortCircuitIfNotReady() {
-        val providerStatus = openFeatureAPI.getStatus()
-        if (providerStatus == OpenFeatureStatus.NotReady) {
-            throw OpenFeatureError.ProviderNotReadyError()
-        } else if (providerStatus is OpenFeatureStatus.Fatal) {
-            throw OpenFeatureError.ProviderFatalError()
-        }
     }
 
     @Suppress("UNCHECKED_CAST")
