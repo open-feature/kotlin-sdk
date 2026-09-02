@@ -14,6 +14,7 @@ import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -350,6 +351,144 @@ class MultiProviderTests {
     }
 
     @Test
+    fun aCancelledContextSetDoesNotLeaveTheAggregateReconciling() = runTest {
+        val provider = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady()),
+            gateContextSet = true
+        )
+        val multi = MultiProvider(listOf(provider))
+        multi.initialize(null)
+        advanceUntilIdle()
+        assertEquals(OpenFeatureStatus.Ready, multi.status)
+
+        val contextSet = launch { multi.onContextSet(null, ImmutableContext("ctx")) }
+        provider.contextSetStarted.receive()
+        assertEquals(OpenFeatureStatus.Reconciling, multi.status)
+
+        contextSet.cancelAndJoin()
+        advanceUntilIdle()
+
+        // The tracker restores the status that preceded the reconciliation rather than stranding it.
+        assertEquals(OpenFeatureStatus.Ready, multi.status)
+    }
+
+    @Test
+    fun overlappingContextSetsReportReconcilingOnceAndOnlyTheLastOutcome() = runTest {
+        val provider = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady()),
+            gateContextSet = true
+        )
+        val multi = MultiProvider(listOf(provider))
+        multi.initialize(null)
+        advanceUntilIdle()
+
+        val collected = mutableListOf<OpenFeatureProviderEvents>()
+        val collectJob = launch { multi.observe().collect { collected.add(it) } }
+        advanceUntilIdle()
+        collected.clear()
+
+        val first = launch { multi.onContextSet(null, ImmutableContext("first")) }
+        provider.contextSetStarted.receive()
+        val second = launch { multi.onContextSet(null, ImmutableContext("second")) }
+        provider.contextSetStarted.receive()
+
+        provider.allowContextSetToComplete.send(Unit)
+        first.join()
+        advanceUntilIdle()
+        // The first to terminate must not resolve a reconciliation the second is still running.
+        assertEquals(OpenFeatureStatus.Reconciling, multi.status)
+
+        provider.allowContextSetToComplete.send(Unit)
+        second.join()
+        advanceUntilIdle()
+        collectJob.cancelAndJoin()
+
+        assertEquals(OpenFeatureStatus.Ready, multi.status)
+        assertEquals(
+            listOf(
+                OpenFeatureProviderEvents.ProviderReconciling::class,
+                OpenFeatureProviderEvents.ProviderContextChanged::class
+            ),
+            collected.map { it::class }
+        )
+    }
+
+    @Test
+    fun anErrorAggregateCarriesTheTriggeringChildDetails() = runTest {
+        val provider = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady())
+        )
+        val multi = MultiProvider(listOf(provider))
+        multi.initialize(null)
+        advanceUntilIdle()
+
+        val collected = mutableListOf<OpenFeatureProviderEvents>()
+        val collectJob = launch { multi.observe().collect { collected.add(it) } }
+        advanceUntilIdle()
+        collected.clear()
+
+        provider.emit(
+            OpenFeatureProviderEvents.ProviderError(
+                OpenFeatureProviderEvents.EventDetails(
+                    flagsChanged = setOf("a", "b"),
+                    message = "child failed",
+                    eventMetadata = mapOf("origin" to "A")
+                )
+            )
+        )
+        advanceUntilIdle()
+        collectJob.cancelAndJoin()
+
+        val reported = assertIs<OpenFeatureProviderEvents.ProviderError>(collected.single())
+        assertEquals(setOf("a", "b"), reported.eventDetails?.flagsChanged)
+        assertEquals(mapOf<String, Any>("origin" to "A"), reported.eventDetails?.eventMetadata)
+    }
+
+    @Test
+    fun aChildFailingToInitializeDoesNotStopItsSiblings() = runTest {
+        val failing = FakeEventProvider(
+            name = "failing",
+            initializeThrowable = OpenFeatureError.GeneralError("cannot start")
+        )
+        val healthy = FakeEventProvider(
+            name = "healthy",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady())
+        )
+        val multi = MultiProvider(listOf(failing, healthy))
+
+        multi.initialize(null)
+        advanceUntilIdle()
+
+        assertEquals(1, failing.initializeCalls)
+        assertEquals(1, healthy.initializeCalls, "a failing sibling must not cancel this one")
+        // The failing child reported nothing, so it is still not-ready and outranks the healthy one.
+        assertEquals(OpenFeatureStatus.NotReady, multi.status)
+    }
+
+    @Test
+    fun anAggregateReturningToNotReadyIsReported() = runTest {
+        val provider = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady())
+        )
+        val multi = MultiProvider(listOf(provider))
+        multi.initialize(null)
+        advanceUntilIdle()
+        assertEquals(OpenFeatureStatus.Ready, multi.status)
+
+        // The child is taken down on its own, so the aggregate is no longer ready. There is no event
+        // describing not-ready, so this is observable through the status rather than through observe().
+        provider.shutdown()
+        provider.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged())
+        advanceUntilIdle()
+
+        assertEquals(OpenFeatureStatus.NotReady, multi.status)
+    }
+
+    @Test
     fun shutdownAggregatesErrorsAndReportsProviderNames() {
         val ok = FakeEventProvider(name = "ok")
         val bad1 = FakeEventProvider(name = "bad1", shutdownThrowable = IllegalStateException("oops1"))
@@ -427,8 +566,12 @@ private class FakeEventProvider(
     private val name: String?,
     private val eventsToEmitOnInit: List<OpenFeatureProviderEvents> = emptyList(),
     private val shutdownThrowable: Throwable? = null,
-    private val trackThrowable: Throwable? = null
+    private val trackThrowable: Throwable? = null,
+    private val initializeThrowable: Throwable? = null,
+    private val gateContextSet: Boolean = false
 ) : FeatureProvider {
+    val contextSetStarted = Channel<Unit>(Channel.UNLIMITED)
+    val allowContextSetToComplete = Channel<Unit>(Channel.UNLIMITED)
     override val hooks: List<Hook<*>> = emptyList()
     override val metadata: ProviderMetadata = object : ProviderMetadata {
         override val name: String? = this@FakeEventProvider.name
@@ -453,17 +596,23 @@ private class FakeEventProvider(
         initializeCalls += 1
         // Emit any preconfigured events during initialize so MultiProvider observers receive them
         eventsToEmitOnInit.forEach { statusTracker.send(it) }
+        initializeThrowable?.let { throw it }
     }
 
     fun emit(event: OpenFeatureProviderEvents) = statusTracker.send(event)
 
     override fun shutdown() {
         shutdownCalls += 1
+        statusTracker.reset()
         shutdownThrowable?.let { throw it }
     }
 
     override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
         onContextSetCalls += 1
+        if (gateContextSet) {
+            contextSetStarted.send(Unit)
+            allowContextSetToComplete.receive()
+        }
     }
 
     override fun getBooleanEvaluation(

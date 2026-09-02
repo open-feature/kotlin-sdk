@@ -35,7 +35,7 @@ class RecordingBooleanProvider(
     }
 
     override fun shutdown() {
-        // no-op
+        statusTracker.reset()
     }
 
     override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
