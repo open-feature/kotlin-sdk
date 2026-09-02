@@ -5,6 +5,7 @@ import dev.openfeature.kotlin.sdk.helpers.BrokenInitProvider
 import dev.openfeature.kotlin.sdk.helpers.DoSomethingProvider
 import dev.openfeature.kotlin.sdk.helpers.SlowProvider
 import dev.openfeature.kotlin.sdk.helpers.SpyProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
@@ -94,11 +95,17 @@ class StatusTests {
         OpenFeatureAPI.setProviderAndWait(DoSomethingProvider())
         waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("some value"))
-        waitAssert { assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus()) }
-        waitAssert {
-            assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
-        }
+        advanceUntilIdle()
         job.cancelAndJoin()
+
+        // Reconciling is transient: it has already been superseded by the time the call returns, so
+        // it can only be observed in the collected sequence, not by polling getStatus().
+        assertTrue(
+            statuses.contains(OpenFeatureStatus.Reconciling),
+            "expected a Reconciling transition, collected $statuses"
+        )
+        assertEquals(OpenFeatureStatus.Ready, statuses.last())
+        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
     }
 
     @Test
@@ -342,14 +349,18 @@ private class CancellationRaceProvider : NoOpProvider() {
 
 private fun Duration.Companion.randomMs(min: Int, max: Int): Duration = Random.nextInt(min, max + 1).milliseconds
 
+/** Retries [function] until it passes, rethrowing its last failure once [timeoutMs] is exhausted. */
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun TestScope.waitAssert(timeoutMs: Long = 5000, function: () -> Unit) {
     var timeWaited = 0L
-    while (timeWaited < timeoutMs) {
+    while (true) {
         try {
             function()
             return
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Throwable) {
+            if (timeWaited >= timeoutMs) throw e
             delay(10)
             timeWaited += 10
             advanceUntilIdle()
