@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -244,19 +245,32 @@ class DeveloperExperienceTests {
     fun testProviderThatErrorsButHealsThenReady() = runTest {
         val healDelayMillis: Long = 100
         val healing = AutoHealingProvider(healDelay = healDelayMillis)
+        val statuses = mutableListOf<OpenFeatureStatus>()
+        val collector = launch { OpenFeatureAPI.statusFlow.collect { statuses.add(it) } }
+        runCurrent()
+
+        // A test dispatcher, so the SDK's subscription to the provider is established before
+        // initialize emits: on Dispatchers.Default the error is raced away and never observed.
         val job = async {
-            OpenFeatureAPI.setProviderAndWait(healing, ImmutableContext())
-        }
-        waitAssert {
-            assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
-        }
-        waitAssert {
-            assertTrue(OpenFeatureAPI.getStatus() is OpenFeatureStatus.Error)
+            OpenFeatureAPI.setProviderAndWait(
+                healing,
+                ImmutableContext(),
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
         }
         waitAssert {
             assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         }
         job.cancelAndJoin()
+        collector.cancelAndJoin()
+
+        // The error is transient — the provider heals after healDelayMillis — so it is only visible
+        // in the collected sequence, not by polling getStatus().
+        assertTrue(
+            statuses.any { it is OpenFeatureStatus.Error },
+            "expected the provider to report an error before healing, collected $statuses"
+        )
+        assertEquals(OpenFeatureStatus.Ready, statuses.last())
         OpenFeatureAPI.shutdown()
         advanceUntilIdle()
     }
