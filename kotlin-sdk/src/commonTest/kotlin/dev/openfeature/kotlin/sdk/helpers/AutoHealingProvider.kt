@@ -11,6 +11,7 @@ import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 
@@ -21,7 +22,10 @@ class AutoHealingProvider(
     override val metadata: ProviderMetadata = object : ProviderMetadata {
         override val name: String = "AutoHealingProvider"
     }
-    private var ready = false
+    private val readyState = atomic(false)
+    private var ready: Boolean
+        get() = readyState.value
+        set(value) { readyState.value = value }
 
     private val statusTracker = ProviderStatusTracker()
 
@@ -40,8 +44,8 @@ class AutoHealingProvider(
             )
         )
         delay(healDelay)
-        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
         ready = true
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override fun shutdown() {
