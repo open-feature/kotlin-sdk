@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -15,13 +14,11 @@ private const val ITERATIONS = 500
 private const val EVENTS_PER_ITERATION = 8
 
 /**
- * Racing subscribe against send, which only JVM and native can do — JS is single-threaded, and the
- * common tests can only drive the deterministic ordering.
+ * Racing subscribe against send, which only JVM and native can do — JS is single-threaded.
  *
- * The sequence fence in [ProviderStatusTracker.observe] exists because a subscriber's slot is
- * allocated before it reads the status to replay, so an event landing in between is both folded into
- * the replayed status and buffered for delivery. What that must never produce is a duplicate or a
- * reordering, which is what these assertions pin.
+ * A subscriber's slot is allocated before it reads the status to replay, so an event landing in
+ * between is both folded into the replay and buffered for delivery. These assertions pin that this
+ * never produces a duplicate or a reordering.
  */
 class ProviderStatusTrackerConcurrencyTest {
 
@@ -80,9 +77,8 @@ class ProviderStatusTrackerConcurrencyTest {
             val tracker = ProviderStatusTracker()
             tracker.send(OpenFeatureProviderEvents.ProviderReady())
 
-            // Two invocations on different threads. The mark, the registration and the reconciling
-            // report have to be one step, or one of them mistakes the other's report for its own and
-            // neither ends up reporting the outcome.
+            // The mark, the registration and the reconciling report have to be one step, or one
+            // invocation mistakes the other's report for its own and neither reports the outcome.
             (1..2).map { launch(Dispatchers.Default) { tracker.reconciling { } } }.forEach { it.join() }
 
             assertEquals(
@@ -101,10 +97,12 @@ class ProviderStatusTrackerConcurrencyTest {
 
             val observed = mutableListOf<OpenFeatureProviderEvents>()
             val replayed = CompletableDeferred<Unit>()
+            val handedOff = CompletableDeferred<Unit>()
             val collector = launch(Dispatchers.Default) {
                 tracker.observe().collect {
                     observed.add(it)
                     replayed.complete(Unit)
+                    if (observed.size == 3) handedOff.complete(Unit)
                 }
             }
             // Sent only once the replay has arrived, so the handover point is unambiguous.
@@ -114,7 +112,9 @@ class ProviderStatusTrackerConcurrencyTest {
                 tracker.send(OpenFeatureProviderEvents.ProviderReconciling())
             }.join()
 
-            withTimeout(5_000) { while (observed.size < 3) yield() }
+            // Signalled by the collector rather than polled: observed is the collector's alone until
+            // it has joined.
+            withTimeout(5_000) { handedOff.await() }
             collector.cancel()
             collector.join()
 
@@ -130,14 +130,10 @@ class ProviderStatusTrackerConcurrencyTest {
         }
     }
 
-    // The fence's third clause — an event carrying no status is never fenced out, because the replay
-    // cannot stand in for it — is deliberately not tested here, and cannot be. It only decides
-    // anything for an event buffered after the collector's slot was allocated but before the snapshot
-    // was read, and that window is not observable from outside the class: an event sent a moment
-    // earlier is correctly never delivered at all, so "the later event arrived but the earlier one did
-    // not" has a legitimate reading as well as a buggy one. A test asserting the buggy reading has a
-    // false-positive mode, which is what it did under load. The clause is covered by construction and
-    // by the deterministic aStatelessEventIsDeliveredButNeverReplayed in ProviderStatusTrackerTests.
+    // The fence's third clause — an event carrying no status is never fenced out — has no sound race
+    // test: its window is not observable from outside the class, and an event sent a moment earlier is
+    // correctly never delivered, so the buggy and the legitimate reading are indistinguishable. It is
+    // covered by aStatelessEventIsDeliveredButNeverReplayed in ProviderStatusTrackerTests.
 
     private fun errorNumbered(number: Int) = OpenFeatureProviderEvents.ProviderError(
         OpenFeatureProviderEvents.EventDetails(message = number.toString())
