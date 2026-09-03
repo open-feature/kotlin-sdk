@@ -480,8 +480,7 @@ class MultiProviderTests {
         advanceUntilIdle()
         assertEquals(OpenFeatureStatus.Ready, multi.status)
 
-        // The child is taken down on its own, so the aggregate is no longer ready. There is no event
-        // describing not-ready, so this is observable through the status rather than through observe().
+        // No event describes not-ready, so this is observable through the status, not observe().
         provider.shutdown()
         provider.emit(OpenFeatureProviderEvents.ProviderConfigurationChanged())
         advanceUntilIdle()
@@ -490,10 +489,29 @@ class MultiProviderTests {
     }
 
     @Test
+    fun aChildReconcilingOnItsOwnAccountDoesNotLatchTheAggregate() = runTest {
+        val provider = FakeEventProvider(
+            name = "A",
+            eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady())
+        )
+        val multi = MultiProvider(listOf(provider))
+        multi.initialize(null)
+        advanceUntilIdle()
+
+        // Not driven by MultiProvider.onContextSet, so there is no reconciliation of its own to
+        // report the outcome: the aggregate has to follow the child back to ready.
+        provider.emit(OpenFeatureProviderEvents.ProviderReconciling())
+        advanceUntilIdle()
+        assertEquals(OpenFeatureStatus.Reconciling, multi.status)
+
+        provider.emit(OpenFeatureProviderEvents.ProviderContextChanged())
+        advanceUntilIdle()
+        assertEquals(OpenFeatureStatus.Ready, multi.status)
+    }
+
+    @Test
     fun aChildCancellingItsOwnShutdownDoesNotStopTheOthers() {
-        // A child that throws CancellationException out of its own teardown — cancelling an internal
-        // scope, say. shutdown is not suspending, so that is an ordinary failure, not this call being
-        // cancelled: rethrowing it would abandon every child after this one.
+        // shutdown is not suspending, so a child's CancellationException is an ordinary failure.
         val first = FakeEventProvider(
             name = "first",
             shutdownThrowable = CancellationException("child cancelled its own scope")
