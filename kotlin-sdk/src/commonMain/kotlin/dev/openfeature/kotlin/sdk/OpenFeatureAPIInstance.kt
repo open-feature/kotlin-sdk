@@ -159,13 +159,8 @@ open class OpenFeatureAPIInstance internal constructor() {
     /** The two pieces of work a swap starts: initializing the new provider, retiring the old one. */
     private class Swap(val initialization: Job, val retirement: Job?)
 
-    /** What a swap decides under [stateLock], so the rest of it can run without holding the lock. */
-    private class Commit(
-        val current: ProviderRegistration,
-        val retired: ProviderRegistration?,
-        val initializationContext: EvaluationContext?,
-        val pendingRetirements: List<Job>
-    )
+    /** What a swap decides under [stateLock], so retirement can run without holding the lock. */
+    private class Commit(val current: ProviderRegistration, val retired: ProviderRegistration?)
 
     private suspend fun callerDispatcher(): CoroutineDispatcher =
         currentCoroutineContext()[ContinuationInterceptor] as? CoroutineDispatcher ?: Dispatchers.Default
@@ -175,6 +170,7 @@ open class OpenFeatureAPIInstance internal constructor() {
         initialContext: EvaluationContext?,
         dispatcher: CoroutineDispatcher
     ): Swap {
+        lateinit var initialization: Job
         val commit = synchronized(stateLock) {
             // Claimed under the lock that commits the swap, so a retirement of an earlier
             // registration of this same provider cannot unbind what is about to be published.
@@ -189,24 +185,23 @@ open class OpenFeatureAPIInstance internal constructor() {
             // Published under the lock that commits the swap, or two concurrent swaps can leave
             // evaluations on one provider and statusFlow pinned to the other.
             providerRegistrations.value = current
-            Commit(
-                current = current,
-                retired = previous.takeUnless { rebinding },
-                initializationContext = context,
-                pendingRetirements = retirements.filter { it.first === newProvider }.map { it.second }
-            )
+            val initializationContext = context
+            val pendingRetirements = retirements.filter { it.first === newProvider }.map { it.second }
+            // Dispatched before the lock is released, or a setEvaluationContext that acquires the
+            // lock right after this one could queue onContextSet ahead of initialize on the
+            // registration's serial scope.
+            initialization = current.dispatchLifecycle("initialize") {
+                // A retirement of this provider that already committed to shutting it down is still
+                // running: initializing over it would race its teardown.
+                pendingRetirements.forEach { it.join() }
+                newProvider.initialize(initializationContext)
+            }
+            current.providerJob = initialization
+            Commit(current = current, retired = previous.takeUnless { rebinding })
         }
 
         // Not from the successor's job, which can be cancelled before it is ever dispatched.
         val retirement = commit.retired?.let { retire(it) }
-
-        val initialization = commit.current.dispatchLifecycle("initialize") {
-            // A retirement of this provider that already committed to shutting it down is still
-            // running: initializing over it would race its teardown.
-            commit.pendingRetirements.forEach { it.join() }
-            newProvider.initialize(commit.initializationContext)
-        }
-        synchronized(stateLock) { commit.current.providerJob = initialization }
         return Swap(initialization, retirement)
     }
 
