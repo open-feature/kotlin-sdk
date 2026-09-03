@@ -51,15 +51,18 @@ class ProviderRetirementTest {
             returned.countDown()
         }
 
-        assertTrue(
-            returned.await(5, TimeUnit.SECONDS),
-            "setProvider blocked on the outgoing provider's shutdown"
-        )
-        assertTrue(
-            outgoing.shutdownEntered.await(5, TimeUnit.SECONDS),
-            "the outgoing provider was never shut down"
-        )
-        outgoing.releaseShutdown.countDown()
+        try {
+            assertTrue(
+                returned.await(5, TimeUnit.SECONDS),
+                "setProvider blocked on the outgoing provider's shutdown"
+            )
+            assertTrue(
+                outgoing.shutdownEntered.await(5, TimeUnit.SECONDS),
+                "the outgoing provider was never shut down"
+            )
+        } finally {
+            outgoing.releaseShutdown.countDown()
+        }
     }
 
     @Test
