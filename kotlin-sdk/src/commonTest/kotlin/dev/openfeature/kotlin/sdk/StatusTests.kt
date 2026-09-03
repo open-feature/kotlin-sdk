@@ -81,6 +81,7 @@ class StatusTests {
     }
 
     @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun testProviderTransitionsToReconcilingOnContextSet() = runTest {
         waitAssert {
             assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
