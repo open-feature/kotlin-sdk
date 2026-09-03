@@ -13,6 +13,8 @@ import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -90,10 +92,8 @@ class MultiProvider(
         ): ProviderEvaluation<T>
 
         /**
-         * Aggregates the statuses of [providers] into the MultiProvider's own status.
-         *
-         * The default reports the most severe, which is the order the specification's Multi-Provider
-         * appendix defines: Fatal, then NotReady, then Error, then Stale, then Ready.
+         * Aggregates the statuses of [providers] into the MultiProvider's own status. The default
+         * reports the most severe, in the order the specification's Multi-Provider appendix defines.
          */
         fun status(providers: List<FeatureProvider>): OpenFeatureStatus =
             providers.map { it.status }.maxByOrNull { it.severity } ?: OpenFeatureStatus.NotReady
@@ -150,7 +150,11 @@ class MultiProvider(
         }
     }
 
+    private val watchLock = SynchronizedObject()
     private var watchScope: CoroutineScope? = null
+
+    private val statusLock = SynchronizedObject()
+    private var openReconciliations = 0
 
     /**
      * @return Number of unique providers
@@ -168,8 +172,7 @@ class MultiProvider(
     override suspend fun initialize(initialContext: EvaluationContext?) {
         coroutineScope {
             // Started before the children, not after: the terminal updateStatus() re-reads every
-            // child's status so a late watcher would still converge, but a configuration change a
-            // child reports while initializing carries no status and could not be recovered.
+            // child's status so a late watcher would still converge.
             watchChildren()
             try {
                 childFeatureProviders
@@ -182,11 +185,8 @@ class MultiProvider(
     }
 
     /**
-     * Runs one of [this] child's lifecycle calls, leaving the failure to the child.
-     *
-     * A child that fails reports its own error event and the aggregate reads it from the child's
-     * status, so one failing child must not cancel the siblings that structured concurrency would
-     * otherwise take down with it.
+     * Runs one of [this] child's lifecycle calls, leaving the failure to the child: it reports its
+     * own error event, so one failing child must not cancel the siblings.
      */
     private suspend fun ChildFeatureProvider.reportingItsOwnFailure(
         work: suspend ChildFeatureProvider.() -> Unit
@@ -201,21 +201,22 @@ class MultiProvider(
     }
 
     /**
-     * Subscribes to every child's events, synchronously.
-     *
-     * Undispatched, so each subscription is established before this returns: merely launching the
-     * collectors would let a child report and finish before anyone was listening, and a child's
-     * replay only carries its current status, so the transitions in between would be lost. The scope
-     * outlives the call, since the children keep reporting after initialization.
+     * Subscribes to every child's events, undispatched so each subscription is established before
+     * this returns: a child could otherwise report and finish before anyone was listening, and its
+     * replay only carries the status it settled on.
      */
     private fun CoroutineScope.watchChildren() {
-        // The scope is replaced, not just the job inside it: a fresh SupervisorJob per initialize
-        // that is never cancelled leaves one root job behind each time. It deliberately is not a
-        // child of initialize's scope — that would either make initialize hang waiting for the
-        // collectors or stop them the moment it returned — but it does inherit its dispatcher.
-        watchScope?.cancel(CancellationException("Child provider watch replaced by a new initialize call"))
+        // Not a child of initialize's scope, which would either make initialize hang waiting for the
+        // collectors or stop them the moment it returned, but it does inherit its dispatcher.
         val scope = CoroutineScope(coroutineContext + SupervisorJob())
-        watchScope = scope
+        // Installed under the lock because shutdown runs on the retirement scope, not on the
+        // dispatcher initialize was entered on, and has to see the scope it must cancel.
+        val replaced = synchronized(watchLock) {
+            val replaced = watchScope
+            watchScope = scope
+            replaced
+        }
+        replaced?.cancel(CancellationException("Child provider watch replaced by a new initialize call"))
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             childFeatureProviders.forEach { child ->
                 launch(start = CoroutineStart.UNDISPATCHED) {
@@ -226,55 +227,53 @@ class MultiProvider(
     }
 
     /**
-     * A child's event either changes the aggregate status or is a configuration change.
-     *
-     * The specification's Multi-Provider appendix asks for a configuration change to be re-emitted
-     * whenever any provider reports one, and for an aggregate transition to carry the details of the
-     * child event that triggered it.
+     * A child's event either changes the aggregate status or is a configuration change, which the
+     * specification's Multi-Provider appendix asks to be re-emitted whenever a child reports one.
      */
     private fun handleChildEvent(event: OpenFeatureProviderEvents) {
-        if (event.toOpenFeatureStatus() == null) {
-            statusTracker.send(event)
-            // Re-aggregated on any child activity, not only on a status-carrying event: a child's
-            // status can move without one, since shutting a child down resets it and not-ready has
-            // no event to report.
-            updateStatus()
-        } else {
-            updateStatus(event)
-        }
+        // Re-aggregated on any child activity, a stateless event included: shutting a child down
+        // moves its status to not-ready, which has no event to report.
+        updateStatus(event)
+        // Forwarded after the aggregate has settled, so a subscriber that re-reads the status on
+        // this event sees the aggregate it triggered rather than the one it replaced.
+        if (event.toOpenFeatureStatus() == null) statusTracker.send(event)
     }
 
-    /** Reports the aggregate status, carrying [trigger]'s details where one triggered the change. */
-    private fun updateStatus(trigger: OpenFeatureProviderEvents? = null) {
+    /**
+     * Reports the aggregate status, carrying [trigger]'s details where one triggered the change.
+     *
+     * Aggregating and reporting are one critical section: two children transitioning concurrently
+     * would otherwise let the thread holding the older aggregate report last.
+     */
+    private fun updateStatus(trigger: OpenFeatureProviderEvents? = null) = synchronized(statusLock) {
         val aggregate = strategy.status(childFeatureProviders)
         val details = trigger?.eventDetails
         val current = statusTracker.status
 
         if (aggregate is OpenFeatureStatus.NotReady) {
-            // No event describes not-ready, so the status is established directly. It therefore
-            // reaches getStatus() but not observe() or statusFlow, which have no event to carry.
+            // No event describes not-ready, so it reaches getStatus() but not observe().
             if (current != OpenFeatureStatus.NotReady) statusTracker.reset()
-            return
+            return@synchronized
         }
 
-        // A reconciliation in flight owns its own resolution. Reporting readiness here on the first
-        // child's behalf would publish the outcome before the others had finished, and the real
-        // outcome would then look like no change at all.
-        if (aggregate is OpenFeatureStatus.Ready && current is OpenFeatureStatus.Reconciling) return
+        // Only this provider's own reconciliation owns its resolution, and it reports the outcome
+        // itself once every child has finished. A child reconciling on its own account has no such
+        // resolution to wait for, so its return to readiness must be reported here.
+        if (aggregate is OpenFeatureStatus.Ready && openReconciliations > 0) return@synchronized
 
         val event = when (aggregate) {
             is OpenFeatureStatus.Ready -> OpenFeatureProviderEvents.ProviderReady(details)
             is OpenFeatureStatus.Stale -> OpenFeatureProviderEvents.ProviderStale(details)
             is OpenFeatureStatus.Reconciling -> OpenFeatureProviderEvents.ProviderReconciling(details)
-            // The child's details are kept, as the appendix asks, with the aggregate's error over
-            // the top: rebuilding from the status alone would drop flagsChanged and eventMetadata.
+            // The child's details are kept with the aggregate's error over the top: rebuilding from
+            // the status alone would drop flagsChanged and eventMetadata.
             is OpenFeatureStatus.Error -> OpenFeatureProviderEvents.ProviderError(
                 details.describing(aggregate.error)
             )
             is OpenFeatureStatus.Fatal -> OpenFeatureProviderEvents.ProviderError(
                 details.describing(aggregate.error, ErrorCode.PROVIDER_FATAL)
             )
-            is OpenFeatureStatus.NotReady -> return
+            is OpenFeatureStatus.NotReady -> return@synchronized
         }
         if (event.toOpenFeatureStatus() != current) statusTracker.send(event)
     }
@@ -292,8 +291,12 @@ class MultiProvider(
      * This allows providers to clean up resources and complete any pending operations.
      */
     override fun shutdown() {
-        watchScope?.cancel(CancellationException("Child provider watch cancelled due to shutdown"))
-        watchScope = null
+        val watching = synchronized(watchLock) {
+            val watching = watchScope
+            watchScope = null
+            watching
+        }
+        watching?.cancel(CancellationException("Child provider watch cancelled due to shutdown"))
         statusTracker.reset()
 
         val shutdownErrors = mutableListOf<Pair<String, Throwable>>()
@@ -301,10 +304,8 @@ class MultiProvider(
             try {
                 provider.shutdown()
             } catch (t: Throwable) {
-                // Every failure is collected, including a CancellationException: this is not a
-                // suspending function, so one from a child is an ordinary exception rather than
-                // cooperative cancellation to propagate. Rethrowing it would abandon every child
-                // after this one and swallow the aggregate error.
+                // A CancellationException too: this is not a suspending function, so one from a
+                // child is an ordinary failure, and rethrowing it would abandon the children after.
                 shutdownErrors += provider.name to t
             }
         }
@@ -330,17 +331,24 @@ class MultiProvider(
     override suspend fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
-    ) = statusTracker.reconciling {
-        // The tracker owns the transitions: it reports reconciliation once across overlapping
-        // context sets, reports only the outcome of the last one to terminate, and restores the
-        // preceding status if they were all cancelled. Hand-rolling that here left the aggregate
-        // stuck at Reconciling whenever a context set was cancelled.
-        coroutineScope {
-            childFeatureProviders
-                .map { child -> async { child.reportingItsOwnFailure { onContextSet(oldContext, newContext) } } }
-                .awaitAll()
+    ) {
+        synchronized(statusLock) { openReconciliations++ }
+        try {
+            statusTracker.reconciling {
+                coroutineScope {
+                    childFeatureProviders
+                        .map { child ->
+                            async { child.reportingItsOwnFailure { onContextSet(oldContext, newContext) } }
+                        }
+                        .awaitAll()
+                }
+                updateStatus()
+            }
+        } finally {
+            // Dropped only once the tracker has reported the outcome, which its own finally does
+            // before this one runs.
+            synchronized(statusLock) { openReconciliations-- }
         }
-        updateStatus()
     }
 
     override fun getBooleanEvaluation(
@@ -437,8 +445,7 @@ class MultiProvider(
             try {
                 provider.track(trackingEventName, context, details)
             } catch (t: Throwable) {
-                // Collected rather than rethrown, for the same reason as in shutdown: tracking is
-                // not suspending, so one child must not stop the others from being told.
+                // Collected rather than rethrown, for the same reason as in shutdown.
                 trackingErrors += provider.name to t
             }
         }
