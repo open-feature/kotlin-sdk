@@ -141,7 +141,7 @@ coroutineScope.launch(Dispatchers.Default) {
 
 Asynchronous API that doesn't wait is also available. It's useful when you want to set a provider and continue with other tasks.
 
-However, flag evaluations are only possible after the provider is Ready.
+However, flag evaluations are only meaningful after the provider is Ready. The SDK does not gate them on the status: an evaluation made earlier reaches the provider, which reports its own unreadiness with a `PROVIDER_NOT_READY` or `PROVIDER_FATAL` error code, and the client returns the default value.
 
 ```kotlin
 OpenFeatureAPI.setProvider(MyProvider()) // can pass a dispatcher here
@@ -425,6 +425,10 @@ The easiest way to satisfy both requirements is to delegate to `ProviderStatusTr
 `status` from the events you send it and replays the current status to new subscribers. Emit at least
 one non-not-ready event before `initialize` returns, otherwise the provider stays `NotReady`:
 throwing does not set a status.
+
+Refusing an evaluation made before the provider is ready is the provider's job too, per requirement
+2.2.7: return or throw with error code `PROVIDER_NOT_READY`, or `PROVIDER_FATAL` where the failure is
+irrecoverable, and the client returns the default value.
 
 #### Example implementation
 
