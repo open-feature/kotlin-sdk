@@ -13,6 +13,7 @@ import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import dev.openfeature.kotlin.sdk.logging.LoggerFactory
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
@@ -122,6 +123,8 @@ class MultiProvider(
 
     private val statusTracker = ProviderStatusTracker()
 
+    private val logger = LoggerFactory.getLogger(MULTIPROVIDER_NAME)
+
     override val status: OpenFeatureStatus get() = statusTracker.status
 
     private fun List<FeatureProvider>.toChildFeatureProviders(): List<ChildFeatureProvider> {
@@ -196,7 +199,8 @@ class MultiProvider(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            // Reported by the child, observed through its status.
+            // Status is still reported by the child; this only keeps the failure diagnosable.
+            logger.warn({ "Child provider $name threw during a lifecycle call" }, throwable = e)
         }
     }
 
