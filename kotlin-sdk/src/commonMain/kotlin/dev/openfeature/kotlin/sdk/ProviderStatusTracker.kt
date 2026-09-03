@@ -20,14 +20,12 @@ import kotlinx.coroutines.withContext
 
 private const val EVENT_BUFFER_CAPACITY = 64
 
-/** Sequence stamped on a replayed event, below every real one so it is never fenced. */
+/** Stamped on a replayed event, below every real one so it is never fenced. */
 private const val REPLAY_SEQUENCE = Long.MIN_VALUE
 
 /**
  * Processes the [OpenFeatureProviderEvents] a provider emits, updates [status] accordingly, and
  * republishes the events to subscribers.
- *
- * ## Event to status mapping
  *
  * | Event                                        | Resulting status |
  * |----------------------------------------------|------------------|
@@ -39,48 +37,19 @@ private const val REPLAY_SEQUENCE = Long.MIN_VALUE
  * | `ProviderContextChanged`                     | `Ready`          |
  * | `ProviderConfigurationChanged`               | *(no change)*    |
  *
- * ## Status replay
- *
  * A new subscriber receives one synthetic event reflecting the current status, so attaching does not
  * race the first live event. Nothing is replayed while the provider is [OpenFeatureStatus.NotReady],
  * which has no corresponding event type.
  *
- * ## Recommended usage
- *
- * ```kotlin
- * class MyProvider : FeatureProvider {
- *     private val statusTracker = ProviderStatusTracker()
- *
- *     override val status: OpenFeatureStatus get() = statusTracker.status
- *     override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
- *
- *     override suspend fun initialize(initialContext: EvaluationContext?) {
- *         connect(initialContext)
- *         statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
- *     }
- *
- *     override suspend fun onContextSet(
- *         oldContext: EvaluationContext?,
- *         newContext: EvaluationContext
- *     ) = statusTracker.reconciling { refresh(newContext) }
- *
- *     override fun shutdown() = statusTracker.reset()
- * }
- * ```
- *
- * Do not collect [observe] on [kotlinx.coroutines.Dispatchers.Unconfined], and do not call [send]
- * from inside a collector: delivery would then run inline under the lock that orders events, and the
- * order subscribers see would no longer match the order they were sent in.
+ * A provider delegates [FeatureProvider.status] and [FeatureProvider.observe] to this. Do not
+ * collect [observe] on [kotlinx.coroutines.Dispatchers.Unconfined], and do not call [send] from
+ * inside a collector: delivery would then run inline under the lock that orders events.
  */
 class ProviderStatusTracker {
-    // Orders event handling in send(), and provides the snapshot a new subscriber fences against, so
-    // that no event is missed or duplicated between reading the status and installing the collector.
     private val lock = SynchronizedObject()
 
     private var currentStatus: OpenFeatureStatus = OpenFeatureStatus.NotReady
     private var sequence: Long = 0
-
-    /** Sequence of the last published event that carried a status, for [reconciling]'s mark. */
     private var statusSequence: Long = 0
 
     private val reconciliations = Reconciliations()
@@ -100,9 +69,8 @@ class ProviderStatusTracker {
     fun send(event: OpenFeatureProviderEvents) = synchronized(lock) { record(event) }
 
     /**
-     * Publishes [event] and applies its status. The caller must hold [lock]: deciding what to report
-     * and reporting it have to be one step, or a reconciliation starting in between reads a status
-     * that is about to be replaced and captures it as the one to restore.
+     * Publishes [event] and applies its status. The caller must hold [lock]: a reconciliation
+     * starting between the decision and the report would capture a status that is already replaced.
      */
     private fun record(event: OpenFeatureProviderEvents) {
         val status = event.toOpenFeatureStatus()
@@ -116,12 +84,10 @@ class ProviderStatusTracker {
 
     /** Stream to return from [FeatureProvider.observe]. */
     fun observe(): Flow<OpenFeatureProviderEvents> = flow {
-        // Per collection, so each subscriber fences against its own snapshot.
         var fence = 0L
         emitAll(
             events
                 .onSubscription {
-                    // Runs once this collector is registered, so nothing sent from here on is missed.
                     val replayed = synchronized(lock) {
                         fence = sequence
                         currentStatus
@@ -129,8 +95,8 @@ class ProviderStatusTracker {
                     replayed.toCurrentStateEvent()?.let { emit(Emission(REPLAY_SEQUENCE, it)) }
                 }
                 .filter {
-                    // A status-carrying event from before the snapshot is already folded into the
-                    // replay. An event carrying no status is not, so it is never fenced.
+                    // A status-carrying event from before the snapshot is already in the replay; one
+                    // carrying no status is not, so it is never fenced.
                     it.sequence == REPLAY_SEQUENCE ||
                         it.sequence > fence ||
                         it.event.toOpenFeatureStatus() == null
@@ -148,24 +114,18 @@ class ProviderStatusTracker {
      *
      * Overlapping invocations are collapsed: reconciliation is reported once, and the outcome
      * reported is that of the last invocation to terminate, as requirements 5.3.4.2 and 5.3.4.3 ask.
-     * Where every invocation was cancelled, the status preceding reconciliation is reported again
-     * rather than leaving the provider reconciling forever. Where [block] reported a status of its
-     * own, that report stands and no outcome is synthesised over it.
+     * Where every invocation was cancelled, the status preceding reconciliation is reported again.
+     * Where [block] reported a status of its own, that report stands.
      *
-     * A reconciliation that begins while the provider is [OpenFeatureStatus.NotReady] reports nothing
-     * at all — not the transition, not the outcome. Readiness is [FeatureProvider.initialize]'s to
-     * report, so reconciling a context cannot confer it, and there is no earlier status to restore.
-     * A provider that does become usable during [block] can still say so itself.
+     * A reconciliation that begins while the provider is [OpenFeatureStatus.NotReady] reports
+     * nothing at all: readiness is [FeatureProvider.initialize]'s to report, and there is no earlier
+     * status to restore. A provider that does become usable during [block] can still say so itself.
      */
     suspend fun reconciling(block: suspend () -> Unit) {
-        // One critical section: registering, reporting that reconciliation began, and taking the mark
-        // have to be atomic, or an overlapping invocation reads its mark before this send bumps the
-        // sequence and mistakes that send for a report of its own.
+        // One critical section: an overlapping invocation would otherwise read its mark before this
+        // send bumps the sequence, and mistake that send for a report of its own.
         val registration = synchronized(lock) {
             val registration = reconciliations.begin(currentStatus)
-            // Nothing to reconcile from while not ready, and nothing to restore to either, so the
-            // transition is not reported. Requirement 5.3.4.1 asks that RECONCILING handlers run while
-            // onContextSet executes, not that a not-ready provider announce one.
             if (registration.first && currentStatus != OpenFeatureStatus.NotReady) {
                 record(OpenFeatureProviderEvents.ProviderReconciling())
             }
@@ -200,16 +160,12 @@ class ProviderStatusTracker {
      */
     fun reset() = synchronized(lock) {
         currentStatus = OpenFeatureStatus.NotReady
-        sequence++
-        statusSequence = sequence
         reconciliations.reset()
     }
 
     /**
-     * Collapses overlapping reconciliations into one reported transition.
-     *
-     * The outcome belongs to the reconciliation rather than to the invocation that produced it: an
-     * invocation that terminated normally still owns it when a later, overlapping one is cancelled.
+     * Collapses overlapping reconciliations into one reported transition. The outcome belongs to the
+     * reconciliation rather than to the invocation that produced it.
      */
     private class Reconciliations {
         private var generation = 0L
@@ -218,7 +174,6 @@ class ProviderStatusTracker {
         private var terminal: OpenFeatureProviderEvents? = null
         private var reportedByBlock = false
 
-        /** One invocation's place in a reconciliation, so a stale one cannot disturb a newer one. */
         data class Registration(val generation: Long, val first: Boolean, val mark: Long = 0)
 
         /** Registers an invocation, reporting whether it is the one that opens the reconciliation. */
@@ -233,41 +188,30 @@ class ProviderStatusTracker {
 
         /**
          * Registers an invocation's outcome, returning what to report if it was the last in flight.
-         *
-         * An invocation from a superseded generation reports nothing and disturbs nothing: counting it
-         * out would let it clear the state of the reconciliation that replaced it.
+         * An invocation from a superseded generation reports nothing and disturbs nothing.
          */
         fun end(
             registration: Registration,
             outcome: OpenFeatureProviderEvents?,
-            reportedByBlock: Boolean
+            blockReported: Boolean
         ): OpenFeatureProviderEvents? {
             if (registration.generation != generation) return null
-            if (reportedByBlock) this.reportedByBlock = true
+            if (blockReported) reportedByBlock = true
             if (outcome != null) terminal = outcome
             if (--active > 0) return null
 
-            // Decided only once the last invocation is out, so the counter is always decremented:
-            // returning earlier would strand it above zero and no later reconciliation would resolve.
-            val result = when {
-                // The block spoke for itself, so nothing is synthesised over it.
+            // Decided only after the counter is decremented: returning earlier would strand it above
+            // zero and no later reconciliation would resolve.
+            return when {
                 reportedByBlock -> null
-                // Nothing was ready when this began, so nothing is concluded from it having ended.
                 restore == OpenFeatureStatus.NotReady -> null
                 else -> terminal ?: restore?.toCurrentStateEvent()
             }
-            restore = null
-            terminal = null
-            this.reportedByBlock = false
-            return result
         }
 
         fun reset() {
             generation++
             active = 0
-            restore = null
-            terminal = null
-            reportedByBlock = false
         }
     }
 }

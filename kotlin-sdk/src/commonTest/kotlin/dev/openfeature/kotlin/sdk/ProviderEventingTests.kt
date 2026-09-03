@@ -73,9 +73,7 @@ class ProviderEventingTests {
         waitAssert {
             assertEquals(3, statusList.size, "collected $statusList")
         }
-        // The provider reports readiness, then an error, then a configuration change. A
-        // configuration change carries no status, so it no longer clears the error: the SDK reports
-        // what the provider reported rather than concluding the reconciliation succeeded.
+        // A configuration change carries no status, so it no longer clears the error.
         assertEquals(OpenFeatureStatus.Ready, statusList[0])
         assertTrue(statusList[1] is OpenFeatureStatus.Error)
         assertEquals(OpenFeatureStatus.NotReady, statusList[2])

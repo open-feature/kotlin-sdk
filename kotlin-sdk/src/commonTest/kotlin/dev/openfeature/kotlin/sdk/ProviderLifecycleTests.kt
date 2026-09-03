@@ -18,9 +18,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * The provider lifecycle contracts the SDK owes a provider that reports its own status: what it does
- * with a report made mid-`initialize`, with a provider that reports nothing at all, and with a
- * registration that is superseded before it ever runs.
+ * The lifecycle contracts the SDK owes a provider that reports its own status: a report made
+ * mid-`initialize`, a provider that reports nothing, a registration superseded before it runs.
  */
 @OptIn(ExperimentalIsolatedApi::class, ExperimentalCoroutinesApi::class)
 class ProviderLifecycleTests {

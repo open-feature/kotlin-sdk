@@ -398,9 +398,8 @@ class ProviderStatusTrackerTests {
     @Test
     fun aReconciliationAfterANotReadyOneStillResolves() = runTest {
         val tracker = ProviderStatusTracker()
-        // Reports nothing, but must still count itself out. Deciding before the invocation count is
-        // decremented strands it above zero, and every later reconciliation then reads the stale
-        // not-ready restore point and reports nothing either.
+        // Reports nothing, but must still count itself out: a stranded counter leaves every later
+        // reconciliation reading the stale not-ready restore point.
         tracker.reconciling { }
         tracker.send(OpenFeatureProviderEvents.ProviderReady())
 

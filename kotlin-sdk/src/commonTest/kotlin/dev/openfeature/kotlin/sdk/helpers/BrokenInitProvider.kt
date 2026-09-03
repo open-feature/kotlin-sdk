@@ -24,7 +24,6 @@ class BrokenInitProvider(
     override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
-        // Reported before throwing: the SDK derives no status from a thrown exception.
         val error = OpenFeatureError.ProviderNotReadyError("test error from $this")
         statusTracker.send(
             OpenFeatureProviderEvents.ProviderError(
