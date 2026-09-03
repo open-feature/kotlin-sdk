@@ -10,7 +10,7 @@ interface Client : Features, Tracking {
 
     /**
      * Cold flow of events from the SDK's current [FeatureProvider], same pipeline as
-     * [OpenFeatureAPI.observe]. To handle a single event type, narrow with
+     * [OpenFeatureAPIInstance.observe]. To handle a single event type, narrow with
      * [kotlinx.coroutines.flow.filterIsInstance] (or equivalent) in application code.
      */
     fun observe(): Flow<OpenFeatureProviderEvents>

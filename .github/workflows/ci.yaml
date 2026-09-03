@@ -33,5 +33,5 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
 
-      - name: Run checks
-        run: ./gradlew check --no-daemon --stacktrace
+      - name: Run checks and documentation
+        run: ./gradlew check :kotlin-sdk:dokkaGeneratePublicationHtml --no-daemon --stacktrace

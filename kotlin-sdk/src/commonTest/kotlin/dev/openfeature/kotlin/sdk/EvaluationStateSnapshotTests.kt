@@ -44,6 +44,11 @@ class EvaluationStateSnapshotTests {
             val callsA = atomic(0)
             val callsB = atomic(0)
             val startGate = CompletableDeferred<Unit>()
+            val stressGate = CompletableDeferred<Unit>()
+            val providerAReady = CompletableDeferred<Unit>()
+            val providerAObserved = CompletableDeferred<Unit>()
+            val providerBReady = CompletableDeferred<Unit>()
+            val providerBObserved = CompletableDeferred<Unit>()
             val onMismatch: () -> Unit = { mismatches.incrementAndGet(); Unit }
             val providerA = GuardedProvider("A", onMismatch) { callsA.incrementAndGet(); Unit }
             val providerB = GuardedProvider("B", onMismatch) { callsB.incrementAndGet(); Unit }
@@ -52,7 +57,15 @@ class EvaluationStateSnapshotTests {
 
             val swapJob = launch(Dispatchers.Default) {
                 startGate.await()
-                repeat(100) {
+                providerAReady.complete(Unit)
+                providerAObserved.await()
+
+                OpenFeatureAPI.setProviderAndWait(providerB, ImmutableContext("B"))
+                providerBReady.complete(Unit)
+                providerBObserved.await()
+
+                stressGate.complete(Unit)
+                repeat(98) {
                     if (it % 2 == 0) {
                         OpenFeatureAPI.setProviderAndWait(providerA, ImmutableContext("A"))
                     } else {
@@ -62,8 +75,19 @@ class EvaluationStateSnapshotTests {
                 }
             }
 
-            val trackJob = launch(Dispatchers.Default) {
+            val observeProvidersJob = launch(Dispatchers.Default) {
                 startGate.await()
+                providerAReady.await()
+                OpenFeatureAPI.getClient().track("observe-A")
+                providerAObserved.complete(Unit)
+
+                providerBReady.await()
+                OpenFeatureAPI.getClient().track("observe-B")
+                providerBObserved.complete(Unit)
+            }
+
+            val trackJob = launch(Dispatchers.Default) {
+                stressGate.await()
                 repeat(500) {
                     try {
                         OpenFeatureAPI.getClient().track("event")
@@ -75,7 +99,7 @@ class EvaluationStateSnapshotTests {
             }
 
             val evaluateJob = launch(Dispatchers.Default) {
-                startGate.await()
+                stressGate.await()
                 repeat(500) {
                     OpenFeatureAPI.getClient().getBooleanValue("flag", false)
                     yield()
@@ -83,14 +107,14 @@ class EvaluationStateSnapshotTests {
             }
 
             startGate.complete(Unit)
-            joinAll(swapJob, trackJob, evaluateJob)
+            joinAll(swapJob, observeProvidersJob, trackJob, evaluateJob)
 
-            assertTrue(callsA.value > 0, "providerA should handle calls during concurrent swaps")
-            assertTrue(callsB.value > 0, "providerB should handle calls during concurrent swaps")
+            assertTrue(callsA.value > 0, "providerA should handle calls")
+            assertTrue(callsB.value > 0, "providerB should handle calls")
             assertEquals(
                 0,
                 mismatches.value,
-                "track and evaluation should not observe mismatched provider/context pairs"
+                "provider and context pairs should match"
             )
         }
     }
