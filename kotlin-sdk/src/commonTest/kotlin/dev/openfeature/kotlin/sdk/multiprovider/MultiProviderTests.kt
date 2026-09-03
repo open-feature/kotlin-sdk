@@ -12,6 +12,7 @@ import dev.openfeature.kotlin.sdk.TrackingEventDetails
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -486,6 +487,40 @@ class MultiProviderTests {
         advanceUntilIdle()
 
         assertEquals(OpenFeatureStatus.NotReady, multi.status)
+    }
+
+    @Test
+    fun aChildCancellingItsOwnShutdownDoesNotStopTheOthers() {
+        // A child that throws CancellationException out of its own teardown — cancelling an internal
+        // scope, say. shutdown is not suspending, so that is an ordinary failure, not this call being
+        // cancelled: rethrowing it would abandon every child after this one.
+        val first = FakeEventProvider(
+            name = "first",
+            shutdownThrowable = CancellationException("child cancelled its own scope")
+        )
+        val second = FakeEventProvider(name = "second")
+
+        val multi = MultiProvider(listOf(first, second))
+        val error = assertFailsWith<OpenFeatureError.GeneralError> { multi.shutdown() }
+
+        assertEquals(1, first.shutdownCalls)
+        assertEquals(1, second.shutdownCalls, "a cancelling sibling must not stop this one")
+        assertTrue(error.message.contains("first: child cancelled its own scope"), error.message)
+    }
+
+    @Test
+    fun aChildCancellingItsOwnTrackingDoesNotStopTheOthers() {
+        val first = FakeEventProvider(
+            name = "first",
+            trackThrowable = CancellationException("child cancelled its own scope")
+        )
+        val second = FakeEventProvider(name = "second")
+
+        val multi = MultiProvider(listOf(first, second))
+        assertFailsWith<OpenFeatureError.GeneralError> { multi.track("event", null, null) }
+
+        assertEquals(1, first.trackingCalls)
+        assertEquals(1, second.trackingCalls, "a cancelling sibling must not stop this one")
     }
 
     @Test

@@ -300,9 +300,11 @@ class MultiProvider(
         childFeatureProviders.forEach { provider ->
             try {
                 provider.shutdown()
-            } catch (e: CancellationException) {
-                throw e
             } catch (t: Throwable) {
+                // Every failure is collected, including a CancellationException: this is not a
+                // suspending function, so one from a child is an ordinary exception rather than
+                // cooperative cancellation to propagate. Rethrowing it would abandon every child
+                // after this one and swallow the aggregate error.
                 shutdownErrors += provider.name to t
             }
         }
@@ -434,9 +436,9 @@ class MultiProvider(
         childFeatureProviders.forEach { provider ->
             try {
                 provider.track(trackingEventName, context, details)
-            } catch (e: CancellationException) {
-                throw e
             } catch (t: Throwable) {
+                // Collected rather than rethrown, for the same reason as in shutdown: tracking is
+                // not suspending, so one child must not stop the others from being told.
                 trackingErrors += provider.name to t
             }
         }
