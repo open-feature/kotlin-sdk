@@ -21,10 +21,7 @@ actual object LoggerFactory {
 internal class IosLogger(private val tag: String) : Logger {
     private fun prefix(level: String) = "[$level] $tag - "
 
-    /**
-     * NSLog is variadic, and its format reads this argument as an NSObject pointer. Passing a Kotlin
-     * String straight through hands it a raw value instead and segfaults, so it is bridged first.
-     */
+    /** Bridged through NSString: variadic NSLog reads the argument as a pointer and segfaults. */
     private fun log(line: String) = NSLog("%@", NSString.create(string = line))
 
     override fun debug(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {

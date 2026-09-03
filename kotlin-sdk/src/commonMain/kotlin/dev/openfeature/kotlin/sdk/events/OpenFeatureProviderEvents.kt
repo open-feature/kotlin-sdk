@@ -78,11 +78,6 @@ internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError():
     }
 }
 
-/**
- * Status implied by this event, per the event/status association table in the specification.
- *
- * Returns null for [OpenFeatureProviderEvents.ProviderConfigurationChanged], which carries no status.
- */
 internal fun OpenFeatureProviderEvents.toOpenFeatureStatus(): OpenFeatureStatus? = when (this) {
     is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
     is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
@@ -92,12 +87,6 @@ internal fun OpenFeatureProviderEvents.toOpenFeatureStatus(): OpenFeatureStatus?
     is OpenFeatureProviderEvents.ProviderConfigurationChanged -> null
 }
 
-/**
- * Event representing this status, so a subscriber attaching once the provider is already in a given
- * state is told about it immediately.
- *
- * Returns null for [OpenFeatureStatus.NotReady], which has no corresponding event type.
- */
 internal fun OpenFeatureStatus.toCurrentStateEvent(): OpenFeatureProviderEvents? = when (this) {
     is OpenFeatureStatus.NotReady -> null
     is OpenFeatureStatus.Ready -> OpenFeatureProviderEvents.ProviderReady()

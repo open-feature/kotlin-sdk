@@ -31,7 +31,6 @@ class RecordingBooleanProvider(
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
-        // no-op
     }
 
     override fun shutdown() {

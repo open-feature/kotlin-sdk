@@ -75,19 +75,11 @@ Aggregation is `Strategy.status(providers)`, which you can override. The default
 4. Reconciling / Stale
 5. Ready
 
-`RECONCILING` is not in the appendix's list; it is treated as `STALE` is, since both mean the provider is usable but not current.
-
-An aggregate transition carries the `EventDetails` of the child event that triggered it, as the appendix asks, and `ProviderConfigurationChanged` is re-emitted whenever any child reports one.
-
-Because aggregation reads each child's current status rather than replaying what it observed, a child that reports several transitions in one burst is observed at the status it settles on.
-
-There is no `PROVIDER_NOT_READY` event in the specification, so an aggregate that returns to `NOT_READY` — a child shut down while its `MultiProvider` stays registered — is reported through `MultiProvider.status` and `OpenFeatureAPI.getStatus()`, but cannot reach `observe()` or `statusFlow`, which have no event to carry it. The Swift implementation has the same gap.
-
-> **Divergence from the Swift SDK.** Its `Strategy.status` default selects the *best* child status, so one fatal child among healthy ones reports `READY`. That contradicts the appendix, so this SDK keeps the pessimistic ordering above. This SDK also keeps reacting to child events after initialization, where the Swift implementation only re-aggregates at lifecycle boundaries.
+An aggregate transition carries the `EventDetails` of the child event that triggered it.
 
 ### Context propagation
 
-When the evaluation context changes, `MultiProvider` reconciles through its `ProviderStatusTracker`: `PROVIDER_RECONCILING` is reported once even across overlapping context sets, `onContextSet` is called on all child providers concurrently, and only the last invocation to terminate reports an outcome. A context set that is cancelled restores the status that preceded it rather than leaving the aggregate reconciling. A child that fails reports its own error event, so one failing child does not fail the others — the same holds during `initialize` — and the aggregate settles on whatever the children report: `Ready`, but equally `Error`, `Fatal` or `Stale`.
+When the evaluation context changes, `MultiProvider` reconciles through its `ProviderStatusTracker`: `PROVIDER_RECONCILING` is reported once even across overlapping context sets, `onContextSet` is called on all child providers concurrently, and only the last invocation to terminate reports an outcome.
 
 ### Provider metadata
 

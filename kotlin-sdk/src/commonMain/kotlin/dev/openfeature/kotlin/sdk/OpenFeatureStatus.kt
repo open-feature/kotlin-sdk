@@ -16,9 +16,7 @@ sealed interface OpenFeatureStatus {
     /**
      * The provider is in an error state and unable to evaluate flags.
      *
-     * Compared by the failure it describes rather than by identity, so that the same failure
-     * reported twice — a live event and the status replayed to a late subscriber, say — is one
-     * status rather than two.
+     * Compared by the failure it describes, so the same failure reported twice is one status.
      */
     class Error(val error: OpenFeatureError) : OpenFeatureStatus {
         override fun equals(other: Any?): Boolean = other is Error && describesSameError(error, other.error)
@@ -28,8 +26,6 @@ sealed interface OpenFeatureStatus {
 
     /**
      * The provider has entered an irrecoverable error state.
-     *
-     * Compared by the failure it describes, as [Error] is.
      */
     class Fatal(val error: OpenFeatureError) : OpenFeatureStatus {
         override fun equals(other: Any?): Boolean = other is Fatal && describesSameError(error, other.error)

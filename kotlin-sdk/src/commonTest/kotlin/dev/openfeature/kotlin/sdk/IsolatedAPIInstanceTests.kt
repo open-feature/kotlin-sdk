@@ -159,8 +159,7 @@ class IsolatedAPIInstanceTests {
 
         OpenFeatureAPI.setProviderAndWait(sharedProvider, ImmutableContext())
 
-        // A double binding is a programming error, and with status owned by the provider there is
-        // no status channel left to report it on, so registration fails loudly instead.
+        // A double binding is a programming error, so registration fails loudly.
         assertFailsWith<IllegalStateException> {
             instance.setProviderAndWait(sharedProvider, ImmutableContext())
         }

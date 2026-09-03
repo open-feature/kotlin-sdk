@@ -25,7 +25,7 @@ open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureP
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
-        // Nothing is cached, so there is nothing to reconcile and nothing to report.
+        // no-op
     }
 
     override fun getBooleanEvaluation(

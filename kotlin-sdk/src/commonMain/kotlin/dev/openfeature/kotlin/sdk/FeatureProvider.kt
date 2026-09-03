@@ -8,63 +8,29 @@ import kotlin.coroutines.cancellation.CancellationException
 /**
  * The interface implemented by upstream flag providers to resolve flags for their service.
  *
- * A provider is responsible for its own [status] and for emitting the events that explain it. The
- * easiest way to satisfy both is to delegate to [ProviderStatusTracker]:
- *
- * ```kotlin
- * class MyProvider : FeatureProvider {
- *     private val statusTracker = ProviderStatusTracker()
- *
- *     override val status: OpenFeatureStatus get() = statusTracker.status
- *     override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
- *
- *     override suspend fun initialize(initialContext: EvaluationContext?) {
- *         connect(initialContext)
- *         statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
- *     }
- *
- *     override suspend fun onContextSet(
- *         oldContext: EvaluationContext?,
- *         newContext: EvaluationContext
- *     ) = statusTracker.reconciling { refresh(newContext) }
- *
- *     override fun shutdown() = statusTracker.reset()
- *
- *     // ... flag evaluation methods ...
- * }
- * ```
- *
- * [ProviderStatusTracker] keeps [status] in sync with the events sent through it, is safe to use
- * from any thread, and replays the current status to a new subscriber.
+ * A provider is responsible for its own [status] and for emitting the events that explain it, which
+ * [ProviderStatusTracker] does on its behalf. The README carries a worked example.
  */
 interface FeatureProvider {
     val hooks: List<Hook<*>>
     val metadata: ProviderMetadata
 
     /**
-     * The current lifecycle status of this provider.
-     *
-     * The provider alone is responsible for keeping this up to date. It must be
-     * [OpenFeatureStatus.NotReady] before [initialize] is called, and must reflect the most recently
-     * emitted event thereafter.
-     *
-     * This must be **thread-safe**: the SDK reads it from flag evaluation paths on any thread. The
-     * recommended way to satisfy that is to expose [ProviderStatusTracker.status] directly.
+     * The current lifecycle status of this provider, kept up to date by the provider alone. It must
+     * be [OpenFeatureStatus.NotReady] before [initialize] is called, must reflect the most recently
+     * emitted event thereafter, and must be thread-safe: the SDK reads it from flag evaluation paths
+     * on any thread.
      */
     val status: OpenFeatureStatus
 
     /**
-     * Called by OpenFeatureAPI when this provider is registered, to do whatever asynchronous setup it
-     * needs — fetching an initial flag configuration, opening a streaming connection.
+     * Called by OpenFeatureAPI when this provider is registered, to do whatever asynchronous setup
+     * it needs.
      *
-     * **Required status transition:** emit at least one event before returning, so that [status]
-     * moves away from [OpenFeatureStatus.NotReady]. [OpenFeatureProviderEvents.ProviderReady] on
-     * success and [OpenFeatureProviderEvents.ProviderError] on failure are the usual outcomes, but
-     * any other non-not-ready status is valid. Emitting before returning is what lets a caller of
-     * `setProviderAndWait` see the right status immediately.
-     *
-     * Throwing does **not** set a status: the SDK logs the failure and leaves [status] alone, so a
-     * provider that throws without emitting stays [OpenFeatureStatus.NotReady].
+     * Emit at least one event before returning, so that [status] moves away from
+     * [OpenFeatureStatus.NotReady] — usually [OpenFeatureProviderEvents.ProviderReady] or
+     * [OpenFeatureProviderEvents.ProviderError]. Throwing does not set a status: the SDK logs the
+     * failure and a provider that throws without emitting stays [OpenFeatureStatus.NotReady].
      *
      * Lifecycle calls are entered in the order they were made, but the SDK does not wait for one to
      * finish before entering the next.
@@ -77,9 +43,8 @@ interface FeatureProvider {
     /**
      * Called when the lifecycle of the OpenFeatureClient is over to release resources/threads.
      *
-     * A provider that can be registered again must return to [OpenFeatureStatus.NotReady] here —
-     * [ProviderStatusTracker.reset] does that — so a reused instance does not report the status it
-     * held before it was shut down.
+     * A provider that can be registered again must return to [OpenFeatureStatus.NotReady] here, so
+     * a reused instance does not report the status it held before it was shut down.
      */
     fun shutdown()
 
@@ -90,12 +55,12 @@ interface FeatureProvider {
      * Either return without emitting anything, where no reconciliation is needed, or emit
      * [OpenFeatureProviderEvents.ProviderReconciling], do the work, and emit
      * [OpenFeatureProviderEvents.ProviderContextChanged] or
-     * [OpenFeatureProviderEvents.ProviderError]. [ProviderStatusTracker.reconciling] does the latter,
-     * including collapsing overlapping invocations.
+     * [OpenFeatureProviderEvents.ProviderError]. [ProviderStatusTracker.reconciling] does the
+     * latter, including collapsing overlapping invocations.
      *
-     * Since the SDK does not wait for one lifecycle call to finish before entering the next, this can
-     * be entered while previous reconciliation work is still in flight; a provider reconciling
-     * asynchronously should handle that, for instance by cancelling the work it supersedes.
+     * This can be entered while previous reconciliation work is still in flight; a provider
+     * reconciling asynchronously should handle that, for instance by cancelling the work it
+     * supersedes.
      *
      * @param oldContext The old EvaluationContext
      * @param newContext The new EvaluationContext
@@ -130,10 +95,8 @@ interface FeatureProvider {
     }
 
     /**
-     * The events this provider emits, for the SDK and the application.
-     *
-     * The SDK derives nothing from a provider's silence: every status transition must arrive here.
-     * Return [ProviderStatusTracker.observe] to get the required replay behaviour for free.
+     * The events this provider emits, for the SDK and the application. The SDK derives nothing from
+     * a provider's silence: every status transition must arrive here.
      */
     fun observe(): Flow<OpenFeatureProviderEvents>
 }
