@@ -342,8 +342,8 @@ open class OpenFeatureAPIInstance internal constructor() {
     }
 
     /**
-     * Runs one of [provider]'s lifecycle calls, logging a throw rather than deriving a status from
-     * it. Cancellation still propagates.
+     * Runs one of the provider's lifecycle calls, logging a throw rather than deriving a status
+     * from it. Cancellation still propagates.
      */
     private fun ProviderRegistration.dispatchLifecycle(
         operation: String,
