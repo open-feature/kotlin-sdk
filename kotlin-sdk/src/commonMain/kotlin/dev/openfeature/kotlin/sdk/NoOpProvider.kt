@@ -1,13 +1,24 @@
 package dev.openfeature.kotlin.sdk
 
+import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import kotlinx.coroutines.flow.Flow
+
+/** The default provider: it resolves every flag to the passed-in default and reports itself ready. */
 open class NoOpProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureProvider {
+    private val statusTracker = ProviderStatusTracker()
+
     override val metadata: ProviderMetadata = NoOpProviderMetadata("No-op provider")
+
+    override val status: OpenFeatureStatus get() = statusTracker.status
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
+
     override suspend fun initialize(initialContext: EvaluationContext?) {
-        // no-op
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override fun shutdown() {
-        // no-op
+        statusTracker.reset()
     }
 
     override suspend fun onContextSet(

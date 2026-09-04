@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotSame
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -157,9 +158,12 @@ class IsolatedAPIInstanceTests {
         val sharedProvider = DoSomethingProvider()
 
         OpenFeatureAPI.setProviderAndWait(sharedProvider, ImmutableContext())
-        instance.setProviderAndWait(sharedProvider, ImmutableContext())
 
-        assertTrue(instance.getStatus() is OpenFeatureStatus.Error)
+        // A double binding is a programming error, so registration fails loudly.
+        assertFailsWith<IllegalStateException> {
+            instance.setProviderAndWait(sharedProvider, ImmutableContext())
+        }
+        assertEquals(OpenFeatureStatus.NotReady, instance.getStatus())
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -170,10 +174,13 @@ class IsolatedAPIInstanceTests {
         val sharedProvider = DoSomethingProvider()
 
         OpenFeatureAPI.setProviderAndWait(sharedProvider, ImmutableContext())
-        instance.setProvider(sharedProvider, dispatcher = testDispatcher)
+
+        assertFailsWith<IllegalStateException> {
+            instance.setProvider(sharedProvider, dispatcher = testDispatcher)
+        }
         advanceUntilIdle()
 
-        assertTrue(instance.getStatus() is OpenFeatureStatus.Error)
+        assertEquals(OpenFeatureStatus.NotReady, instance.getStatus())
     }
 
     @Test
@@ -300,11 +307,13 @@ class IsolatedAPIInstanceTests {
         }
 
         instance1.setProviderAndWait(sharedSubclass, ImmutableContext())
-        instance2.setProviderAndWait(sharedSubclass, ImmutableContext())
 
         // The subclass is not the instance's private fallback, so the guard must fire
+        assertFailsWith<IllegalStateException> {
+            instance2.setProviderAndWait(sharedSubclass, ImmutableContext())
+        }
         assertEquals(OpenFeatureStatus.Ready, instance1.getStatus())
-        assertTrue(instance2.getStatus() is OpenFeatureStatus.Error)
+        assertEquals(OpenFeatureStatus.NotReady, instance2.getStatus())
     }
 
     @Test

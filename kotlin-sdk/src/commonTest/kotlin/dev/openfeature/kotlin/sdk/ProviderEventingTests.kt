@@ -8,8 +8,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.launch
@@ -33,16 +31,15 @@ class ProviderEventingTests {
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val healDelayMillis = 1000L
         val provider = object : DoSomethingProvider() {
-            val flow = MutableSharedFlow<OpenFeatureProviderEvents>(replay = 1, extraBufferCapacity = 5)
             override suspend fun initialize(initialContext: EvaluationContext?) {
-                // no-op
+                statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
             }
 
             override suspend fun onContextSet(
                 oldContext: EvaluationContext?,
                 newContext: EvaluationContext
             ) {
-                flow.emit(
+                statusTracker.send(
                     OpenFeatureProviderEvents.ProviderError(
                         OpenFeatureProviderEvents.EventDetails(
                             message = "test error",
@@ -51,12 +48,8 @@ class ProviderEventingTests {
                     )
                 )
                 delay(healDelayMillis)
-                flow.emit(
-                    OpenFeatureProviderEvents.ProviderConfigurationChanged()
-                )
+                statusTracker.send(OpenFeatureProviderEvents.ProviderConfigurationChanged())
             }
-
-            override fun observe(): Flow<OpenFeatureProviderEvents> = flow
         }
         val statusList = mutableListOf<OpenFeatureStatus>()
         val j = async(testDispatcher) {
@@ -78,13 +71,12 @@ class ProviderEventingTests {
         testScheduler.advanceUntilIdle()
         j.cancelAndJoin()
         waitAssert {
-            assertEquals(5, statusList.size)
+            assertEquals(3, statusList.size, "collected $statusList")
         }
+        // A configuration change carries no status, so it no longer clears the error.
         assertEquals(OpenFeatureStatus.Ready, statusList[0])
-        assertEquals(OpenFeatureStatus.Reconciling, statusList[1])
-        assertTrue(statusList[2] is OpenFeatureStatus.Error)
-        assertEquals(OpenFeatureStatus.Ready, statusList[3])
-        assertEquals(OpenFeatureStatus.NotReady, statusList[4])
+        assertTrue(statusList[1] is OpenFeatureStatus.Error)
+        assertEquals(OpenFeatureStatus.NotReady, statusList[2])
     }
 
     @Test

@@ -141,7 +141,7 @@ coroutineScope.launch(Dispatchers.Default) {
 
 Asynchronous API that doesn't wait is also available. It's useful when you want to set a provider and continue with other tasks.
 
-However, flag evaluations are only possible after the provider is Ready.
+However, flag evaluations are only meaningful after the provider is Ready. The SDK does not gate them on the status: an evaluation made earlier reaches the provider, which reports its own unreadiness with a `PROVIDER_NOT_READY` or `PROVIDER_FATAL` error code, and the client returns the default value.
 
 ```kotlin
 OpenFeatureAPI.setProvider(MyProvider()) // can pass a dispatcher here
@@ -356,9 +356,9 @@ Support for domains is currently in development.
 ### Eventing
 
 Events from the Provider allow the SDK to react to state changes in the provider or underlying flag management system, such as flag definition changes, provider readiness, or error conditions.
-Events are optional which mean that not all Providers will emit them and it is not a must have. Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGED`.
+A provider reports every status transition as an event — that is how the SDK knows a provider is ready, stale or in error — and some providers report additional events, such as `PROVIDER_CONFIGURATION_CHANGED`.
 
-Please refer to the documentation of the provider you're using to see what events are supported.
+Please refer to the documentation of the provider you're using to see what additional events are supported.
 
 Example usage:
 ```kotlin
@@ -415,8 +415,31 @@ in an Android app.
 To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
 You’ll then need to write the provider by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
 
+#### Status ownership
+
+A provider is responsible for its own `status`. The SDK reads it but never sets it, so you must keep it
+consistent with the events you emit, and it must be thread-safe because the SDK reads it from flag
+evaluation paths on any thread.
+
+The easiest way to satisfy both requirements is to delegate to `ProviderStatusTracker`, which derives
+`status` from the events you send it and replays the current status to new subscribers. Emit at least
+one non-not-ready event before `initialize` returns, otherwise the provider stays `NotReady`:
+throwing does not set a status.
+
+Refusing an evaluation made before the provider is ready is the provider's job too, per requirement
+2.2.7: return or throw with error code `PROVIDER_NOT_READY`, or `PROVIDER_FATAL` where the failure is
+irrecoverable, and the client returns the default value.
+
+#### Example implementation
+
 ```kotlin
 class NewProvider(override val hooks: List<Hook<*>>, override val metadata: ProviderMetadata) : FeatureProvider {
+    private val statusTracker = ProviderStatusTracker()
+
+    override val status: OpenFeatureStatus get() = statusTracker.status
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
+
     override fun getBooleanEvaluation(
         key: String,
         defaultValue: Boolean,
@@ -466,11 +489,21 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Prov
     }
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
-        // add context-aware provider initialization
+        // add context-aware provider initialization, then report the outcome
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
     }
 
-    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
-        // add necessary changes on context change
+    override suspend fun onContextSet(
+        oldContext: EvaluationContext?,
+        newContext: EvaluationContext
+    ) = statusTracker.reconciling {
+        // add necessary changes on context change; reconciling reports the transitions around this,
+        // and collapses overlapping invocations into a single reported outcome
+    }
+
+    override fun shutdown() {
+        // release resources, and return to NotReady in case this provider is registered again
+        statusTracker.reset()
     }
   
     override fun track(
@@ -481,9 +514,6 @@ class NewProvider(override val hooks: List<Hook<*>>, override val metadata: Prov
       // Optionally track an event
     }
   
-    override fun observe(): Flow<OpenFeatureProviderEvents> {
-        // Optionally return a `Flow` of OpenFeatureProviderEvents
-    }
 }
 ```
 

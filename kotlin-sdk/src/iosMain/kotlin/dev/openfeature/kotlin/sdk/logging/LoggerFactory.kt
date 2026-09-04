@@ -1,6 +1,8 @@
 package dev.openfeature.kotlin.sdk.logging
 
 import platform.Foundation.NSLog
+import platform.Foundation.NSString
+import platform.Foundation.create
 
 /**
  * iOS platform implementation of LoggerFactory.
@@ -19,19 +21,22 @@ actual object LoggerFactory {
 internal class IosLogger(private val tag: String) : Logger {
     private fun prefix(level: String) = "[$level] $tag - "
 
+    /** Bridged through NSString: variadic NSLog reads the argument as a pointer and segfaults. */
+    private fun log(line: String) = NSLog("%@", NSString.create(string = line))
+
     override fun debug(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
-        NSLog("%@", formatLogLine(prefix("DEBUG") + message(), attributes(), throwable))
+        log(formatLogLine(prefix("DEBUG") + message(), attributes(), throwable))
     }
 
     override fun info(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
-        NSLog("%@", formatLogLine(prefix("INFO") + message(), attributes(), throwable))
+        log(formatLogLine(prefix("INFO") + message(), attributes(), throwable))
     }
 
     override fun warn(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
-        NSLog("%@", formatLogLine(prefix("WARN") + message(), attributes(), throwable))
+        log(formatLogLine(prefix("WARN") + message(), attributes(), throwable))
     }
 
     override fun error(message: () -> String, attributes: () -> Map<String, Any?>, throwable: Throwable?) {
-        NSLog("%@", formatLogLine(prefix("ERROR") + message(), attributes(), throwable))
+        log(formatLogLine(prefix("ERROR") + message(), attributes(), throwable))
     }
 }

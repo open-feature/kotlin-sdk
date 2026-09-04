@@ -45,6 +45,22 @@ sealed class OpenFeatureProviderEvents {
     data class ProviderStale(
         override val eventDetails: EventDetails? = null
     ) : OpenFeatureProviderEvents()
+
+    /**
+     * The provider started reconciling its state with a new [dev.openfeature.kotlin.sdk.EvaluationContext].
+     * [eventDetails] may supply [EventDetails.flagsChanged], [EventDetails.message], [EventDetails.errorCode], and [EventDetails.eventMetadata] as applicable.
+     */
+    data class ProviderReconciling(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
+
+    /**
+     * The provider finished reconciling its state with a new [dev.openfeature.kotlin.sdk.EvaluationContext].
+     * [eventDetails] may supply [EventDetails.flagsChanged], [EventDetails.message], [EventDetails.errorCode], and [EventDetails.eventMetadata] as applicable.
+     */
+    data class ProviderContextChanged(
+        override val eventDetails: EventDetails? = null
+    ) : OpenFeatureProviderEvents()
 }
 
 internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError(): OpenFeatureStatus {
@@ -60,4 +76,29 @@ internal fun OpenFeatureProviderEvents.ProviderError.toOpenFeatureStatusError():
     } else {
         OpenFeatureStatus.Error(openFeatureError)
     }
+}
+
+internal fun OpenFeatureProviderEvents.toOpenFeatureStatus(): OpenFeatureStatus? = when (this) {
+    is OpenFeatureProviderEvents.ProviderReady -> OpenFeatureStatus.Ready
+    is OpenFeatureProviderEvents.ProviderStale -> OpenFeatureStatus.Stale
+    is OpenFeatureProviderEvents.ProviderError -> toOpenFeatureStatusError()
+    is OpenFeatureProviderEvents.ProviderReconciling -> OpenFeatureStatus.Reconciling
+    is OpenFeatureProviderEvents.ProviderContextChanged -> OpenFeatureStatus.Ready
+    is OpenFeatureProviderEvents.ProviderConfigurationChanged -> null
+}
+
+internal fun OpenFeatureStatus.toCurrentStateEvent(): OpenFeatureProviderEvents? = when (this) {
+    is OpenFeatureStatus.NotReady -> null
+    is OpenFeatureStatus.Ready -> OpenFeatureProviderEvents.ProviderReady()
+    is OpenFeatureStatus.Stale -> OpenFeatureProviderEvents.ProviderStale()
+    is OpenFeatureStatus.Reconciling -> OpenFeatureProviderEvents.ProviderReconciling()
+    is OpenFeatureStatus.Error -> OpenFeatureProviderEvents.ProviderError(
+        OpenFeatureProviderEvents.EventDetails(message = error.message, errorCode = error.errorCode())
+    )
+    is OpenFeatureStatus.Fatal -> OpenFeatureProviderEvents.ProviderError(
+        OpenFeatureProviderEvents.EventDetails(
+            message = error.message,
+            errorCode = ErrorCode.PROVIDER_FATAL
+        )
+    )
 }

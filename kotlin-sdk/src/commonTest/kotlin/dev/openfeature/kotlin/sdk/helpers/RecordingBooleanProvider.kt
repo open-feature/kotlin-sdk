@@ -3,14 +3,24 @@ package dev.openfeature.kotlin.sdk.helpers
 import dev.openfeature.kotlin.sdk.EvaluationContext
 import dev.openfeature.kotlin.sdk.FeatureProvider
 import dev.openfeature.kotlin.sdk.Hook
+import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
 import dev.openfeature.kotlin.sdk.ProviderMetadata
+import dev.openfeature.kotlin.sdk.ProviderStatusTracker
 import dev.openfeature.kotlin.sdk.Value
+import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import kotlinx.coroutines.flow.Flow
 
 class RecordingBooleanProvider(
     private val name: String,
     private val behavior: () -> ProviderEvaluation<Boolean>
 ) : FeatureProvider {
+    private val statusTracker = ProviderStatusTracker()
+
+    override val status: OpenFeatureStatus get() = statusTracker.status
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
+
     override val hooks: List<Hook<*>> = emptyList()
     override val metadata: ProviderMetadata = object : ProviderMetadata {
         override val name: String? = this@RecordingBooleanProvider.name
@@ -20,11 +30,11 @@ class RecordingBooleanProvider(
         private set
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
-        // no-op
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override fun shutdown() {
-        // no-op
+        statusTracker.reset()
     }
 
     override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
