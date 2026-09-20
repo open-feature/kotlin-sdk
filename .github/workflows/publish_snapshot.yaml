@@ -70,7 +70,7 @@ jobs:
 
       - name: Setup Gradle
         if: steps.source.outputs.skip != 'true'
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
 
       - name: Configure GPG Key
         if: steps.source.outputs.skip != 'true'
