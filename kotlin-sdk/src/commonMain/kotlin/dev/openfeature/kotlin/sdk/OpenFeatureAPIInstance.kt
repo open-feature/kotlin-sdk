@@ -137,23 +137,17 @@ open class OpenFeatureAPIInstance internal constructor() {
     /**
      * The status of the registered provider, and every transition it reports.
      *
-     * Derived from the provider's events, so it carries every transition the provider can express.
-     * [OpenFeatureStatus.NotReady] has no event: a provider that returns to it after registration —
-     * a [dev.openfeature.kotlin.sdk.multiprovider.MultiProvider] whose child was shut down behind
-     * its back, say — reports that through [getStatus] alone. A provider that reports nothing yields
+     * Each emission comes from one event, so transitions arrive in the order the provider reported
+     * them. [OpenFeatureStatus.NotReady] has no event, so a provider that returns to it after
+     * registration reports that through [getStatus] alone; clearing the provider still emits it,
+     * because the new registration restarts this flow. A provider that reports nothing yields
      * exactly one [OpenFeatureStatus.NotReady].
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     val statusFlow: Flow<OpenFeatureStatus> = providerRegistrations
         .flatMapLatest { current ->
             current.provider.observe()
-                .transform { event ->
-                    // The event's own status: a re-read loses the earlier of two transitions.
-                    val reported = event.toOpenFeatureStatus()
-                    reported?.let { emit(it) }
-                    val live = current.provider.status
-                    if (live != reported) emit(live)
-                }
+                .transform { event -> event.toOpenFeatureStatus()?.let { emit(it) } }
                 .onStart { emit(current.provider.status) }
         }
         .distinctUntilChanged()

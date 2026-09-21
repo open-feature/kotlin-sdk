@@ -301,6 +301,65 @@ class StatusTests {
         waitAssert { assertEquals(1, provider1.shutdownCalls.value) }
         assertEquals(0, provider2.shutdownCalls.value)
     }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun testStatusFlowKeepsTheOrderTheProviderReportedWhileASubscriberIsBehind() = runTest {
+        val provider = DrivableProvider()
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
+        advanceUntilIdle()
+
+        val seen = mutableListOf<OpenFeatureStatus>()
+        val collector = launch { OpenFeatureAPI.statusFlow.collect { seen.add(it) } }
+        runCurrent()
+        seen.clear()
+
+        provider.emit(OpenFeatureProviderEvents.ProviderReconciling())
+        provider.emit(OpenFeatureProviderEvents.ProviderReady())
+        provider.emit(OpenFeatureProviderEvents.ProviderStale())
+        advanceUntilIdle()
+        collector.cancelAndJoin()
+
+        assertEquals(
+            listOf(OpenFeatureStatus.Reconciling, OpenFeatureStatus.Ready, OpenFeatureStatus.Stale),
+            seen.toList()
+        )
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun testStatusFlowReportsNotReadyWhenTheProviderIsCleared() = runTest {
+        val provider = DrivableProvider()
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
+        advanceUntilIdle()
+
+        val seen = mutableListOf<OpenFeatureStatus>()
+        val collector = launch { OpenFeatureAPI.statusFlow.collect { seen.add(it) } }
+        runCurrent()
+        seen.clear()
+
+        OpenFeatureAPI.clearProvider()
+        advanceUntilIdle()
+        collector.cancelAndJoin()
+
+        assertEquals(listOf<OpenFeatureStatus>(OpenFeatureStatus.NotReady), seen.toList())
+    }
+}
+
+private class DrivableProvider : NoOpProvider() {
+    private val statusTracker = ProviderStatusTracker()
+
+    override val status: OpenFeatureStatus get() = statusTracker.status
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
+
+    override suspend fun initialize(initialContext: EvaluationContext?) {
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
+    }
+
+    fun emit(event: OpenFeatureProviderEvents) = statusTracker.send(event)
+
+    override fun shutdown() = statusTracker.reset()
 }
 
 private class ControllableContextProvider : NoOpProvider() {
