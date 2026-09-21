@@ -351,7 +351,9 @@ class MultiProvider(
         } finally {
             // Dropped only once the tracker has reported the outcome, which its own finally does
             // before this one runs.
-            synchronized(statusLock) { openReconciliations-- }
+            val settled = synchronized(statusLock) { --openReconciliations == 0 }
+            // Nothing else reports a recovery that landed while the reconciliation suppressed it.
+            if (settled) updateStatus()
         }
     }
 
