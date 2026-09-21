@@ -38,49 +38,42 @@ class ProviderStatusTrackerTests {
         return Recording(received, job)
     }
 
+    private fun trackerAfter(vararg events: OpenFeatureProviderEvents) =
+        ProviderStatusTracker().apply { events.forEach { send(it) } }
+
+    private suspend fun TestScope.replayOf(tracker: ProviderStatusTracker): List<OpenFeatureProviderEvents> {
+        val received = record(tracker)
+        advanceUntilIdle()
+        received.stop()
+        return received.toList()
+    }
+
+    private fun error(message: String) = OpenFeatureProviderEvents.ProviderError(
+        OpenFeatureProviderEvents.EventDetails(message = message)
+    )
+
+    private fun fatalError(message: String? = null) = OpenFeatureProviderEvents.ProviderError(
+        OpenFeatureProviderEvents.EventDetails(message = message, errorCode = ErrorCode.PROVIDER_FATAL)
+    )
+
     // MARK: status transitions
 
     @Test
-    fun aFreshTrackerIsNotReady() {
+    fun eachEventAppliesTheStatusItCarries() {
         assertEquals(OpenFeatureStatus.NotReady, ProviderStatusTracker().status)
-    }
-
-    @Test
-    fun aProviderErrorCarryingProviderFatalBecomesFatal() {
-        val tracker = ProviderStatusTracker()
-        tracker.send(
-            OpenFeatureProviderEvents.ProviderError(
-                OpenFeatureProviderEvents.EventDetails(errorCode = ErrorCode.PROVIDER_FATAL)
-            )
+        assertIs<OpenFeatureStatus.Fatal>(trackerAfter(fatalError()).status)
+        assertEquals("boom", assertIs<OpenFeatureStatus.Error>(trackerAfter(error("boom")).status).error.message)
+        assertEquals(
+            OpenFeatureStatus.Ready,
+            trackerAfter(OpenFeatureProviderEvents.ProviderContextChanged()).status
         )
-        assertIs<OpenFeatureStatus.Fatal>(tracker.status)
-    }
-
-    @Test
-    fun aProviderErrorWithoutProviderFatalBecomesError() {
-        val tracker = ProviderStatusTracker()
-        tracker.send(
-            OpenFeatureProviderEvents.ProviderError(
-                OpenFeatureProviderEvents.EventDetails(message = "boom")
-            )
+        assertEquals(
+            OpenFeatureStatus.Stale,
+            trackerAfter(
+                OpenFeatureProviderEvents.ProviderStale(),
+                OpenFeatureProviderEvents.ProviderConfigurationChanged()
+            ).status
         )
-        val status = assertIs<OpenFeatureStatus.Error>(tracker.status)
-        assertEquals("boom", status.error.message)
-    }
-
-    @Test
-    fun contextChangedBecomesReady() {
-        val tracker = ProviderStatusTracker()
-        tracker.send(OpenFeatureProviderEvents.ProviderContextChanged())
-        assertEquals(OpenFeatureStatus.Ready, tracker.status)
-    }
-
-    @Test
-    fun configurationChangedLeavesTheStatusAlone() {
-        val tracker = ProviderStatusTracker()
-        tracker.send(OpenFeatureProviderEvents.ProviderStale())
-        tracker.send(OpenFeatureProviderEvents.ProviderConfigurationChanged())
-        assertEquals(OpenFeatureStatus.Stale, tracker.status)
     }
 
     @Test
@@ -94,46 +87,19 @@ class ProviderStatusTrackerTests {
     // MARK: replay on subscribe
 
     @Test
-    fun nothingIsReplayedWhileNotReady() = runTest {
-        val tracker = ProviderStatusTracker()
-        val received = record(tracker)
-        advanceUntilIdle()
-        received.stop()
-
-        assertEquals(emptyList(), received.map { it::class.simpleName })
-    }
-
-    @Test
     fun theCurrentStatusIsReplayedOnceToANewSubscriber() = runTest {
-        val tracker = ProviderStatusTracker()
-        tracker.send(OpenFeatureProviderEvents.ProviderStale())
+        assertEquals(emptyList(), replayOf(ProviderStatusTracker()))
 
-        val received = record(tracker)
-        advanceUntilIdle()
-        received.stop()
-
-        assertEquals(listOf(OpenFeatureProviderEvents.ProviderStale::class), received.map { it::class })
-    }
-
-    @Test
-    fun aFatalStatusIsReplayedAsAnErrorCarryingProviderFatal() = runTest {
-        val tracker = ProviderStatusTracker()
-        tracker.send(
-            OpenFeatureProviderEvents.ProviderError(
-                OpenFeatureProviderEvents.EventDetails(
-                    message = "unrecoverable",
-                    errorCode = ErrorCode.PROVIDER_FATAL
-                )
-            )
+        assertEquals(
+            listOf(OpenFeatureProviderEvents.ProviderStale::class),
+            replayOf(trackerAfter(OpenFeatureProviderEvents.ProviderStale())).map { it::class }
         )
 
-        val received = record(tracker)
-        advanceUntilIdle()
-        received.stop()
-
-        val replayed = assertIs<OpenFeatureProviderEvents.ProviderError>(received.single())
-        assertEquals(ErrorCode.PROVIDER_FATAL, replayed.eventDetails?.errorCode)
-        assertEquals("unrecoverable", replayed.eventDetails?.message)
+        val fatal = assertIs<OpenFeatureProviderEvents.ProviderError>(
+            replayOf(trackerAfter(fatalError("unrecoverable"))).single()
+        )
+        assertEquals(ErrorCode.PROVIDER_FATAL, fatal.eventDetails?.errorCode)
+        assertEquals("unrecoverable", fatal.eventDetails?.message)
     }
 
     @Test
@@ -364,30 +330,14 @@ class ProviderStatusTrackerTests {
     }
 
     @Test
-    fun aReconciliationOnANotReadyProviderReportsNothing() = runTest {
+    fun aReconciliationOnANotReadyProviderReportsNothingAndStillThrows() = runTest {
         val tracker = ProviderStatusTracker()
 
         val received = record(tracker)
         tracker.reconciling { }
-        advanceUntilIdle()
-        received.stop()
-
-        // Readiness is initialize's to report, so reconciling a context cannot confer it.
-        assertEquals(emptyList(), received.map { it::class.simpleName })
-        assertEquals(OpenFeatureStatus.NotReady, tracker.status)
-    }
-
-    @Test
-    fun aFailedReconciliationOnANotReadyProviderReportsNothingAndStillThrows() = runTest {
-        val tracker = ProviderStatusTracker()
-
-        val received = record(tracker)
-        var thrown: Throwable? = null
-        try {
+        val thrown = runCatching {
             tracker.reconciling { throw OpenFeatureError.GeneralError("reconcile failed") }
-        } catch (e: Throwable) {
-            thrown = e
-        }
+        }.exceptionOrNull()
         advanceUntilIdle()
         received.stop()
 

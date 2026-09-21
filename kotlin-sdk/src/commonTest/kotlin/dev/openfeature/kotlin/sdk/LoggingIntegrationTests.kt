@@ -1,9 +1,10 @@
 package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
+import dev.openfeature.kotlin.sdk.helpers.NamedMetadata
+import dev.openfeature.kotlin.sdk.helpers.TrackedProvider
 import dev.openfeature.kotlin.sdk.hooks.LoggingHook
 import dev.openfeature.kotlin.sdk.logging.TestLogger
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -13,25 +14,9 @@ import kotlin.test.assertTrue
 
 class LoggingIntegrationTests {
 
-    private class TestProviderMetadata(override val name: String = "test-provider") : ProviderMetadata
-
-    private val testProvider = object : FeatureProvider {
-        override val metadata: ProviderMetadata = TestProviderMetadata()
-        override val hooks: List<Hook<*>> = listOf()
-        private val statusTracker = ProviderStatusTracker()
-
-        override val status: OpenFeatureStatus get() = statusTracker.status
-
-        override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
-
-        override suspend fun initialize(initialContext: EvaluationContext?) {
-            statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
-        }
-
-        override fun shutdown() {}
-
+    private val testProvider = object : TrackedProvider(metadata = NamedMetadata("test-provider")) {
         override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
-            statusTracker.send(OpenFeatureProviderEvents.ProviderConfigurationChanged())
+            emit(OpenFeatureProviderEvents.ProviderConfigurationChanged())
         }
 
         override fun getBooleanEvaluation(
@@ -273,69 +258,13 @@ class LoggingIntegrationTests {
         val testLogger = TestLogger()
         val hook = LoggingHook(logger = testLogger)
 
-        val errorProvider = object : FeatureProvider {
-            override val metadata: ProviderMetadata = TestProviderMetadata("error-provider")
-            override val hooks: List<Hook<*>> = listOf()
-            private val statusTracker = ProviderStatusTracker()
-
-            override val status: OpenFeatureStatus get() = statusTracker.status
-
-            override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
-
-            override suspend fun initialize(initialContext: EvaluationContext?) {
-                statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
-            }
-
-            override fun shutdown() {}
-
-            override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {}
-
+        val errorProvider = object : TrackedProvider(metadata = NamedMetadata("error-provider")) {
             override fun getBooleanEvaluation(
                 key: String,
                 defaultValue: Boolean,
                 context: EvaluationContext?
             ): ProviderEvaluation<Boolean> {
                 throw RuntimeException("Provider error")
-            }
-
-            override fun getStringEvaluation(
-                key: String,
-                defaultValue: String,
-                context: EvaluationContext?
-            ): ProviderEvaluation<String> {
-                return ProviderEvaluation(value = defaultValue)
-            }
-
-            override fun getIntegerEvaluation(
-                key: String,
-                defaultValue: Int,
-                context: EvaluationContext?
-            ): ProviderEvaluation<Int> {
-                return ProviderEvaluation(value = defaultValue)
-            }
-
-            override fun getLongEvaluation(
-                key: String,
-                defaultValue: Long,
-                context: EvaluationContext?
-            ): ProviderEvaluation<Long> {
-                return ProviderEvaluation(value = defaultValue)
-            }
-
-            override fun getDoubleEvaluation(
-                key: String,
-                defaultValue: Double,
-                context: EvaluationContext?
-            ): ProviderEvaluation<Double> {
-                return ProviderEvaluation(value = defaultValue)
-            }
-
-            override fun getObjectEvaluation(
-                key: String,
-                defaultValue: Value,
-                context: EvaluationContext?
-            ): ProviderEvaluation<Value> {
-                return ProviderEvaluation(value = defaultValue)
             }
         }
 
