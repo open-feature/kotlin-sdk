@@ -94,7 +94,8 @@ class ProviderEventingTests {
         // emits ProviderReady
         OpenFeatureAPI.setProviderAndWait(
             firstProvider,
-            initialContext = ImmutableContext("first")
+            initialContext = ImmutableContext("first"),
+            dispatcher = StandardTestDispatcher(testScheduler)
         )
         // emits ProviderStale + ProviderConfigurationChanged
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("first.v2"))
@@ -110,7 +111,8 @@ class ProviderEventingTests {
         // emits ProviderReady
         OpenFeatureAPI.setProviderAndWait(
             secondProvider,
-            initialContext = ImmutableContext("second")
+            initialContext = ImmutableContext("second"),
+            dispatcher = StandardTestDispatcher(testScheduler)
         )
         testScheduler.advanceUntilIdle()
         // emits ProviderStale + ProviderStale + ProviderStale
@@ -153,7 +155,11 @@ class ProviderEventingTests {
             client.observe().collect { fromClient.add(it) }
         }
 
-        OpenFeatureAPI.setProviderAndWait(provider, initialContext = ImmutableContext("ctx"))
+        OpenFeatureAPI.setProviderAndWait(
+            provider,
+            initialContext = ImmutableContext("ctx"),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         testScheduler.advanceUntilIdle()
         OpenFeatureAPI.shutdown()
         apiJob.cancelAndJoin()
@@ -182,7 +188,11 @@ class ProviderEventingTests {
                 .collect { configurationChangedEvents.add(it) }
         }
 
-        OpenFeatureAPI.setProviderAndWait(provider, initialContext = ImmutableContext("ctx"))
+        OpenFeatureAPI.setProviderAndWait(
+            provider,
+            initialContext = ImmutableContext("ctx"),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         testScheduler.advanceUntilIdle()
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("ctx.v2"))
         testScheduler.advanceUntilIdle()
