@@ -283,22 +283,23 @@ open class OpenFeatureAPIInstance internal constructor() {
     }
 
     /**
-     * Unbinds a provider and shuts it down.
+     * Shuts a provider down and unbinds it.
      *
      * Only for a provider that is actually being dropped: re-registering the same instance must not
      * shut it down, whether the registration was reused or this retirement was simply outrun.
+     *
+     * The binding outlives `shutdown`, so another instance claiming it meanwhile is refused.
      */
     private fun retireProvider(provider: FeatureProvider) {
-        val reRegistered = synchronized(stateLock) {
-            val reRegistered = registration.provider === provider
-            if (!reRegistered) untrackProviderBinding(provider)
-            reRegistered
-        }
-        if (reRegistered) return
+        if (synchronized(stateLock) { registration.provider === provider }) return
         try {
             provider.shutdown()
         } catch (e: Throwable) {
             logger.warn({ "Provider ${provider.attributionName()} failed to shut down" }, throwable = e)
+        } finally {
+            synchronized(stateLock) {
+                if (registration.provider !== provider) untrackProviderBinding(provider)
+            }
         }
     }
 
