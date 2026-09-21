@@ -2,6 +2,7 @@ package dev.openfeature.kotlin.sdk
 
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.events.toOpenFeatureStatus
+import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import dev.openfeature.kotlin.sdk.logging.LoggerFactory
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
@@ -48,8 +49,49 @@ open class OpenFeatureAPIInstance internal constructor() {
     private val logger = LoggerFactory.getLogger(LOGGER_NAME)
     private val stateLock = SynchronizedObject()
 
-    /** The provider installed when none has been registered, or once one has been cleared. */
-    private class NoProvider : NoOpProvider()
+    /**
+     * The provider installed when none has been registered, or once one has been cleared.
+     *
+     * SDK no longer checks status before evaluating, so reporting unreadiness is this provider's
+     * own job, as requirement 2.2.7 asks of any provider.
+     */
+    private class NoProvider : NoOpProvider() {
+        override fun getBooleanEvaluation(
+            key: String,
+            defaultValue: Boolean,
+            context: EvaluationContext?
+        ): ProviderEvaluation<Boolean> = throw OpenFeatureError.ProviderNotReadyError()
+
+        override fun getStringEvaluation(
+            key: String,
+            defaultValue: String,
+            context: EvaluationContext?
+        ): ProviderEvaluation<String> = throw OpenFeatureError.ProviderNotReadyError()
+
+        override fun getIntegerEvaluation(
+            key: String,
+            defaultValue: Int,
+            context: EvaluationContext?
+        ): ProviderEvaluation<Int> = throw OpenFeatureError.ProviderNotReadyError()
+
+        override fun getLongEvaluation(
+            key: String,
+            defaultValue: Long,
+            context: EvaluationContext?
+        ): ProviderEvaluation<Long> = throw OpenFeatureError.ProviderNotReadyError()
+
+        override fun getDoubleEvaluation(
+            key: String,
+            defaultValue: Double,
+            context: EvaluationContext?
+        ): ProviderEvaluation<Double> = throw OpenFeatureError.ProviderNotReadyError()
+
+        override fun getObjectEvaluation(
+            key: String,
+            defaultValue: Value,
+            context: EvaluationContext?
+        ): ProviderEvaluation<Value> = throw OpenFeatureError.ProviderNotReadyError()
+    }
 
     /**
      * One registration of one provider, boxed so that a swap restarts the subscriptions derived from
