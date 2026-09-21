@@ -179,6 +179,24 @@ class ProviderStatusTrackerTests {
     }
 
     @Test
+    fun aBurstOfEventsReachesASubscriberInFull() = runTest {
+        val burst = 500
+        val tracker = ProviderStatusTracker()
+        tracker.send(OpenFeatureProviderEvents.ProviderReady())
+
+        val received = record(tracker)
+        repeat(burst) { tracker.send(OpenFeatureProviderEvents.ProviderConfigurationChanged()) }
+        advanceUntilIdle()
+        received.stop()
+
+        assertEquals(
+            burst,
+            received.count { it is OpenFeatureProviderEvents.ProviderConfigurationChanged },
+            "every event a provider sends must reach the subscriber, per requirement 5.1.2"
+        )
+    }
+
+    @Test
     fun subscribersReplayIndependently() = runTest {
         val tracker = ProviderStatusTracker()
         tracker.send(OpenFeatureProviderEvents.ProviderReady())

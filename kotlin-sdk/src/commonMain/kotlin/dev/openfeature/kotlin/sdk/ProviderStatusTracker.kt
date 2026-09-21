@@ -8,7 +8,6 @@ import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emitAll
@@ -17,8 +16,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.withContext
-
-private const val EVENT_BUFFER_CAPACITY = 64
 
 /** Stamped on a replayed event, below every real one so it is never fenced. */
 private const val REPLAY_SEQUENCE = Long.MIN_VALUE
@@ -41,6 +38,9 @@ private const val REPLAY_SEQUENCE = Long.MIN_VALUE
  * race the first live event. Nothing is replayed while the provider is [OpenFeatureStatus.NotReady],
  * which has no corresponding event type.
  *
+ * The event buffer is unbounded: a subscriber that falls behind delays its own delivery rather than
+ * losing events, at the cost of memory until it drains.
+ *
  * A provider delegates [FeatureProvider.status] and [FeatureProvider.observe] to this. Do not
  * collect [observe] on [kotlinx.coroutines.Dispatchers.Unconfined], and do not call [send] from
  * inside a collector: delivery would then run inline under the lock that orders events.
@@ -54,11 +54,7 @@ class ProviderStatusTracker {
 
     private val reconciliations = Reconciliations()
 
-    private val events = MutableSharedFlow<Emission>(
-        replay = 0,
-        extraBufferCapacity = EVENT_BUFFER_CAPACITY,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
+    private val events = MutableSharedFlow<Emission>(extraBufferCapacity = Int.MAX_VALUE)
 
     private class Emission(val sequence: Long, val event: OpenFeatureProviderEvents)
 
