@@ -58,8 +58,12 @@ class IsolatedAPIInstanceTests {
         )
 
         val instance = createInstance()
-        OpenFeatureAPI.setProviderAndWait(provider1, ImmutableContext())
-        instance.setProviderAndWait(provider2, ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            provider1,
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
+        instance.setProviderAndWait(provider2, ImmutableContext(), dispatcher = StandardTestDispatcher(testScheduler))
 
         assertEquals("Provider 1", OpenFeatureAPI.getProvider().metadata.name)
         assertEquals("Provider 2", instance.getProvider().metadata.name)
@@ -69,8 +73,8 @@ class IsolatedAPIInstanceTests {
     fun testIsolatedInstanceHasOwnEvaluationContext() = runTest {
         val instance = createInstance()
 
-        OpenFeatureAPI.setProviderAndWait(NoOpProvider())
-        instance.setProviderAndWait(NoOpProvider())
+        OpenFeatureAPI.setProviderAndWait(NoOpProvider(), dispatcher = StandardTestDispatcher(testScheduler))
+        instance.setProviderAndWait(NoOpProvider(), dispatcher = StandardTestDispatcher(testScheduler))
 
         val ctx1 = ImmutableContext(targetingKey = "singleton-key")
         val ctx2 = ImmutableContext(targetingKey = "instance-key")
@@ -100,7 +104,11 @@ class IsolatedAPIInstanceTests {
     fun testIsolatedInstanceHasOwnStatus() = runTest {
         val instance = createInstance()
 
-        instance.setProviderAndWait(DoSomethingProvider(), ImmutableContext())
+        instance.setProviderAndWait(
+            DoSomethingProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
 
         assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
         assertEquals(OpenFeatureStatus.Ready, instance.getStatus())
@@ -109,7 +117,11 @@ class IsolatedAPIInstanceTests {
     @Test
     fun testIsolatedInstanceClientEvaluatesIndependently() = runTest {
         val instance = createInstance()
-        instance.setProviderAndWait(DoSomethingProvider(), ImmutableContext())
+        instance.setProviderAndWait(
+            DoSomethingProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
 
         val client = instance.getClient()
         // DoSomethingProvider returns !defaultValue for booleans
@@ -121,7 +133,11 @@ class IsolatedAPIInstanceTests {
     fun testSingletonStillWorksAfterCreatingInstances() = runTest {
         createInstance()
 
-        OpenFeatureAPI.setProviderAndWait(DoSomethingProvider(), ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            DoSomethingProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         val client = OpenFeatureAPI.getClient()
         val result = client.getBooleanValue("flag", false)
         assertTrue(result)
@@ -131,8 +147,16 @@ class IsolatedAPIInstanceTests {
     fun testShutdownInstanceDoesNotAffectSingleton() = runTest {
         val instance = createInstance()
 
-        OpenFeatureAPI.setProviderAndWait(DoSomethingProvider(), ImmutableContext())
-        instance.setProviderAndWait(DoSomethingProvider(), ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            DoSomethingProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
+        instance.setProviderAndWait(
+            DoSomethingProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
 
         instance.shutdown()
 
@@ -144,8 +168,16 @@ class IsolatedAPIInstanceTests {
     fun testShutdownSingletonDoesNotAffectInstance() = runTest {
         val instance = createInstance()
 
-        OpenFeatureAPI.setProviderAndWait(DoSomethingProvider(), ImmutableContext())
-        instance.setProviderAndWait(DoSomethingProvider(), ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            DoSomethingProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
+        instance.setProviderAndWait(
+            DoSomethingProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
 
         OpenFeatureAPI.shutdown()
 
@@ -158,11 +190,19 @@ class IsolatedAPIInstanceTests {
         val instance = createInstance()
         val sharedProvider = DoSomethingProvider()
 
-        OpenFeatureAPI.setProviderAndWait(sharedProvider, ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            sharedProvider,
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
 
         // A double binding is a programming error, so registration fails loudly.
         assertFailsWith<IllegalStateException> {
-            instance.setProviderAndWait(sharedProvider, ImmutableContext())
+            instance.setProviderAndWait(
+                sharedProvider,
+                ImmutableContext(),
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
         }
         assertEquals(OpenFeatureStatus.NotReady, instance.getStatus())
     }
@@ -174,7 +214,11 @@ class IsolatedAPIInstanceTests {
         val instance = createInstance()
         val sharedProvider = DoSomethingProvider()
 
-        OpenFeatureAPI.setProviderAndWait(sharedProvider, ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            sharedProvider,
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
 
         assertFailsWith<IllegalStateException> {
             instance.setProvider(sharedProvider, dispatcher = testDispatcher)
@@ -189,11 +233,15 @@ class IsolatedAPIInstanceTests {
         val instance = createInstance()
         val provider = DoSomethingProvider()
 
-        instance.setProviderAndWait(provider, ImmutableContext())
+        instance.setProviderAndWait(provider, ImmutableContext(), dispatcher = StandardTestDispatcher(testScheduler))
         instance.shutdown()
 
         // Provider is now unbound, can be used by another instance
-        OpenFeatureAPI.setProviderAndWait(provider, ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            provider,
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
     }
 
@@ -214,10 +262,14 @@ class IsolatedAPIInstanceTests {
         val instance = createInstance()
         val provider = DoSomethingProvider()
 
-        instance.setProviderAndWait(provider, ImmutableContext())
+        instance.setProviderAndWait(provider, ImmutableContext(), dispatcher = StandardTestDispatcher(testScheduler))
         instance.clearProvider()
 
-        OpenFeatureAPI.setProviderAndWait(provider, ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            provider,
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
     }
 
@@ -237,8 +289,8 @@ class IsolatedAPIInstanceTests {
             }
         )
 
-        instance1.setProviderAndWait(provider1, ImmutableContext())
-        instance2.setProviderAndWait(provider2, ImmutableContext())
+        instance1.setProviderAndWait(provider1, ImmutableContext(), dispatcher = StandardTestDispatcher(testScheduler))
+        instance2.setProviderAndWait(provider2, ImmutableContext(), dispatcher = StandardTestDispatcher(testScheduler))
 
         assertEquals("Instance1 Provider", instance1.getProvider().metadata.name)
         assertEquals("Instance2 Provider", instance2.getProvider().metadata.name)
@@ -251,7 +303,11 @@ class IsolatedAPIInstanceTests {
     @Test
     fun testIsolatedInstanceClientHooks() = runTest {
         val instance = createInstance()
-        instance.setProviderAndWait(NoOpProvider(), ImmutableContext())
+        instance.setProviderAndWait(
+            NoOpProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
 
         val client = instance.getClient()
         val hook = GenericSpyHookMock()
@@ -282,10 +338,10 @@ class IsolatedAPIInstanceTests {
             }
         )
 
-        instance.setProviderAndWait(provider1, ImmutableContext())
+        instance.setProviderAndWait(provider1, ImmutableContext(), dispatcher = StandardTestDispatcher(testScheduler))
         assertEquals("First", instance.getProvider().metadata.name)
 
-        instance.setProviderAndWait(provider2, ImmutableContext())
+        instance.setProviderAndWait(provider2, ImmutableContext(), dispatcher = StandardTestDispatcher(testScheduler))
         assertEquals("Second", instance.getProvider().metadata.name)
     }
 
@@ -299,8 +355,8 @@ class IsolatedAPIInstanceTests {
         val provider2 = ValueEqualProvider("shared-name")
         assertEquals(provider1, provider2, "Precondition: providers are structurally equal")
 
-        instance1.setProviderAndWait(provider1, ImmutableContext())
-        instance2.setProviderAndWait(provider2, ImmutableContext())
+        instance1.setProviderAndWait(provider1, ImmutableContext(), dispatcher = StandardTestDispatcher(testScheduler))
+        instance2.setProviderAndWait(provider2, ImmutableContext(), dispatcher = StandardTestDispatcher(testScheduler))
 
         // Both should succeed — distinct objects should not be conflated
         assertEquals(OpenFeatureStatus.Ready, instance1.getStatus())
@@ -319,11 +375,19 @@ class IsolatedAPIInstanceTests {
             }
         }
 
-        instance1.setProviderAndWait(sharedSubclass, ImmutableContext())
+        instance1.setProviderAndWait(
+            sharedSubclass,
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
 
         // The subclass is not the instance's private fallback, so the guard must fire
         assertFailsWith<IllegalStateException> {
-            instance2.setProviderAndWait(sharedSubclass, ImmutableContext())
+            instance2.setProviderAndWait(
+                sharedSubclass,
+                ImmutableContext(),
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
         }
         assertEquals(OpenFeatureStatus.Ready, instance1.getStatus())
         assertEquals(OpenFeatureStatus.NotReady, instance2.getStatus())
@@ -344,14 +408,22 @@ class IsolatedAPIInstanceTests {
             }
         }
 
-        instance1.setProviderAndWait(throwingProvider, ImmutableContext())
+        instance1.setProviderAndWait(
+            throwingProvider,
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         assertEquals(OpenFeatureStatus.Ready, instance1.getStatus())
 
         // clearProvider should release the binding even though shutdown throws
         try { instance1.clearProvider() } catch (_: RuntimeException) {}
 
         // Another instance should now be able to bind the same provider
-        instance2.setProviderAndWait(throwingProvider, ImmutableContext())
+        instance2.setProviderAndWait(
+            throwingProvider,
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         assertEquals(OpenFeatureStatus.Ready, instance2.getStatus())
 
         // Disable throwing so tearDown can clean up
@@ -363,8 +435,8 @@ class IsolatedAPIInstanceTests {
         val instance = createInstance()
         val provider = SpyProvider()
 
-        instance.setProviderAndWait(provider)
-        instance.setProviderAndWait(provider)
+        instance.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
+        instance.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
 
         assertEquals(0, provider.shutdownCalls.value)
         assertEquals(OpenFeatureStatus.Ready, instance.getStatus())

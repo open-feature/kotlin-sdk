@@ -17,7 +17,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -27,7 +26,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.ContinuationInterceptor
 
 private const val LOGGER_NAME = "OpenFeatureAPI"
 
@@ -178,15 +176,15 @@ open class OpenFeatureAPIInstance internal constructor() {
      *
      * @param provider the [FeatureProvider] to set
      * @param initialContext the initial [EvaluationContext] for provider initialization
-     * @param dispatcher the dispatcher this provider's lifecycle calls run on; the caller's own
-     * dispatcher by default, so that a caller controlling time controls the provider's lifecycle too
+     * @param dispatcher the dispatcher this provider's lifecycle calls run on; pass the caller's own
+     * to put the provider's lifecycle under a caller that controls time
      */
     suspend fun setProviderAndWait(
         provider: FeatureProvider,
         initialContext: EvaluationContext? = null,
-        dispatcher: CoroutineDispatcher? = null
+        dispatcher: CoroutineDispatcher = Dispatchers.Default
     ) {
-        val swap = swapProvider(provider, initialContext, dispatcher ?: callerDispatcher())
+        val swap = swapProvider(provider, initialContext, dispatcher)
         swap.retirement?.join()
         swap.initialization.joinPropagatingCancellation()
     }
@@ -196,9 +194,6 @@ open class OpenFeatureAPIInstance internal constructor() {
 
     /** What a swap decides under [stateLock], so retirement can run without holding the lock. */
     private class Commit(val current: ProviderRegistration, val retired: ProviderRegistration?)
-
-    private suspend fun callerDispatcher(): CoroutineDispatcher =
-        currentCoroutineContext()[ContinuationInterceptor] as? CoroutineDispatcher ?: Dispatchers.Default
 
     private fun swapProvider(
         newProvider: FeatureProvider,
