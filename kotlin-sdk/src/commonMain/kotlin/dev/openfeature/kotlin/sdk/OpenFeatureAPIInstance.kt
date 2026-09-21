@@ -116,11 +116,7 @@ open class OpenFeatureAPIInstance internal constructor() {
 
     /** Never cancelled: a dropped retirement leaks the provider it was meant to release. */
     private val retirementScope = CoroutineScope(
-        SupervisorJob() +
-            Dispatchers.Default +
-            CoroutineExceptionHandler { _, throwable ->
-                logger.warn({ "Retiring a replaced provider failed" }, throwable = throwable)
-            }
+        SupervisorJob() + Dispatchers.Default
     )
 
     /** Retirements still in flight, so a provider registered again is ordered after its teardown. */
@@ -291,15 +287,18 @@ open class OpenFeatureAPIInstance internal constructor() {
      * The binding outlives `shutdown`, so another instance claiming it meanwhile is refused.
      */
     private fun retireProvider(provider: FeatureProvider) {
-        if (synchronized(stateLock) { registration.provider === provider }) return
+        // Nothing escapes to the retirement scope, which has no handler of its own.
         try {
-            provider.shutdown()
+            if (synchronized(stateLock) { registration.provider === provider }) return
+            try {
+                provider.shutdown()
+            } finally {
+                synchronized(stateLock) {
+                    if (registration.provider !== provider) untrackProviderBinding(provider)
+                }
+            }
         } catch (e: Throwable) {
             logger.warn({ "Provider ${provider.attributionName()} failed to shut down" }, throwable = e)
-        } finally {
-            synchronized(stateLock) {
-                if (registration.provider !== provider) untrackProviderBinding(provider)
-            }
         }
     }
 
