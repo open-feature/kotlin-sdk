@@ -56,17 +56,23 @@ class ProviderStatusTracker {
 
     private val events = MutableSharedFlow<Emission>(extraBufferCapacity = Int.MAX_VALUE)
 
+    private val pending = ArrayDeque<Emission>()
+    private var draining = false
+
     private class Emission(val sequence: Long, val event: OpenFeatureProviderEvents)
 
     /** The status implied by the most recent event, safe to read from any thread. */
     val status: OpenFeatureStatus get() = synchronized(lock) { currentStatus }
 
     /** Reports [event], updating [status] and publishing it to [observe]'s subscribers. */
-    fun send(event: OpenFeatureProviderEvents) = synchronized(lock) { record(event) }
+    fun send(event: OpenFeatureProviderEvents) {
+        synchronized(lock) { record(event) }
+        flush()
+    }
 
     /**
-     * Publishes [event] and applies its status. The caller must hold [lock]: a reconciliation
-     * starting between the decision and the report would capture a status that is already replaced.
+     * Queues [event] and applies its status. The caller must hold [lock]: a reconciliation starting
+     * between the decision and the report would capture a status that is already replaced.
      */
     private fun record(event: OpenFeatureProviderEvents) {
         val status = event.toOpenFeatureStatus()
@@ -75,7 +81,24 @@ class ProviderStatusTracker {
             currentStatus = status
             statusSequence = sequence
         }
-        events.tryEmit(Emission(sequence, event))
+        pending.addLast(Emission(sequence, event))
+    }
+
+    /** Delivers outside [lock]: a subscriber resumed inline would otherwise run holding it. */
+    private fun flush() {
+        synchronized(lock) {
+            if (draining) return
+            draining = true
+        }
+        while (true) {
+            val next = synchronized(lock) {
+                pending.removeFirstOrNull() ?: run {
+                    draining = false
+                    null
+                }
+            } ?: return
+            events.tryEmit(next)
+        }
     }
 
     /** Stream to return from [FeatureProvider.observe]. */
@@ -127,6 +150,7 @@ class ProviderStatusTracker {
             }
             registration.copy(mark = statusSequence)
         }
+        flush()
 
         var outcome: OpenFeatureProviderEvents? = null
         try {
@@ -144,6 +168,7 @@ class ProviderStatusTracker {
                     val reportedByBlock = statusSequence > registration.mark
                     reconciliations.end(registration, outcome, reportedByBlock)?.let { record(it) }
                 }
+                flush()
             }
         }
     }
