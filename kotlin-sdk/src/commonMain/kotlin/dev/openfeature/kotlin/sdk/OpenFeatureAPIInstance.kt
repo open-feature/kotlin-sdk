@@ -7,6 +7,7 @@ import dev.openfeature.kotlin.sdk.logging.LoggerFactory
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -109,6 +110,7 @@ open class OpenFeatureAPIInstance internal constructor() {
 
         var providerJob: Job? = null
         var contextSetJob: Job? = null
+        var lastEntry: CompletableJob? = null
     }
 
     private var registration = ProviderRegistration(NoProvider(), Dispatchers.Default)
@@ -213,10 +215,7 @@ open class OpenFeatureAPIInstance internal constructor() {
             providerRegistrations.value = current
             val initializationContext = context
             val pendingRetirements = retirements.filter { it.first === newProvider }.map { it.second }
-            // Dispatched before the lock is released, or a setEvaluationContext that acquires the
-            // lock right after this one could queue onContextSet ahead of initialize on the
-            // registration's serial scope.
-            initialization = current.dispatchLifecycle("initialize") {
+            initialization = current.dispatchLifecycle("initialize", CoroutineStart.LAZY) {
                 // A retirement of this provider that already committed to shutting it down is still
                 // running: initializing over it would race its teardown.
                 pendingRetirements.forEach { it.join() }
@@ -225,6 +224,7 @@ open class OpenFeatureAPIInstance internal constructor() {
             current.providerJob = initialization
             Commit(current = current, retired = previous.takeUnless { rebinding })
         }
+        initialization.start()
 
         // Not from the successor's job, which can be cancelled before it is ever dispatched.
         val retirement = commit.retired?.let { retire(it) }
@@ -379,18 +379,27 @@ open class OpenFeatureAPIInstance internal constructor() {
         operation: String,
         start: CoroutineStart = CoroutineStart.DEFAULT,
         work: suspend () -> Unit
-    ): Job = scope.launch(start = start) {
-        try {
-            work()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Throwable) {
-            logger.warn({
-                "Provider ${provider.attributionName()} failed during $operation. The SDK does not " +
-                    "derive status from a thrown exception: report the failure by emitting a " +
-                    "ProviderError event."
-            }, throwable = e)
+    ): Job {
+        val predecessor = lastEntry
+        val entry = Job()
+        lastEntry = entry
+        val job = scope.launch(start = start) {
+            try {
+                predecessor?.join()
+                entry.complete()
+                work()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                logger.warn({
+                    "Provider ${provider.attributionName()} failed during $operation. The SDK does not " +
+                        "derive status from a thrown exception: report the failure by emitting a " +
+                        "ProviderError event."
+                }, throwable = e)
+            }
         }
+        job.invokeOnCompletion { entry.complete() }
+        return job
     }
 
     /**

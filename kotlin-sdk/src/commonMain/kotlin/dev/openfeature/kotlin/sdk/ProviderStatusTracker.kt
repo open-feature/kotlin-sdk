@@ -145,10 +145,13 @@ class ProviderStatusTracker {
         // send bumps the sequence, and mistake that send for a report of its own.
         val registration = synchronized(lock) {
             val registration = reconciliations.begin(currentStatus)
-            if (registration.first && currentStatus != OpenFeatureStatus.NotReady) {
-                record(OpenFeatureProviderEvents.ProviderReconciling())
+            if (registration.first) {
+                if (currentStatus != OpenFeatureStatus.NotReady) {
+                    record(OpenFeatureProviderEvents.ProviderReconciling())
+                }
+                reconciliations.openedAt(statusSequence)
             }
-            registration.copy(mark = statusSequence)
+            registration
         }
         flush()
 
@@ -165,8 +168,7 @@ class ProviderStatusTracker {
             // A cancelled invocation still owes the reconciliation an outcome or a restoration.
             withContext(NonCancellable) {
                 synchronized(lock) {
-                    val reportedByBlock = statusSequence > registration.mark
-                    reconciliations.end(registration, outcome, reportedByBlock)?.let { record(it) }
+                    reconciliations.end(registration, outcome, statusSequence)?.let { record(it) }
                 }
                 flush()
             }
@@ -181,6 +183,7 @@ class ProviderStatusTracker {
      */
     fun reset() = synchronized(lock) {
         currentStatus = OpenFeatureStatus.NotReady
+        pending.clear()
         reconciliations.reset()
     }
 
@@ -194,17 +197,24 @@ class ProviderStatusTracker {
         private var restore: OpenFeatureStatus? = null
         private var terminal: OpenFeatureProviderEvents? = null
         private var reportedByBlock = false
+        private var mark = 0L
 
-        data class Registration(val generation: Long, val first: Boolean, val mark: Long = 0)
+        data class Registration(val generation: Long, val first: Boolean)
 
         /** Registers an invocation, reporting whether it is the one that opens the reconciliation. */
         fun begin(restoreTo: OpenFeatureStatus): Registration {
-            if (active == 0) {
+            val opens = active == 0 || restore == OpenFeatureStatus.NotReady
+            if (opens) {
                 restore = restoreTo
                 terminal = null
                 reportedByBlock = false
             }
-            return Registration(generation, ++active == 1)
+            active++
+            return Registration(generation, opens)
+        }
+
+        fun openedAt(statusSequence: Long) {
+            mark = statusSequence
         }
 
         /**
@@ -214,10 +224,10 @@ class ProviderStatusTracker {
         fun end(
             registration: Registration,
             outcome: OpenFeatureProviderEvents?,
-            blockReported: Boolean
+            statusSequence: Long
         ): OpenFeatureProviderEvents? {
             if (registration.generation != generation) return null
-            if (blockReported) reportedByBlock = true
+            if (statusSequence > mark) reportedByBlock = true
             if (outcome != null) terminal = outcome
             if (--active > 0) return null
 
