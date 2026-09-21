@@ -3,11 +3,11 @@ package dev.openfeature.kotlin.sdk
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import dev.openfeature.kotlin.sdk.helpers.SpyProvider
+import dev.openfeature.kotlin.sdk.helpers.TrackedProvider
 import dev.openfeature.kotlin.sdk.isolated.ExperimentalIsolatedApi
 import dev.openfeature.kotlin.sdk.isolated.createOpenFeatureAPIInstance
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -33,19 +33,11 @@ class ProviderLifecycleTests {
     private class ReportingProvider(
         private val eventsOnInitialize: List<OpenFeatureProviderEvents> = emptyList(),
         private val initializeFailure: Throwable? = null
-    ) : NoOpProvider() {
-        private val statusTracker = ProviderStatusTracker()
-
-        override val status: OpenFeatureStatus get() = statusTracker.status
-
-        override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
-
+    ) : TrackedProvider() {
         override suspend fun initialize(initialContext: EvaluationContext?) {
-            eventsOnInitialize.forEach { statusTracker.send(it) }
+            eventsOnInitialize.forEach { emit(it) }
             initializeFailure?.let { throw it }
         }
-
-        override fun shutdown() = statusTracker.reset()
     }
 
     @Test
@@ -134,25 +126,19 @@ class ProviderLifecycleTests {
     private class GatedProvider(
         private val gateInitialize: Boolean = false,
         private val gateContextSet: Boolean = false
-    ) : NoOpProvider() {
-        private val statusTracker = ProviderStatusTracker()
-
+    ) : TrackedProvider() {
         val completed = mutableListOf<String>()
         val initializeStarted = Channel<Unit>(Channel.UNLIMITED)
         val releaseInitialize = Channel<Unit>(Channel.UNLIMITED)
         val contextSetStarted = Channel<Unit>(Channel.UNLIMITED)
         val releaseContextSet = Channel<Unit>(Channel.UNLIMITED)
 
-        override val status: OpenFeatureStatus get() = statusTracker.status
-
-        override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
-
         override suspend fun initialize(initialContext: EvaluationContext?) {
             if (gateInitialize) {
                 initializeStarted.send(Unit)
                 releaseInitialize.receive()
             }
-            statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
+            emit(OpenFeatureProviderEvents.ProviderReady())
             completed += "initialize"
         }
 
@@ -163,8 +149,6 @@ class ProviderLifecycleTests {
             }
             completed += "onContextSet"
         }
-
-        override fun shutdown() = statusTracker.reset()
     }
 
     @Test

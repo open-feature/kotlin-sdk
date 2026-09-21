@@ -1,41 +1,29 @@
 package dev.openfeature.kotlin.sdk.helpers
 
 import dev.openfeature.kotlin.sdk.EvaluationContext
-import dev.openfeature.kotlin.sdk.FeatureProvider
 import dev.openfeature.kotlin.sdk.Hook
-import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
-import dev.openfeature.kotlin.sdk.ProviderMetadata
-import dev.openfeature.kotlin.sdk.ProviderStatusTracker
 import dev.openfeature.kotlin.sdk.Value
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 
 class AutoHealingProvider(
     val healDelay: Long = 1000L,
-    override val hooks: List<Hook<*>> = emptyList()
-) : FeatureProvider {
-    override val metadata: ProviderMetadata = object : ProviderMetadata {
-        override val name: String = "AutoHealingProvider"
-    }
+    hooks: List<Hook<*>> = emptyList()
+) : TrackedProvider(hooks, NamedMetadata("AutoHealingProvider")) {
     private val readyState = atomic(false)
     private var ready: Boolean
         get() = readyState.value
-        set(value) { readyState.value = value }
-
-    private val statusTracker = ProviderStatusTracker()
-
-    override val status: OpenFeatureStatus get() = statusTracker.status
-
-    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
+        set(value) {
+            readyState.value = value
+        }
 
     override suspend fun initialize(initialContext: EvaluationContext?) {
         ready = false
-        statusTracker.send(
+        emit(
             OpenFeatureProviderEvents.ProviderError(
                 OpenFeatureProviderEvents.EventDetails(
                     message = "AutoHealingProvider got an error. trying to heal",
@@ -45,19 +33,12 @@ class AutoHealingProvider(
         )
         delay(healDelay)
         ready = true
-        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
+        emit(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override fun shutdown() {
         ready = false
-        statusTracker.reset()
-    }
-
-    override suspend fun onContextSet(
-        oldContext: EvaluationContext?,
-        newContext: EvaluationContext
-    ) {
-        // no-op
+        super.shutdown()
     }
 
     override fun getBooleanEvaluation(

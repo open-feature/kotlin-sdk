@@ -5,6 +5,7 @@ import dev.openfeature.kotlin.sdk.helpers.BrokenInitProvider
 import dev.openfeature.kotlin.sdk.helpers.DoSomethingProvider
 import dev.openfeature.kotlin.sdk.helpers.SlowProvider
 import dev.openfeature.kotlin.sdk.helpers.SpyProvider
+import dev.openfeature.kotlin.sdk.helpers.TrackedProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -12,7 +13,6 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -187,7 +187,7 @@ class StatusTests {
         provider.replacementContextSetCompleted.receive()
         runCurrent()
 
-        provider.emitStale()
+        provider.emit(OpenFeatureProviderEvents.ProviderStale())
         runCurrent()
         assertEquals(OpenFeatureStatus.Stale, OpenFeatureAPI.getStatus())
 
@@ -213,7 +213,7 @@ class StatusTests {
 
         OpenFeatureAPI.setProviderAndWait(replacementProvider, dispatcher = dispatcher)
         runCurrent()
-        replacementProvider.emitStale()
+        replacementProvider.emit(OpenFeatureProviderEvents.ProviderStale())
         runCurrent()
         assertEquals(OpenFeatureStatus.Stale, OpenFeatureAPI.getStatus())
 
@@ -346,36 +346,12 @@ class StatusTests {
     }
 }
 
-private class DrivableProvider : NoOpProvider() {
-    private val statusTracker = ProviderStatusTracker()
+private class DrivableProvider : TrackedProvider()
 
-    override val status: OpenFeatureStatus get() = statusTracker.status
-
-    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
-
-    override suspend fun initialize(initialContext: EvaluationContext?) {
-        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
-    }
-
-    fun emit(event: OpenFeatureProviderEvents) = statusTracker.send(event)
-
-    override fun shutdown() = statusTracker.reset()
-}
-
-private class ControllableContextProvider : NoOpProvider() {
-    private val statusTracker = ProviderStatusTracker()
-
+private class ControllableContextProvider : TrackedProvider() {
     val contextSetStarted = Channel<Unit>(Channel.UNLIMITED)
     val allowContextSetToComplete = Channel<Unit>(Channel.UNLIMITED)
     val contextSetCompleted = Channel<Unit>(Channel.UNLIMITED)
-
-    override val status: OpenFeatureStatus get() = statusTracker.status
-
-    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
-
-    override suspend fun initialize(initialContext: EvaluationContext?) {
-        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
-    }
 
     override suspend fun onContextSet(
         oldContext: EvaluationContext?,
@@ -385,32 +361,15 @@ private class ControllableContextProvider : NoOpProvider() {
         allowContextSetToComplete.receive()
         contextSetCompleted.send(Unit)
     }
-
-    override fun shutdown() = statusTracker.reset()
 }
 
-private class CancellationRaceProvider : NoOpProvider() {
+private class CancellationRaceProvider : TrackedProvider() {
     val firstContextSetStarted = Channel<Unit>(Channel.UNLIMITED)
     val firstContextSetCancellationStarted = Channel<Unit>(Channel.UNLIMITED)
     val allowFirstContextSetToFinish = Channel<Unit>(Channel.UNLIMITED)
     val replacementContextSetCompleted = Channel<Unit>(Channel.UNLIMITED)
 
-    private val statusTracker = ProviderStatusTracker()
     private var contextSetCalls = 0
-
-    override val status: OpenFeatureStatus get() = statusTracker.status
-
-    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
-
-    override suspend fun initialize(initialContext: EvaluationContext?) {
-        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
-    }
-
-    override fun shutdown() = statusTracker.reset()
-
-    fun emitStale() {
-        statusTracker.send(OpenFeatureProviderEvents.ProviderStale())
-    }
 
     override suspend fun onContextSet(
         oldContext: EvaluationContext?,

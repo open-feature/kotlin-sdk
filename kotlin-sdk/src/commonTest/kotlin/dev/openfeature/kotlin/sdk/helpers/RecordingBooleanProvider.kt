@@ -1,45 +1,14 @@
 package dev.openfeature.kotlin.sdk.helpers
 
 import dev.openfeature.kotlin.sdk.EvaluationContext
-import dev.openfeature.kotlin.sdk.FeatureProvider
-import dev.openfeature.kotlin.sdk.Hook
-import dev.openfeature.kotlin.sdk.OpenFeatureStatus
 import dev.openfeature.kotlin.sdk.ProviderEvaluation
-import dev.openfeature.kotlin.sdk.ProviderMetadata
-import dev.openfeature.kotlin.sdk.ProviderStatusTracker
-import dev.openfeature.kotlin.sdk.Value
-import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
-import kotlinx.coroutines.flow.Flow
 
 class RecordingBooleanProvider(
-    private val name: String,
+    name: String,
     private val behavior: () -> ProviderEvaluation<Boolean>
-) : FeatureProvider {
-    private val statusTracker = ProviderStatusTracker()
-
-    override val status: OpenFeatureStatus get() = statusTracker.status
-
-    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
-
-    override val hooks: List<Hook<*>> = emptyList()
-    override val metadata: ProviderMetadata = object : ProviderMetadata {
-        override val name: String? = this@RecordingBooleanProvider.name
-    }
-
+) : TrackedProvider(metadata = NamedMetadata(name)) {
     var booleanEvalCalls: Int = 0
         private set
-
-    override suspend fun initialize(initialContext: EvaluationContext?) {
-        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
-    }
-
-    override fun shutdown() {
-        statusTracker.reset()
-    }
-
-    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
-        // no-op
-    }
 
     override fun getBooleanEvaluation(
         key: String,
@@ -48,45 +17,5 @@ class RecordingBooleanProvider(
     ): ProviderEvaluation<Boolean> {
         booleanEvalCalls += 1
         return behavior()
-    }
-
-    override fun getStringEvaluation(
-        key: String,
-        defaultValue: String,
-        context: EvaluationContext?
-    ): ProviderEvaluation<String> {
-        throw UnsupportedOperationException()
-    }
-
-    override fun getIntegerEvaluation(
-        key: String,
-        defaultValue: Int,
-        context: EvaluationContext?
-    ): ProviderEvaluation<Int> {
-        throw UnsupportedOperationException()
-    }
-
-    override fun getLongEvaluation(
-        key: String,
-        defaultValue: Long,
-        context: EvaluationContext?
-    ): ProviderEvaluation<Long> {
-        throw UnsupportedOperationException()
-    }
-
-    override fun getDoubleEvaluation(
-        key: String,
-        defaultValue: Double,
-        context: EvaluationContext?
-    ): ProviderEvaluation<Double> {
-        throw UnsupportedOperationException()
-    }
-
-    override fun getObjectEvaluation(
-        key: String,
-        defaultValue: Value,
-        context: EvaluationContext?
-    ): ProviderEvaluation<Value> {
-        throw UnsupportedOperationException()
     }
 }
