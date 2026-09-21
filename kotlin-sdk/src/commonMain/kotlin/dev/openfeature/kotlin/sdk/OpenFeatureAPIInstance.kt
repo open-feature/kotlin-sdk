@@ -103,10 +103,9 @@ open class OpenFeatureAPIInstance internal constructor() {
         dispatcher: CoroutineDispatcher
     ) {
         /** Serial, so this provider's lifecycle calls are entered in the order they were made. */
-        @OptIn(ExperimentalCoroutinesApi::class)
         val scope = CoroutineScope(
             SupervisorJob() +
-                dispatcher.limitedParallelism(1) +
+                dispatcher.serialized() +
                 CoroutineExceptionHandler { _, _ -> /* reported by dispatchLifecycle */ }
         )
 
@@ -513,6 +512,11 @@ inline fun <reified T : OpenFeatureProviderEvents> OpenFeatureAPIInstance.observ
 
 /** Provider name for a log line, or null: naming a provider must never fail a registration. */
 internal fun FeatureProvider.attributionName(): String? = runCatching { metadata.name }.getOrNull()
+
+/** Enters one lifecycle call at a time; Unconfined rejects limitedParallelism and cannot order. */
+@OptIn(ExperimentalCoroutinesApi::class)
+private fun CoroutineDispatcher.serialized(): CoroutineDispatcher =
+    if (this === Dispatchers.Unconfined) Dispatchers.Default.limitedParallelism(1) else limitedParallelism(1)
 
 /**
  * Simple identity-based registry. All lookups use referential equality (===) so that
