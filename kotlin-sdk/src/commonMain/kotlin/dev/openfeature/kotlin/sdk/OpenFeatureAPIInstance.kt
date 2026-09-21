@@ -466,7 +466,7 @@ open class OpenFeatureAPIInstance internal constructor() {
     /**
      * Claims [provider] for this instance.
      *
-     * @throws IllegalStateException if another instance already owns [provider]
+     * @throws IllegalStateException if another [OpenFeatureAPIInstance] already owns [provider]
      */
     private fun trackProviderBinding(provider: FeatureProvider) {
         if (provider is NoProvider) return
