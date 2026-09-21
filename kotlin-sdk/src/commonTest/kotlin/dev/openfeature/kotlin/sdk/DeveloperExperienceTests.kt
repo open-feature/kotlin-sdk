@@ -38,8 +38,11 @@ class DeveloperExperienceTests {
     @Test
     fun testNoProviderSet() = runTest {
         OpenFeatureAPI.clearProvider()
-        val stringValue = OpenFeatureAPI.getClient().getStringValue("test", "no-op")
-        assertEquals(stringValue, "no-op")
+        val details = OpenFeatureAPI.getClient().getStringDetails("test", "no-op")
+
+        assertEquals("no-op", details.value)
+        assertEquals(ErrorCode.PROVIDER_NOT_READY, details.errorCode)
+        assertEquals(Reason.ERROR.toString(), details.reason)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package dev.openfeature.kotlin.sdk
 
+import dev.openfeature.kotlin.sdk.exceptions.ErrorCode
 import dev.openfeature.kotlin.sdk.helpers.DoSomethingProvider
 import dev.openfeature.kotlin.sdk.helpers.GenericSpyHookMock
 import dev.openfeature.kotlin.sdk.helpers.SpyProvider
@@ -194,6 +195,18 @@ class IsolatedAPIInstanceTests {
         // Provider is now unbound, can be used by another instance
         OpenFeatureAPI.setProviderAndWait(provider, ImmutableContext())
         assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
+    }
+
+    @Test
+    fun testEvaluationBeforeAnyProviderIsRegisteredReportsNotReady() = runTest {
+        val instance = createInstance()
+
+        val details = instance.getClient().getBooleanDetails("test", false)
+
+        assertEquals(OpenFeatureStatus.NotReady, instance.getStatus())
+        assertEquals(false, details.value)
+        assertEquals(ErrorCode.PROVIDER_NOT_READY, details.errorCode)
+        assertEquals(Reason.ERROR.toString(), details.reason)
     }
 
     @Test
