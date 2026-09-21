@@ -433,6 +433,41 @@ class ProviderStatusTrackerTests {
     }
 
     @Test
+    fun aReconciliationJoiningAfterTheProviderBecameReadyReportsItsOutcome() = runTest {
+        val tracker = ProviderStatusTracker()
+        val firstStarted = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+
+        val received = record(tracker)
+        val first = launch {
+            tracker.reconciling {
+                firstStarted.complete(Unit)
+                releaseFirst.await()
+            }
+        }
+        firstStarted.await()
+        tracker.send(OpenFeatureProviderEvents.ProviderReady())
+        val second = launch { tracker.reconciling { } }
+        runCurrent()
+
+        releaseFirst.complete(Unit)
+        first.join()
+        second.join()
+        advanceUntilIdle()
+        received.stop()
+
+        assertEquals(
+            listOf(
+                OpenFeatureProviderEvents.ProviderReady::class,
+                OpenFeatureProviderEvents.ProviderReconciling::class,
+                OpenFeatureProviderEvents.ProviderContextChanged::class
+            ),
+            received.map { it::class }
+        )
+        assertEquals(OpenFeatureStatus.Ready, tracker.status)
+    }
+
+    @Test
     fun aCancelledReconciliationOnANotReadyProviderLeavesItNotReady() = runTest {
         val tracker = ProviderStatusTracker()
 
