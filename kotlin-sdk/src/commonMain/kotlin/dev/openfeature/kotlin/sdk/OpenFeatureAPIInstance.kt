@@ -121,9 +121,6 @@ open class OpenFeatureAPIInstance internal constructor() {
         SupervisorJob() + Dispatchers.Default
     )
 
-    /** Retirements still in flight, so a provider registered again is ordered after its teardown. */
-    private val retirements = mutableListOf<Pair<FeatureProvider, Job>>()
-
     private var context: EvaluationContext? = null
 
     var hooks: List<Hook<*>> = listOf()
@@ -152,10 +149,13 @@ open class OpenFeatureAPIInstance internal constructor() {
      * started its initialization; the provider reports readiness itself through its events. The
      * outgoing provider is shut down in the background, so this does not wait for its teardown.
      *
+     * A removed provider cannot be registered again until its shutdown has finished.
+     *
      * @param provider the provider to set
      * @param dispatcher the dispatcher this provider's lifecycle calls run on; a provider that is
      * already registered keeps the dispatcher it was first registered with
      * @param initialContext the initial [EvaluationContext] for provider initialization
+     * @throws IllegalStateException if the provider is bound to another instance or is still shutting down
      */
     fun setProvider(
         provider: FeatureProvider,
@@ -176,6 +176,7 @@ open class OpenFeatureAPIInstance internal constructor() {
      * @param initialContext the initial [EvaluationContext] for provider initialization
      * @param dispatcher the dispatcher this provider's lifecycle calls run on; pass the caller's own
      * to put the provider's lifecycle under a caller that controls time
+     * @throws IllegalStateException if the provider is bound to another instance or is still shutting down
      */
     suspend fun setProviderAndWait(
         provider: FeatureProvider,
@@ -200,8 +201,8 @@ open class OpenFeatureAPIInstance internal constructor() {
     ): Swap {
         lateinit var initialization: Job
         val commit = synchronized(stateLock) {
-            // Claimed under the lock that commits the swap, so a retirement of an earlier
-            // registration of this same provider cannot unbind what is about to be published.
+            // The binding and current registration together distinguish an active provider from a
+            // removed one whose shutdown has not finished.
             trackProviderBinding(newProvider)
             val previous = registration
             // Reusing the registration keeps this initialize ordered against the provider's own
@@ -214,11 +215,7 @@ open class OpenFeatureAPIInstance internal constructor() {
             // evaluations on one provider and statusFlow pinned to the other.
             providerRegistrations.value = current
             val initializationContext = context
-            val pendingRetirements = retirements.filter { it.first === newProvider }.map { it.second }
             initialization = current.dispatchLifecycle("initialize", CoroutineStart.LAZY) {
-                // A retirement of this provider that already committed to shutting it down is still
-                // running: initializing over it would race its teardown.
-                pendingRetirements.forEach { it.join() }
                 newProvider.initialize(initializationContext)
             }
             current.providerJob = initialization
@@ -260,42 +257,29 @@ open class OpenFeatureAPIInstance internal constructor() {
     }
 
     /**
-     * Retires a replaced registration: stops its lifecycle work, then unbinds and shuts its provider
-     * down away from the caller's thread, since `shutdown` releases resources and threads.
+     * Retires a replaced registration: stops its lifecycle work, then shuts down and unbinds the
+     * provider away from the caller's thread, since `shutdown` releases resources and threads.
      */
     private fun retire(retired: ProviderRegistration): Job {
         val cause = CancellationException("Provider registration was replaced")
         retired.providerJob?.cancel(cause)
         retired.contextSetJob?.cancel(cause)
         retired.scope.cancel(cause)
-        val job = retirementScope.launch(start = CoroutineStart.LAZY) { retireProvider(retired.provider) }
-        // Recorded before it can run, so a swap committing meanwhile finds it and waits for it.
-        synchronized(stateLock) { retirements += retired.provider to job }
-        job.invokeOnCompletion {
-            synchronized(stateLock) { retirements.removeAll { (_, pending) -> pending === job } }
-        }
-        job.start()
-        return job
+        return retirementScope.launch { retireProvider(retired.provider) }
     }
 
     /**
      * Shuts a provider down and unbinds it.
      *
-     * Only for a provider that is actually being dropped: re-registering the same instance must not
-     * shut it down, whether the registration was reused or this retirement was simply outrun.
-     *
-     * The binding outlives `shutdown`, so another instance claiming it meanwhile is refused.
+     * The binding outlives `shutdown`, so registration with any instance is refused until it finishes.
      */
     private fun retireProvider(provider: FeatureProvider) {
         // Nothing escapes to the retirement scope, which has no handler of its own.
         try {
-            if (synchronized(stateLock) { registration.provider === provider }) return
             try {
                 provider.shutdown()
             } finally {
-                synchronized(stateLock) {
-                    if (registration.provider !== provider) untrackProviderBinding(provider)
-                }
+                untrackProviderBinding(provider)
             }
         } catch (e: Throwable) {
             logger.warn({ "Provider ${provider.attributionName()} failed to shut down" }, throwable = e)
@@ -461,9 +445,10 @@ open class OpenFeatureAPIInstance internal constructor() {
         providerRegistrations.flatMapLatest { it.provider.observe() }
 
     /**
-     * Claims [provider] for this instance.
+     * Claims [provider] for this instance. Called with [stateLock] held.
      *
-     * @throws IllegalStateException if another [OpenFeatureAPIInstance] already owns [provider]
+     * @throws IllegalStateException if another [OpenFeatureAPIInstance] owns [provider], or its
+     * shutdown here is still pending
      */
     private fun trackProviderBinding(provider: FeatureProvider) {
         if (provider is NoProvider) return
@@ -474,6 +459,10 @@ open class OpenFeatureAPIInstance internal constructor() {
                     "Provider ${provider.metadata.name} is already bound to another OpenFeature API instance. " +
                         "A provider should not be bound to multiple API instances simultaneously."
                 )
+            }
+            check(existingOwner !== this || registration.provider === provider) {
+                "Provider ${provider.attributionName()} is still shutting down. " +
+                    "Wait for shutdown to finish before registering it again."
             }
             boundProviders.setOwner(provider, this)
         }

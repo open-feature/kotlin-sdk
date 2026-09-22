@@ -394,6 +394,10 @@ See the [Multi-Provider documentation](docs/multiprovider/README.md) for more de
 The OpenFeature API provides a close function to perform a cleanup of the registered provider.
 This should only be called when your application is in the process of shutting down.
 
+Re-registering a removed provider instance while its shutdown is pending throws `IllegalStateException`.
+Use a fresh provider instance, or await the operation that shuts down the previous registration before
+reusing it. Reuse after shutdown requires a provider that supports reinitialization.
+
 ```kotlin
 coroutineScope.launch {
     OpenFeatureAPI.shutdown()

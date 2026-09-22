@@ -7,8 +7,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -21,9 +21,9 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.seconds
 
 private const val ORDERING_ITERATIONS = 300
 private const val TRACKER_ITERATIONS = 500
@@ -153,27 +153,35 @@ class ProviderConcurrencyTest {
     }
 
     @Test
-    fun aProviderRegisteredAgainWhileItsRetirementIsPendingIsNotTornDown() {
+    fun aProviderCannotBeRegisteredAgainUntilShutdownFinishes() = runBlocking {
         val instance = createOpenFeatureAPIInstance()
         val provider = BlockingShutdownProvider()
-        runBlocking { instance.setProviderAndWait(provider) }
+        instance.setProviderAndWait(provider)
 
-        instance.setProvider(NoOpProvider())
-        assertTrue(
-            provider.shutdownEntered.await(TIMEOUT_SECONDS, TimeUnit.SECONDS),
-            "the replaced provider was never retired"
-        )
-
-        instance.setProvider(provider)
-        provider.releaseShutdown.countDown()
-
-        runBlocking {
-            withTimeout(TIMEOUT_SECONDS.seconds) {
-                instance.statusFlow.first { it == OpenFeatureStatus.Ready }
+        val replacement = NoOpProvider()
+        val replacing = async(Dispatchers.Default) { instance.setProviderAndWait(replacement) }
+        try {
+            assertTrue(
+                provider.shutdownEntered.await(TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                "the replaced provider was never retired"
+            )
+            assertFailsWith<IllegalStateException> {
+                instance.setProvider(provider, initialContext = ImmutableContext("rejected"))
             }
+            assertFailsWith<IllegalStateException> {
+                instance.setProviderAndWait(provider)
+            }
+            assertSame(replacement, instance.getProvider())
+            assertEquals(null, instance.getEvaluationContext())
+        } finally {
+            provider.releaseShutdown.countDown()
+            replacing.await()
         }
-        assertTrue(instance.getProvider() === provider)
+
+        instance.setProviderAndWait(provider)
+        assertSame(provider, instance.getProvider())
         assertEquals(OpenFeatureStatus.Ready, instance.getStatus())
+        instance.clearProvider()
     }
 
     @Test
