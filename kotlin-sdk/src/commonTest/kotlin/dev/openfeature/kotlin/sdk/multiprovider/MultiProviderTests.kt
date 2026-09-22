@@ -19,6 +19,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
@@ -324,6 +325,82 @@ class MultiProviderTests {
             ),
             collected.map { it::class }
         )
+    }
+
+    @Test
+    fun recoveryReportsContextChangedOnlyAfterSuccessfulReconciliation() = runTest {
+        for (overlapping in listOf(false, true)) {
+            for (cancelLast in listOf(false, true)) {
+                val provider = FakeEventProvider(
+                    name = "A",
+                    eventsToEmitOnInit = listOf(OpenFeatureProviderEvents.ProviderReady()),
+                    gateContextSet = true
+                )
+                val multi = MultiProvider(listOf(provider))
+                val collected = mutableListOf<OpenFeatureProviderEvents>()
+                val collectJob = backgroundScope.launch { multi.observe().collect { collected.add(it) } }
+                try {
+                    multi.initialize(null)
+                    runCurrent()
+                    collected.clear()
+
+                    val first = launch { multi.onContextSet(null, ImmutableContext("first")) }
+                    provider.contextSetStarted.receive()
+                    val last = if (overlapping) {
+                        launch { multi.onContextSet(null, ImmutableContext("second")) }.also {
+                            provider.contextSetStarted.receive()
+                        }
+                    } else {
+                        first
+                    }
+
+                    provider.emit(OpenFeatureProviderEvents.ProviderStale())
+                    runCurrent()
+                    provider.emit(OpenFeatureProviderEvents.ProviderContextChanged())
+                    runCurrent()
+
+                    if (overlapping) {
+                        provider.allowContextSetToComplete.send(Unit)
+                        first.join()
+                        runCurrent()
+                    }
+                    assertEquals(
+                        listOf(
+                            OpenFeatureProviderEvents.ProviderReconciling(),
+                            OpenFeatureProviderEvents.ProviderStale()
+                        ),
+                        collected
+                    )
+
+                    if (cancelLast) {
+                        last.cancelAndJoin()
+                    } else {
+                        provider.allowContextSetToComplete.send(Unit)
+                        last.join()
+                    }
+                    runCurrent()
+
+                    val completion = if (overlapping || !cancelLast) {
+                        OpenFeatureProviderEvents.ProviderContextChanged()
+                    } else {
+                        OpenFeatureProviderEvents.ProviderReady()
+                    }
+                    assertEquals(OpenFeatureStatus.Ready, multi.status)
+                    assertEquals(
+                        listOf(
+                            OpenFeatureProviderEvents.ProviderReconciling(),
+                            OpenFeatureProviderEvents.ProviderStale(),
+                            completion
+                        ),
+                        collected,
+                        "overlapping=$overlapping, cancelLast=$cancelLast"
+                    )
+                } finally {
+                    collectJob.cancelAndJoin()
+                    multi.shutdown()
+                }
+            }
+        }
     }
 
     @Test

@@ -158,6 +158,7 @@ class MultiProvider(
 
     private val statusLock = SynchronizedObject()
     private var openReconciliations = 0
+    private var reconciliationSucceeded = false
 
     /**
      * @return Number of unique providers
@@ -249,7 +250,10 @@ class MultiProvider(
      * Aggregating and reporting are one critical section: two children transitioning concurrently
      * would otherwise let the thread holding the older aggregate report last.
      */
-    private fun updateStatus(trigger: OpenFeatureProviderEvents? = null) = synchronized(statusLock) {
+    private fun updateStatus(
+        trigger: OpenFeatureProviderEvents? = null,
+        contextChanged: Boolean = false
+    ) = synchronized(statusLock) {
         val aggregate = strategy.status(childFeatureProviders)
         val details = trigger?.eventDetails
         val current = statusTracker.status
@@ -266,7 +270,11 @@ class MultiProvider(
         if (aggregate is OpenFeatureStatus.Ready && openReconciliations > 0) return@synchronized
 
         val event = when (aggregate) {
-            is OpenFeatureStatus.Ready -> OpenFeatureProviderEvents.ProviderReady(details)
+            is OpenFeatureStatus.Ready -> if (contextChanged) {
+                OpenFeatureProviderEvents.ProviderContextChanged(details)
+            } else {
+                OpenFeatureProviderEvents.ProviderReady(details)
+            }
             is OpenFeatureStatus.Stale -> OpenFeatureProviderEvents.ProviderStale(details)
             is OpenFeatureStatus.Reconciling -> OpenFeatureProviderEvents.ProviderReconciling(details)
             // The child's details are kept with the aggregate's error over the top: rebuilding from
@@ -336,7 +344,9 @@ class MultiProvider(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) {
-        synchronized(statusLock) { openReconciliations++ }
+        synchronized(statusLock) {
+            if (openReconciliations++ == 0) reconciliationSucceeded = false
+        }
         try {
             statusTracker.reconciling {
                 coroutineScope {
@@ -347,13 +357,15 @@ class MultiProvider(
                         .awaitAll()
                 }
                 updateStatus()
+                synchronized(statusLock) { reconciliationSucceeded = true }
             }
         } finally {
             // Dropped only once the tracker has reported the outcome, which its own finally does
             // before this one runs.
-            val settled = synchronized(statusLock) { --openReconciliations == 0 }
-            // Nothing else reports a recovery that landed while the reconciliation suppressed it.
-            if (settled) updateStatus()
+            synchronized(statusLock) {
+                // Reports a recovery the reconciliation suppressed, as the outcome it belongs to.
+                if (--openReconciliations == 0) updateStatus(contextChanged = reconciliationSucceeded)
+            }
         }
     }
 
