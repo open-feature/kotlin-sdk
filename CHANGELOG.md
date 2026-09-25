@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.9.0](https://github.com/open-feature/kotlin-sdk/compare/v0.8.0...v0.9.0) (2026-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* add isolated api instances ([#243](https://github.com/open-feature/kotlin-sdk/issues/243))
+* Remove deprecated ProviderNotReady event ([#239](https://github.com/open-feature/kotlin-sdk/issues/239))
+* Add observe() method to Client interface ([#234](https://github.com/open-feature/kotlin-sdk/issues/234))
+* Adding Long type support ([#225](https://github.com/open-feature/kotlin-sdk/issues/225))
+
+### 🐛 Bug Fixes
+
+* reconcile evaluation context on every set ([#251](https://github.com/open-feature/kotlin-sdk/issues/251)) ([a530753](https://github.com/open-feature/kotlin-sdk/commit/a530753428264112c706b451a07ba4f6c7d2b957))
+* snapshot provider and context for track and evaluation ([#253](https://github.com/open-feature/kotlin-sdk/issues/253)) ([4e865ce](https://github.com/open-feature/kotlin-sdk/commit/4e865ce2d45efe5558312f2d42585de53aac5679))
+* validate documentation links in CI ([#257](https://github.com/open-feature/kotlin-sdk/issues/257)) ([a889712](https://github.com/open-feature/kotlin-sdk/commit/a8897122167e81421ec8f86b4157168597a23fdd))
+
+
+### ✨ New Features
+
+* add isolated api instances ([#243](https://github.com/open-feature/kotlin-sdk/issues/243)) ([43a7c91](https://github.com/open-feature/kotlin-sdk/commit/43a7c91504c48f333826686f821599efe723d4f5))
+* Add observe() method to Client interface ([#234](https://github.com/open-feature/kotlin-sdk/issues/234)) ([134f97d](https://github.com/open-feature/kotlin-sdk/commit/134f97d176ddc05a98cd8c5c734bb289a899ead6))
+* Adding Long type support ([#225](https://github.com/open-feature/kotlin-sdk/issues/225)) ([37bdea7](https://github.com/open-feature/kotlin-sdk/commit/37bdea76ba2aa8b2ff7cde443cfd676039c6d92c))
+* Remove deprecated ProviderNotReady event ([#239](https://github.com/open-feature/kotlin-sdk/issues/239)) ([bbab739](https://github.com/open-feature/kotlin-sdk/commit/bbab739372c77bea84357f219f325a8779da716f))
+
+
+### 🧹 Chore
+
+* **deps:** replace google-github-actions/release-please-action action with googleapis/release-please-action v3 ([#193](https://github.com/open-feature/kotlin-sdk/issues/193)) ([cfe7ac4](https://github.com/open-feature/kotlin-sdk/commit/cfe7ac44d92aef0366e4e6cb8bd01ce070ea06d7))
+* **deps:** Revert "update dependency org.jetbrains.kotlinx:kotlinx-collections-immutable to v0.5.2" ([#278](https://github.com/open-feature/kotlin-sdk/issues/278)) ([b0dc739](https://github.com/open-feature/kotlin-sdk/commit/b0dc739fb2e9a0a982502700fdf6b46c121cc951))
+* **deps:** update actions/checkout action to v5.1.0 ([#267](https://github.com/open-feature/kotlin-sdk/issues/267)) ([34b9215](https://github.com/open-feature/kotlin-sdk/commit/34b9215d0884e5bdcad1666665dcc4b0340742fc))
+* **deps:** update actions/setup-java action to v5.7.0 ([#268](https://github.com/open-feature/kotlin-sdk/issues/268)) ([8da3b2c](https://github.com/open-feature/kotlin-sdk/commit/8da3b2cfc38d7457a23693c7bf4bd4ec460b23c8))
+* **deps:** update amannn/action-semantic-pull-request action to v6.1.1 ([#269](https://github.com/open-feature/kotlin-sdk/issues/269)) ([1866acf](https://github.com/open-feature/kotlin-sdk/commit/1866acf1281ae1e3756d6f8586ea8d2cf535beaa))
+* **deps:** update browser-actions/setup-chrome action to v2.2.0 ([#270](https://github.com/open-feature/kotlin-sdk/issues/270)) ([3ec9237](https://github.com/open-feature/kotlin-sdk/commit/3ec9237e83fee4028b415c4739b3c0fc0afc782b))
+* **deps:** update dependency org.jetbrains.kotlinx:atomicfu to v0.33.0 ([#271](https://github.com/open-feature/kotlin-sdk/issues/271)) ([fd78cc3](https://github.com/open-feature/kotlin-sdk/commit/fd78cc39c4a3dcf3c8d0e52cd854a61b312ce2e6))
+* **deps:** update dependency org.jetbrains.kotlinx:kotlinx-collections-immutable to v0.5.2 ([#272](https://github.com/open-feature/kotlin-sdk/issues/272)) ([9349c98](https://github.com/open-feature/kotlin-sdk/commit/9349c98a13c8b33f5b17c4828ea7840662909993))
+* **deps:** update gradle/actions action to v5.0.2 ([#265](https://github.com/open-feature/kotlin-sdk/issues/265)) ([9ec2dff](https://github.com/open-feature/kotlin-sdk/commit/9ec2dff33928472c99a9536f35922c784260a597))
+* **deps:** update marocchino/sticky-pull-request-comment action to v2.9.4 ([#274](https://github.com/open-feature/kotlin-sdk/issues/274)) ([facf40d](https://github.com/open-feature/kotlin-sdk/commit/facf40d188244a5c5e4e2b4d4eeb46dc2c758477))
+* **deps:** update plugin com.android.application to v8.13.2 ([#194](https://github.com/open-feature/kotlin-sdk/issues/194)) ([582f2b8](https://github.com/open-feature/kotlin-sdk/commit/582f2b816f975a6e1becac63b4327830b9c46698))
+* **deps:** update plugin com.android.library to v8.13.2 ([#201](https://github.com/open-feature/kotlin-sdk/issues/201)) ([6e205c9](https://github.com/open-feature/kotlin-sdk/commit/6e205c9813c9856ea7254e2e5ab9748b646e20a3))
+* **deps:** update plugin com.vanniktech.maven.publish to v0.37.0 ([#247](https://github.com/open-feature/kotlin-sdk/issues/247)) ([5ac781a](https://github.com/open-feature/kotlin-sdk/commit/5ac781a36ab47814c42158c5ea6833cabc76410a))
+* **deps:** update plugin org.jetbrains.dokka to v2.2.0 ([#275](https://github.com/open-feature/kotlin-sdk/issues/275)) ([788c12b](https://github.com/open-feature/kotlin-sdk/commit/788c12b3a1398e55c36e968c502c2cd7a870ce56))
+* **deps:** update plugin org.jetbrains.kotlinx.binary-compatibility-validator to v0.18.2 ([#266](https://github.com/open-feature/kotlin-sdk/issues/266)) ([96aeae5](https://github.com/open-feature/kotlin-sdk/commit/96aeae52d30f1f0e5ab655918cdb60ce5cc36321))
+* extend from org renovate config ([#263](https://github.com/open-feature/kotlin-sdk/issues/263)) ([0dc2b1f](https://github.com/open-feature/kotlin-sdk/commit/0dc2b1fd1371bc80daa49bd2d1efc2531fa50980))
+
+
+### 📚 Documentation
+
+* fix link for Domains section in README ([#244](https://github.com/open-feature/kotlin-sdk/issues/244)) ([689485d](https://github.com/open-feature/kotlin-sdk/commit/689485d0e8b73710a0f0c14bfb062a35a18467eb))
+* mark Logging as complete, Domains as in-progress in feature table ([#236](https://github.com/open-feature/kotlin-sdk/issues/236)) ([f50d9d9](https://github.com/open-feature/kotlin-sdk/commit/f50d9d9c342a1b319e223eb3b3e1074d81a60fcb))
+
 ## [0.8.0](https://github.com/open-feature/kotlin-sdk/compare/v0.7.2...v0.8.0) (2026-04-21)
 
 
