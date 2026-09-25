@@ -76,7 +76,7 @@ class NoOpLogger : Logger {
 /**
  * Formats a log line by appending structured attributes as `key=value` pairs and,
  * if present, the throwable stack trace. Used by string-only logging backends
- * (Android Logcat, JVM stdout, iOS NSLog, Linux stderr) that have no native
+ * (Android Logcat, JVM stdout, iOS NSLog, Linux stderr, Wasm console) that have no native
  * structured key-value API.
  *
  * @param message the pre-built message string (may already include a level/tag prefix)

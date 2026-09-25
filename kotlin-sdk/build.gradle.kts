@@ -1,5 +1,6 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -52,19 +53,27 @@ kotlin {
             }
         }
     }
-    iosArm64()
-    iosSimulatorArm64()
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        nodejs {}
+        browser {
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
             implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.5.2")
             implementation("org.jetbrains.kotlinx:atomicfu:0.33.0")
         }
         commonTest.dependencies {
             implementation("org.jetbrains.kotlin:kotlin-test:2.4.20")
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.7.3")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
             implementation("org.jetbrains.kotlinx:atomicfu:0.33.0")
         }
     }
