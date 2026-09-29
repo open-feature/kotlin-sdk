@@ -5,10 +5,17 @@
 
 ### ⚠ BREAKING CHANGES
 
-* add isolated api instances ([#243](https://github.com/open-feature/kotlin-sdk/issues/243))
-* Remove deprecated ProviderNotReady event ([#239](https://github.com/open-feature/kotlin-sdk/issues/239))
-* Add observe() method to Client interface ([#234](https://github.com/open-feature/kotlin-sdk/issues/234))
-* Adding Long type support ([#225](https://github.com/open-feature/kotlin-sdk/issues/225))
+* `OpenFeatureAPI` is now a top-level value backed by `OpenFeatureAPIInstance` ([#243](https://github.com/open-feature/kotlin-sdk/pull/243)).
+* `ProviderNotReady` and the `ProviderError.error` property were removed ([#239](https://github.com/open-feature/kotlin-sdk/pull/239)).
+* `Client` now requires `observe()` ([#234](https://github.com/open-feature/kotlin-sdk/pull/234)).
+* `FeatureProvider`, `Client`, and `Features` now support `Long` values ([#225](https://github.com/open-feature/kotlin-sdk/pull/225)).
+
+#### Migration instructions
+
+* **API instances:** Calls such as `OpenFeatureAPI.getClient()` still work. Replace uses of `OpenFeatureAPI` as a type with `OpenFeatureAPIInstance`. To create independent state, call `createOpenFeatureAPIInstance()` from `dev.openfeature.kotlin.sdk.isolated` and opt in with `@OptIn(ExperimentalIsolatedApi::class)`. Recompile JVM/Android consumers against 0.9.0 because the former singleton's binary API changed.
+* **Provider events:** Replace `OpenFeatureProviderEvents.ProviderNotReady` with readiness checks through `statusFlow` or `OpenFeatureAPI.getStatus()` and `OpenFeatureStatus.NotReady`. Do not emit a replacement provider event. Replace `ProviderError(error = ...)` with `ProviderError(OpenFeatureProviderEvents.EventDetails(message = "...", errorCode = ErrorCode.GENERAL))`, choosing the appropriate `ErrorCode`. Update code reading or copying the removed `error` property.
+* **Client observation:** Add `fun observe(): Flow<OpenFeatureProviderEvents>` to custom `Client` implementations and return that client's provider event flow. `OpenFeatureClient` already implements it. Filter for a specific event with `client.observe().filterIsInstance<OpenFeatureProviderEvents.ProviderStale>()`.
+* **Long values:** Add `getLongEvaluation(key: String, defaultValue: Long, context: EvaluationContext?): ProviderEvaluation<Long>` to custom `FeatureProvider` implementations. Add the `getLongValue` and `getLongDetails` overloads to custom `Client` or `Features` implementations. Handle `Value.Long` and `FlagValueType.LONG` in exhaustive `when` expressions. Evaluate 64-bit integer flags with `client.getLongValue("flag-key", 0L)`.
 
 ### 🐛 Bug Fixes
 
