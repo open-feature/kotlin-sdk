@@ -3,6 +3,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
 name: Run Release Please
 jobs:
   release-please:
@@ -10,13 +14,10 @@ jobs:
 
     # Release-please creates a PR that tracks all changes
     steps:
-      - uses: googleapis/release-please-action@v3
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         id: release
         with:
-          release-type: simple
-          command: manifest
-          token: ${{secrets.GITHUB_TOKEN}}
-          default-branch: main
+          token: ${{secrets.RELEASE_PLEASE_ACTION_TOKEN}}
 
       - name: Dump Release Please Output
         env:
@@ -25,12 +26,12 @@ jobs:
           echo "$RELEASE_PLEASE_OUTPUT"
 
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
+      release_created: ${{ steps.release.outputs.releases_created }}
 
   kotlin-release:
     needs: release-please
     runs-on: macos-latest
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: ${{ fromJSON(needs.release-please.outputs.release_created || false) }}
     steps:
       # The logic below handles the github release:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
