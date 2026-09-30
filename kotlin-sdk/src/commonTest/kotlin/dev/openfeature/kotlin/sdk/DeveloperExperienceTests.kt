@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -37,13 +38,20 @@ class DeveloperExperienceTests {
     @Test
     fun testNoProviderSet() = runTest {
         OpenFeatureAPI.clearProvider()
-        val stringValue = OpenFeatureAPI.getClient().getStringValue("test", "no-op")
-        assertEquals(stringValue, "no-op")
+        val details = OpenFeatureAPI.getClient().getStringDetails("test", "no-op")
+
+        assertEquals("no-op", details.value)
+        assertEquals(ErrorCode.PROVIDER_NOT_READY, details.errorCode)
+        assertEquals(Reason.ERROR.toString(), details.reason)
     }
 
     @Test
     fun testSimpleBooleanFlag() = runTest {
-        OpenFeatureAPI.setProviderAndWait(NoOpProvider(), ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            NoOpProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         val booleanValue = OpenFeatureAPI.getClient().getBooleanValue("test", false)
         assertFalse(booleanValue)
     }
@@ -111,7 +119,11 @@ class DeveloperExperienceTests {
 
     @Test
     fun testClientHooks() = runTest {
-        OpenFeatureAPI.setProviderAndWait(NoOpProvider(), ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            NoOpProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         val client = OpenFeatureAPI.getClient()
 
         val hook = GenericSpyHookMock()
@@ -123,7 +135,11 @@ class DeveloperExperienceTests {
 
     @Test
     fun testEvalHooks() = runTest {
-        OpenFeatureAPI.setProviderAndWait(NoOpProvider(), ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            NoOpProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         val client = OpenFeatureAPI.getClient()
 
         val hook = GenericSpyHookMock()
@@ -135,7 +151,11 @@ class DeveloperExperienceTests {
 
     @Test
     fun testBrokenProvider() = runTest {
-        OpenFeatureAPI.setProviderAndWait(BrokenInitProvider(), ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            BrokenInitProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         testScheduler.advanceUntilIdle()
         val client = OpenFeatureAPI.getClient()
 
@@ -151,7 +171,8 @@ class DeveloperExperienceTests {
         val job = CoroutineScope(dispatcher).launch {
             OpenFeatureAPI.setProviderAndWait(
                 SlowProvider(dispatcher = dispatcher),
-                ImmutableContext()
+                ImmutableContext(),
+                dispatcher = dispatcher
             )
         }
         testScheduler.advanceTimeBy(1) // Make sure setProviderAndWait is called
@@ -165,7 +186,11 @@ class DeveloperExperienceTests {
 
     @Test
     fun testSetProviderAndWaitError() = runTest {
-        OpenFeatureAPI.setProviderAndWait(BrokenInitProvider(), ImmutableContext())
+        OpenFeatureAPI.setProviderAndWait(
+            BrokenInitProvider(),
+            ImmutableContext(),
+            dispatcher = StandardTestDispatcher(testScheduler)
+        )
         val booleanValue = OpenFeatureAPI.getClient().getBooleanValue("test", false)
         assertFalse(booleanValue)
     }
@@ -182,7 +207,8 @@ class DeveloperExperienceTests {
         // start out with Not Ready
         OpenFeatureAPI.setProviderAndWait(
             SlowProvider(dispatcher = dispatcher),
-            ImmutableContext(targetingKey = "0")
+            ImmutableContext(targetingKey = "0"),
+            dispatcher = dispatcher
         )
         testScheduler.advanceUntilIdle()
         // After 2 seconds the slow provider is ready
@@ -219,7 +245,8 @@ class DeveloperExperienceTests {
         // start out with Not Ready
         OpenFeatureAPI.setProviderAndWait(
             BrokenInitProvider(),
-            ImmutableContext(targetingKey = "0")
+            ImmutableContext(targetingKey = "0"),
+            dispatcher = StandardTestDispatcher(testScheduler)
         )
         testScheduler.advanceUntilIdle()
 
@@ -231,32 +258,45 @@ class DeveloperExperienceTests {
         OpenFeatureAPI.shutdown()
         testScheduler.advanceUntilIdle()
         job.cancelAndJoin()
-        assertEquals(5, emittedStatuses.size)
+        // BrokenInitProvider reports its failure and then reconciles without reporting anything, so
+        // the context set contributes no transition: the SDK no longer invents one on its behalf.
+        assertEquals(3, emittedStatuses.size, "collected $emittedStatuses")
         assertTrue(emittedStatuses[0] is OpenFeatureStatus.NotReady)
         assertTrue(emittedStatuses[1] is OpenFeatureStatus.Error)
         assertTrue((emittedStatuses[1] as OpenFeatureStatus.Error).error is OpenFeatureError.ProviderNotReadyError)
-        assertTrue(emittedStatuses[2] is OpenFeatureStatus.Reconciling)
-        assertTrue(emittedStatuses[3] is OpenFeatureStatus.Ready)
-        assertTrue(emittedStatuses[4] is OpenFeatureStatus.NotReady)
+        assertTrue(emittedStatuses[2] is OpenFeatureStatus.NotReady)
     }
 
     @Test
     fun testProviderThatErrorsButHealsThenReady() = runTest {
         val healDelayMillis: Long = 100
         val healing = AutoHealingProvider(healDelay = healDelayMillis)
+        val statuses = mutableListOf<OpenFeatureStatus>()
+        val collector = launch { OpenFeatureAPI.statusFlow.collect { statuses.add(it) } }
+        runCurrent()
+
+        // A test dispatcher, so the SDK's subscription to the provider is established before
+        // initialize emits: on Dispatchers.Default the error is raced away and never observed.
         val job = async {
-            OpenFeatureAPI.setProviderAndWait(healing, ImmutableContext())
-        }
-        waitAssert {
-            assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
-        }
-        waitAssert {
-            assertTrue(OpenFeatureAPI.getStatus() is OpenFeatureStatus.Error)
+            OpenFeatureAPI.setProviderAndWait(
+                healing,
+                ImmutableContext(),
+                dispatcher = StandardTestDispatcher(testScheduler)
+            )
         }
         waitAssert {
             assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
         }
         job.cancelAndJoin()
+        collector.cancelAndJoin()
+
+        // The error is transient — the provider heals after healDelayMillis — so it is only visible
+        // in the collected sequence, not by polling getStatus().
+        assertTrue(
+            statuses.any { it is OpenFeatureStatus.Error },
+            "expected the provider to report an error before healing, collected $statuses"
+        )
+        assertEquals(OpenFeatureStatus.Ready, statuses.last())
         OpenFeatureAPI.shutdown()
         advanceUntilIdle()
     }
@@ -283,7 +323,8 @@ class DeveloperExperienceTests {
 
         OpenFeatureAPI.setProviderAndWait(
             firstProvider,
-            initialContext = ImmutableContext("first")
+            initialContext = ImmutableContext("first"),
+            dispatcher = StandardTestDispatcher(testScheduler)
         )
         testScheduler.advanceUntilIdle()
         waitAssert {
@@ -291,7 +332,8 @@ class DeveloperExperienceTests {
         }
         OpenFeatureAPI.setProviderAndWait(
             secondProvider,
-            initialContext = ImmutableContext("second")
+            initialContext = ImmutableContext("second"),
+            dispatcher = StandardTestDispatcher(testScheduler)
         )
         testScheduler.advanceUntilIdle()
         waitAssert {
@@ -338,7 +380,8 @@ class DeveloperExperienceTests {
         // emits ProviderReady
         OpenFeatureAPI.setProviderAndWait(
             provider,
-            initialContext = ImmutableContext("first")
+            initialContext = ImmutableContext("first"),
+            dispatcher = StandardTestDispatcher(testScheduler)
         )
         // emits ProviderStale + ProviderStale + ProviderStale
         OpenFeatureAPI.getClient().track("hello-world")
@@ -364,7 +407,7 @@ class DeveloperExperienceTests {
     fun setEvaluationContextUsesImmutableCopyOfAttributes() = runTest {
         val map = mutableMapOf<String, Value>()
         val provider = SpyProvider()
-        OpenFeatureAPI.setProviderAndWait(provider)
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
         assertEquals(1, provider.initializeCalls.size)
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(attributes = map))
         assertEquals(1, provider.onContextSetCalls.size)
@@ -383,7 +426,7 @@ class DeveloperExperienceTests {
             attributes = mapOf("key" to Value.String("value"))
         )
         val provider = SpyProvider()
-        OpenFeatureAPI.setProviderAndWait(provider)
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
 
         OpenFeatureAPI.setEvaluationContextAndWait(context)
         val emittedStatuses = mutableListOf<OpenFeatureStatus>()
@@ -422,7 +465,7 @@ class DeveloperExperienceTests {
             attributes = mapOf("key" to Value.String("value"))
         )
         val provider = SpyProvider()
-        OpenFeatureAPI.setProviderAndWait(provider)
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
         assertTrue(firstContext !== secondContext)
 
         OpenFeatureAPI.setEvaluationContextAndWait(firstContext)
@@ -440,7 +483,7 @@ class DeveloperExperienceTests {
         map["nested"] = Value.Structure(nestedMap)
 
         val provider = SpyProvider()
-        OpenFeatureAPI.setProviderAndWait(provider)
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
         assertEquals(1, provider.initializeCalls.size)
 
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(attributes = map))
@@ -464,7 +507,7 @@ class DeveloperExperienceTests {
         map["nested"] = Value.List(nestedList)
 
         val provider = SpyProvider()
-        OpenFeatureAPI.setProviderAndWait(provider)
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
         assertEquals(1, provider.initializeCalls.size)
 
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext(attributes = map))

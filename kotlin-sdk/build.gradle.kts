@@ -83,6 +83,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    testOptions {
+        unitTests {
+            // The SDK logs through android.util.Log, which throws in the stub android.jar unit tests
+            // run against.
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 // Configure Dokka for documentation

@@ -65,7 +65,9 @@ Children are evaluated in the order provided. Put the most authoritative or fast
 
 ### Events and status aggregation
 
-`MultiProvider` listens to child provider events and emits a single, aggregate status via `OpenFeatureAPI.statusFlow`. Per the OpenFeature specification: a child stays `NOT_READY` until it emits `PROVIDER_READY`, `PROVIDER_ERROR`, or `PROVIDER_STALE` (or only `PROVIDER_CONFIGURATION_CHANGED`, which does not change readiness). The highest-precedence status among children wins:
+`MultiProvider` owns a `ProviderStatusTracker` like any other provider, and reports a single aggregate status through it. A child stays `NOT_READY` until it reports `PROVIDER_READY`, `PROVIDER_ERROR` or `PROVIDER_STALE`; `PROVIDER_CONFIGURATION_CHANGED` carries no status and does not change readiness.
+
+Aggregation is `Strategy.status(providers)`, which you can override. The default reports the most severe child status, which is the order the specification's [Multi-Provider appendix](https://openfeature.dev/specification/appendix-a/#status-and-event-handling) defines:
 
 1. Fatal
 2. NotReady
@@ -73,11 +75,11 @@ Children are evaluated in the order provided. Put the most authoritative or fast
 4. Reconciling / Stale
 5. Ready
 
-`ProviderConfigurationChanged` is re-emitted as-is. When the aggregate status changes due to a child event, the original triggering event is also emitted.
+An aggregate transition carries the `EventDetails` of the child event that triggered it.
 
 ### Context propagation
 
-When the evaluation context changes, `MultiProvider` calls `onContextSet` on all child providers concurrently. Aggregate status transitions to Reconciling and then back to Ready (or Error) in line with SDK behavior.
+When the evaluation context changes, `MultiProvider` reconciles through its `ProviderStatusTracker`: `PROVIDER_RECONCILING` is reported once even across overlapping context sets, `onContextSet` is called on all child providers concurrently, and only the last invocation to terminate reports an outcome.
 
 ### Provider metadata
 
