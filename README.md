@@ -45,7 +45,7 @@ The following [Kotlin Multiplatform Targets](https://www.jetbrains.com/help/kotl
 | ❌         | Native               | [Other native targets](https://kotlinlang.org/docs/native-target-support.html) |
 | ✅         | Javascript (Node.js) |                                                                                |
 | ✅         | Javascript (Browser) |                                                                                |
-| ❌         | Wasm                 |                                                                                |
+| ✅         | Wasm (wasmJs)        | Node.js, Browser                                                               |
 
 
 Note that this library adheres to the
@@ -236,6 +236,7 @@ Platform-specific loggers are created via `LoggerFactory.getLogger(tag)`:
 | JVM      | `System.out` (DEBUG/INFO) / `System.err` (WARN/ERROR) | `<timestamp> [LEVEL] <tag> - <message> key=value …` |
 | iOS      | `NSLog` | `[LEVEL] <tag> - <message> key=value …` (NSLog adds its own timestamp) |
 | JavaScript | `console` API | `[<tag>] <message>` with attributes as an expandable JS object (browser devtools / Node.js); note: `debug` uses `console.log`, not `console.debug` — browser "Verbose" filter will not capture it |
+| Wasm (wasmJs) | `console` API | `[<tag>] <message> key=value …` (attributes appended as text) |
 | Linux/Native | `stdout` (DEBUG/INFO) / `stderr` (WARN/ERROR) | `[LEVEL] <tag> - <message> key=value …` (no timestamp; systemd/journald provides its own) |
 
 #### Custom Logger
