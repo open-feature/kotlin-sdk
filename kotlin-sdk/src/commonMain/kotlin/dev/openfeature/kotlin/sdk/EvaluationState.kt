@@ -1,9 +1,11 @@
 package dev.openfeature.kotlin.sdk
 
 /**
- * Atomic snapshot of the provider and evaluation context used for flag evaluation and tracking.
+ * Atomic snapshot of the provider, evaluation context and hooks used for flag evaluation and
+ * tracking.
  */
 internal data class EvaluationState(
     val provider: FeatureProvider,
-    val context: EvaluationContext?
+    val context: EvaluationContext?,
+    val hooks: List<Hook<*>>
 )

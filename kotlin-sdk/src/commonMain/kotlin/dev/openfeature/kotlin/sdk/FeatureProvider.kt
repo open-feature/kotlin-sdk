@@ -3,30 +3,64 @@ package dev.openfeature.kotlin.sdk
 import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import dev.openfeature.kotlin.sdk.exceptions.OpenFeatureError
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlin.coroutines.cancellation.CancellationException
 
+/**
+ * The interface implemented by upstream flag providers to resolve flags for their service.
+ *
+ * A provider is responsible for its own [status] and for emitting the events that explain it, which
+ * [ProviderStatusTracker] does on its behalf. The README carries a worked example.
+ */
 interface FeatureProvider {
     val hooks: List<Hook<*>>
     val metadata: ProviderMetadata
 
     /**
-     * Called by OpenFeatureAPI whenever the new Provider is registered
-     * This function should block until ready and throw exceptions if it fails to initialize
+     * The current lifecycle status of this provider, kept up to date by the provider alone. It must
+     * be [OpenFeatureStatus.NotReady] before [initialize] is called, must reflect the most recently
+     * emitted event thereafter, and must be thread-safe: the SDK reads it from flag evaluation paths
+     * on any thread.
+     */
+    val status: OpenFeatureStatus
+
+    /**
+     * Called by OpenFeatureAPI when this provider is registered, to do whatever asynchronous setup
+     * it needs.
+     *
+     * Emit at least one event before returning, so that [status] moves away from
+     * [OpenFeatureStatus.NotReady] — usually [OpenFeatureProviderEvents.ProviderReady] or
+     * [OpenFeatureProviderEvents.ProviderError]. Throwing does not set a status: the SDK logs the
+     * failure and a provider that throws without emitting stays [OpenFeatureStatus.NotReady].
+     *
+     * Lifecycle calls are entered in the order they were made, but the SDK does not wait for one to
+     * finish before entering the next.
+     *
      * @param initialContext any initial context to be set before the provider is ready
      */
     @Throws(OpenFeatureError::class, CancellationException::class)
     suspend fun initialize(initialContext: EvaluationContext?)
 
     /**
-     * Called when the lifecycle of the OpenFeatureClient is over to release resources/threads
+     * Called when the lifecycle of the OpenFeatureClient is over to release resources/threads.
+     *
+     * A provider that can be registered again must return to [OpenFeatureStatus.NotReady] here, so
+     * a reused instance does not report the status it held before it was shut down.
      */
     fun shutdown()
 
     /**
      * Called by OpenFeatureAPI whenever the application sets the [EvaluationContext], including when
      * the new context is equal to or the same instance as the previous context.
-     * Implementations should suspend until the provider is ready again or throw an exception.
+     *
+     * Either return without emitting anything, where no reconciliation is needed, or emit
+     * [OpenFeatureProviderEvents.ProviderReconciling], do the work, and emit
+     * [OpenFeatureProviderEvents.ProviderContextChanged] or
+     * [OpenFeatureProviderEvents.ProviderError]. [ProviderStatusTracker.reconciling] does the
+     * latter, including collapsing overlapping invocations.
+     *
+     * This can be entered while previous reconciliation work is still in flight; a provider
+     * reconciling asynchronously should handle that, for instance by cancelling the work it
+     * supersedes.
      *
      * @param oldContext The old EvaluationContext
      * @param newContext The new EvaluationContext
@@ -61,10 +95,8 @@ interface FeatureProvider {
     }
 
     /**
-     * Used by providers to expose internal events to the SDK or the application.
-     * This can be optionally implemented by the provider to expose a flow of internal events.
+     * The events this provider emits, for the SDK and the application. The SDK derives nothing from
+     * a provider's silence: every status transition must arrive here.
      */
-    fun observe(): Flow<OpenFeatureProviderEvents> {
-        return emptyFlow()
-    }
+    fun observe(): Flow<OpenFeatureProviderEvents>
 }
