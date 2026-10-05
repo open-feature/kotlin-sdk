@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/open-feature/kotlin-sdk/compare/v0.9.0...v0.9.1) (2026-10-05)
+
+
+### 🧹 Chore
+
+* standardize/update release please config ([#276](https://github.com/open-feature/kotlin-sdk/issues/276)) ([8d727fb](https://github.com/open-feature/kotlin-sdk/commit/8d727fbead4b8d8bc66dc271ad35de1ece603a8b))
+
 ## [0.9.0](https://github.com/open-feature/kotlin-sdk/compare/v0.8.0...v0.9.0) (2026-09-25)
 
 
