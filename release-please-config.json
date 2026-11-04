@@ -1,4 +1,5 @@
 {
+    "signoff": "OpenFeature Bot <109696520+openfeaturebot@users.noreply.github.com>",
     "bootstrap-sha": "c9eca676d0fd091a6146de2246435f9d52ab3cae",
     "packages": {
         ".": {
