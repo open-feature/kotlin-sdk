@@ -62,7 +62,7 @@ kotlin {
             implementation("org.jetbrains.kotlinx:atomicfu:0.33.0")
         }
         commonTest.dependencies {
-            implementation("org.jetbrains.kotlin:kotlin-test:2.3.21")
+            implementation("org.jetbrains.kotlin:kotlin-test:2.4.21")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
             implementation("org.jetbrains.kotlinx:atomicfu:0.33.0")
         }
