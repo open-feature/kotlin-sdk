@@ -6,6 +6,12 @@ import kotlinx.coroutines.flow.Flow
 interface Client : Features, Tracking {
     val metadata: ClientMetadata
     val hooks: List<Hook<*>>
+
+    /**
+     * A [Flow] that emits the initial [OpenFeatureStatus] and all subsequent state transitions
+     * of the Provider handling this client's evaluations. This enables reactive observation
+     * of the provider's lifecycle.
+     */
     val statusFlow: Flow<OpenFeatureStatus>
 
     /**
@@ -16,4 +22,13 @@ interface Client : Features, Tracking {
     fun observe(): Flow<OpenFeatureProviderEvents>
 
     fun addHooks(hooks: List<Hook<*>>)
+
+    /**
+     * The current status of the provider handling this client's evaluations.
+     *
+     * @return the current [OpenFeatureStatus], or [OpenFeatureStatus.NotReady] if no provider has
+     * been initialized.
+     */
+    val providerStatus: OpenFeatureStatus
+        get() = OpenFeatureStatus.NotReady
 }
