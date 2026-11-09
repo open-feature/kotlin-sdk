@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.0](https://github.com/open-feature/kotlin-sdk/compare/v0.9.0...v0.10.0) (2026-11-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** bump kotlin to 2.3.21 and coroutines to 1.11.0 ([#285](https://github.com/open-feature/kotlin-sdk/issues/285))
+
+### 🧹 Chore
+
+* **deps:** bump kotlin to 2.3.21 and coroutines to 1.11.0 ([#285](https://github.com/open-feature/kotlin-sdk/issues/285)) ([cd26ef2](https://github.com/open-feature/kotlin-sdk/commit/cd26ef2eefed748f8502bed452da8089f0088d1c))
+* **deps:** update amannn/action-semantic-pull-request action to v6.1.2 ([#287](https://github.com/open-feature/kotlin-sdk/issues/287)) ([775a3e2](https://github.com/open-feature/kotlin-sdk/commit/775a3e2a5ca284b57e69dd918cc5400cc28a207a))
+* **deps:** update plugin org.jetbrains.dokka to v2.3.0 ([#288](https://github.com/open-feature/kotlin-sdk/issues/288)) ([8dba48a](https://github.com/open-feature/kotlin-sdk/commit/8dba48adefdc6850bf8effac0d30d4af4e1ecfad))
+* standardize/update release please config ([#276](https://github.com/open-feature/kotlin-sdk/issues/276)) ([8d727fb](https://github.com/open-feature/kotlin-sdk/commit/8d727fbead4b8d8bc66dc271ad35de1ece603a8b))
+
 ## [0.9.0](https://github.com/open-feature/kotlin-sdk/compare/v0.8.0...v0.9.0) (2026-09-25)
 
 
