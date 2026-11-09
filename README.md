@@ -47,6 +47,8 @@ The following [Kotlin Multiplatform Targets](https://www.jetbrains.com/help/kotl
 | ✅         | Javascript (Browser) |                                                                                |
 | ❌         | Wasm                 |                                                                                |
 
+Starting with 0.10.0, Kotlin consumers need **Kotlin 2.2 or newer**. The SDK is compiled with Kotlin 2.3, and older compilers can't read its metadata. Versions up to 0.9.0 support Kotlin 2.1.
+
 
 Note that this library adheres to the
 [Static Context Paradigm](https://openfeature.dev/docs/reference/concepts/sdk-paradigms), so it is
