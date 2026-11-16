@@ -45,7 +45,7 @@ The following [Kotlin Multiplatform Targets](https://www.jetbrains.com/help/kotl
 | ❌         | Native               | [Other native targets](https://kotlinlang.org/docs/native-target-support.html) |
 | ✅         | Javascript (Node.js) |                                                                                |
 | ✅         | Javascript (Browser) |                                                                                |
-| ✅         | Wasm (wasmJs)        | Node.js, Browser                                                               |
+| ✅         | Wasm (wasmJs)        | Node.js, Browser; Kotlin 2.3.20+                                               |
 
 Starting with 0.10.0, Kotlin consumers need **Kotlin 2.2 or newer**. The SDK is compiled with Kotlin 2.3, and older compilers can't read its metadata. Versions up to 0.9.0 support Kotlin 2.1.
 
