@@ -1,7 +1,9 @@
 package dev.openfeature.kotlin.sdk.sampleapp
 
 import dev.openfeature.kotlin.sdk.*
+import dev.openfeature.kotlin.sdk.events.OpenFeatureProviderEvents
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 
 class ExampleProvider(override val hooks: List<Hook<*>> = listOf()) : FeatureProvider {
 
@@ -25,20 +27,27 @@ class ExampleProvider(override val hooks: List<Hook<*>> = listOf()) : FeaturePro
             override val name: String = "ExampleProvider"
         }
 
+    private val statusTracker = ProviderStatusTracker()
+
+    override val status: OpenFeatureStatus get() = statusTracker.status
+
+    override fun observe(): Flow<OpenFeatureProviderEvents> = statusTracker.observe()
+
     override suspend fun initialize(initialContext: EvaluationContext?) {
         currentContext = initialContext
         // Simulate a delay in the provider initialization
         delay(delayTime)
+        statusTracker.send(OpenFeatureProviderEvents.ProviderReady())
     }
 
     override fun shutdown() {
-
+        statusTracker.reset()
     }
 
     override suspend fun onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
-    ) {
+    ) = statusTracker.reconciling {
         currentContext = newContext
         delay(delayTime)
     }

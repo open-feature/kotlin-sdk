@@ -5,14 +5,14 @@ import dev.openfeature.kotlin.sdk.helpers.BrokenInitProvider
 import dev.openfeature.kotlin.sdk.helpers.DoSomethingProvider
 import dev.openfeature.kotlin.sdk.helpers.SlowProvider
 import dev.openfeature.kotlin.sdk.helpers.SpyProvider
+import dev.openfeature.kotlin.sdk.helpers.TrackedProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -81,6 +81,7 @@ class StatusTests {
     }
 
     @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun testProviderTransitionsToReconcilingOnContextSet() = runTest {
         waitAssert {
             assertEquals(OpenFeatureStatus.NotReady, OpenFeatureAPI.getStatus())
@@ -94,11 +95,17 @@ class StatusTests {
         OpenFeatureAPI.setProviderAndWait(DoSomethingProvider())
         waitAssert { assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus()) }
         OpenFeatureAPI.setEvaluationContextAndWait(ImmutableContext("some value"))
-        waitAssert { assertEquals(OpenFeatureStatus.Reconciling, OpenFeatureAPI.getStatus()) }
-        waitAssert {
-            assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
-        }
+        advanceUntilIdle()
         job.cancelAndJoin()
+
+        // Reconciling is transient: it has already been superseded by the time the call returns, so
+        // it can only be observed in the collected sequence, not by polling getStatus().
+        assertTrue(
+            statuses.contains(OpenFeatureStatus.Reconciling),
+            "expected a Reconciling transition, collected $statuses"
+        )
+        assertEquals(OpenFeatureStatus.Ready, statuses.last())
+        assertEquals(OpenFeatureStatus.Ready, OpenFeatureAPI.getStatus())
     }
 
     @Test
@@ -148,11 +155,12 @@ class StatusTests {
     fun testCancelledContextSetFinishingLastUsesReplacementStatus() = runTest {
         val provider = CancellationRaceProvider()
         val dispatcher = StandardTestDispatcher(testScheduler)
-        OpenFeatureAPI.setProviderAndWait(provider)
+        // The registration's dispatcher is what runs its reconciliations, so virtual time needs it.
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = dispatcher)
 
-        OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"), dispatcher)
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"))
         provider.firstContextSetStarted.receive()
-        OpenFeatureAPI.setEvaluationContext(ImmutableContext("replacement"), dispatcher)
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("replacement"))
         provider.firstContextSetCancellationStarted.receive()
         provider.replacementContextSetCompleted.receive()
         runCurrent()
@@ -172,14 +180,14 @@ class StatusTests {
         OpenFeatureAPI.setProviderAndWait(provider, dispatcher = dispatcher)
         runCurrent()
 
-        OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"), dispatcher)
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("first"))
         provider.firstContextSetStarted.receive()
-        OpenFeatureAPI.setEvaluationContext(ImmutableContext("replacement"), dispatcher)
+        OpenFeatureAPI.setEvaluationContext(ImmutableContext("replacement"))
         provider.firstContextSetCancellationStarted.receive()
         provider.replacementContextSetCompleted.receive()
         runCurrent()
 
-        provider.emitStale()
+        provider.emit(OpenFeatureProviderEvents.ProviderStale())
         runCurrent()
         assertEquals(OpenFeatureStatus.Stale, OpenFeatureAPI.getStatus())
 
@@ -205,7 +213,7 @@ class StatusTests {
 
         OpenFeatureAPI.setProviderAndWait(replacementProvider, dispatcher = dispatcher)
         runCurrent()
-        replacementProvider.emitStale()
+        replacementProvider.emit(OpenFeatureProviderEvents.ProviderStale())
         runCurrent()
         assertEquals(OpenFeatureStatus.Stale, OpenFeatureAPI.getStatus())
 
@@ -293,36 +301,80 @@ class StatusTests {
         waitAssert { assertEquals(1, provider1.shutdownCalls.value) }
         assertEquals(0, provider2.shutdownCalls.value)
     }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun testStatusFlowKeepsTheOrderTheProviderReportedWhileASubscriberIsBehind() = runTest {
+        val provider = DrivableProvider()
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
+        advanceUntilIdle()
+
+        val seen = mutableListOf<OpenFeatureStatus>()
+        val collector = launch { OpenFeatureAPI.statusFlow.collect { seen.add(it) } }
+        runCurrent()
+        seen.clear()
+
+        provider.emit(OpenFeatureProviderEvents.ProviderReconciling())
+        provider.emit(OpenFeatureProviderEvents.ProviderReady())
+        provider.emit(OpenFeatureProviderEvents.ProviderStale())
+        advanceUntilIdle()
+        collector.cancelAndJoin()
+
+        assertEquals(
+            listOf(OpenFeatureStatus.Reconciling, OpenFeatureStatus.Ready, OpenFeatureStatus.Stale),
+            seen.toList()
+        )
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun testStatusFlowReportsNotReadyWhenTheProviderIsCleared() = runTest {
+        val provider = DrivableProvider()
+        OpenFeatureAPI.setProviderAndWait(provider, dispatcher = StandardTestDispatcher(testScheduler))
+        advanceUntilIdle()
+
+        val seen = mutableListOf<OpenFeatureStatus>()
+        val collector = launch { OpenFeatureAPI.statusFlow.collect { seen.add(it) } }
+        runCurrent()
+        seen.clear()
+
+        OpenFeatureAPI.clearProvider()
+        advanceUntilIdle()
+        collector.cancelAndJoin()
+
+        assertEquals(listOf<OpenFeatureStatus>(OpenFeatureStatus.NotReady), seen.toList())
+    }
 }
 
-private class ControllableContextProvider : NoOpProvider() {
+private class DrivableProvider : TrackedProvider()
+
+private class ControllableContextProvider : TrackedProvider() {
     val contextSetStarted = Channel<Unit>(Channel.UNLIMITED)
     val allowContextSetToComplete = Channel<Unit>(Channel.UNLIMITED)
     val contextSetCompleted = Channel<Unit>(Channel.UNLIMITED)
 
-    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+    override suspend fun onContextSet(
+        oldContext: EvaluationContext?,
+        newContext: EvaluationContext
+    ) = statusTracker.reconciling {
         contextSetStarted.send(Unit)
         allowContextSetToComplete.receive()
         contextSetCompleted.send(Unit)
     }
 }
 
-private class CancellationRaceProvider : NoOpProvider() {
+private class CancellationRaceProvider : TrackedProvider() {
     val firstContextSetStarted = Channel<Unit>(Channel.UNLIMITED)
     val firstContextSetCancellationStarted = Channel<Unit>(Channel.UNLIMITED)
     val allowFirstContextSetToFinish = Channel<Unit>(Channel.UNLIMITED)
     val replacementContextSetCompleted = Channel<Unit>(Channel.UNLIMITED)
 
-    private val events = MutableSharedFlow<OpenFeatureProviderEvents>(extraBufferCapacity = 1)
     private var contextSetCalls = 0
 
-    override fun observe(): Flow<OpenFeatureProviderEvents> = events
-
-    fun emitStale() {
-        events.tryEmit(OpenFeatureProviderEvents.ProviderStale())
-    }
-
-    override suspend fun onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+    override suspend fun onContextSet(
+        oldContext: EvaluationContext?,
+        newContext: EvaluationContext
+    ) = statusTracker.reconciling {
         contextSetCalls++
         if (contextSetCalls == 1) {
             firstContextSetStarted.send(Unit)
@@ -342,14 +394,18 @@ private class CancellationRaceProvider : NoOpProvider() {
 
 private fun Duration.Companion.randomMs(min: Int, max: Int): Duration = Random.nextInt(min, max + 1).milliseconds
 
+/** Retries [function] until it passes, rethrowing its last failure once [timeoutMs] is exhausted. */
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun TestScope.waitAssert(timeoutMs: Long = 5000, function: () -> Unit) {
     var timeWaited = 0L
-    while (timeWaited < timeoutMs) {
+    while (true) {
         try {
             function()
             return
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Throwable) {
+            if (timeWaited >= timeoutMs) throw e
             delay(10)
             timeWaited += 10
             advanceUntilIdle()
